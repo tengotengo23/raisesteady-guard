@@ -350,7 +350,7 @@ jobs:
       - name: Install the .rpm, setup without questions, check
         run: |
           x() { sudo podman exec kgf "$@"; }
-          x dnf -y install /dist/raisesteady-guard-0.2.0-1.x86_64.rpm
+          x sh -c 'dnf -y install /dist/raisesteady-guard-*-1.x86_64.rpm'   # any version (0.2.0 was written here)
           x useradd -m kgkid
           x sh -c 'KG_PIN=2468 raisesteady-guard setup --yes --band 6-8 --pin-env KG_PIN --family-dns off'
           x systemctl is-active raisesteady-guard.service
