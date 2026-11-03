@@ -4,7 +4,7 @@ Free, open-source child-safe browsing for Windows and Linux computers: one insta
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
-Status: early (version 0.2.1). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. The extension is not in the browser stores yet, so on a home PC only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Status: early (version 0.2.2). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. In Firefox the extension installs by itself (signed by Mozilla, from version 0.2.2). It is not in the Chrome, Edge and Brave stores yet, so in those browsers only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 
@@ -53,7 +53,10 @@ Video time is part of browsing time, not added to it. The defaults are based on 
 
 ## Before it fully works on a home PC
 
-On a home PC, Chrome, Edge and Brave install a required extension only from their own stores, and Firefox only one signed by Mozilla. Until the extension is published there, the installer sets the browser settings above, but the extension (time limits, page check, YouTube without the feed, ad blocker) does not install.
+On a home PC, Chrome, Edge and Brave install a required extension only from their own stores, and Firefox only one signed by Mozilla.
+
+- **Firefox:** the extension is signed by Mozilla and comes with the installer and the Linux packages (from 0.2.2). Firefox installs it by itself the next time it starts.
+- **Chrome, Edge and Brave:** until the extension is published in their stores, the installer sets the browser settings above, but the extension (time limits, page check, YouTube without the feed, ad blocker) does not install.
 
 ## Install on Windows
 

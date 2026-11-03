@@ -196,11 +196,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			return codeFor(err, stderr)
 		}
 		if *xpi == "" {
-			if x := filepath.Join(filepath.Dir(exe), "raisesteady-guard.xpi"); fileExists(x) {
-				*xpi = fileURL(x)
-			} else if defaultXPIPath != "" {
-				*xpi = fileURL(defaultXPIPath)
-			}
+			*xpi = defaultXPIURL(exe)
 		}
 		acc, err := checkAccounts(*accounts)
 		if err != nil {
@@ -238,8 +234,11 @@ func run(args []string, stdout, stderr io.Writer) int {
 			}
 			f.pin = p
 		}
-		if f.xpi == "" && defaultXPIPath != "" {
-			f.xpi = fileURL(defaultXPIPath)
+		if f.xpi == "" {
+			// the add-on next to the program first: the .tar.gz puts both in /opt/raisesteady-guard
+			// (P2-159; setup used only the packages' /usr/lib path)
+			exe, _ := os.Executable()
+			f.xpi = defaultXPIURL(exe)
 		}
 		sio := newSetupIO(stdout)
 		sio.lang = langFromEnv()
@@ -350,6 +349,20 @@ func run(args []string, stdout, stderr io.Writer) int {
 	}
 	fmt.Fprint(stderr, usage)
 	return exitUsage
+}
+
+// defaultXPIURL is where Firefox installs the signed add-on from: the file next to the
+// program (Windows installer, Linux packages and .tar.gz), else the platform's default path.
+func defaultXPIURL(exe string) string {
+	if exe != "" {
+		if x := filepath.Join(filepath.Dir(exe), "raisesteady-guard.xpi"); fileExists(x) {
+			return fileURL(x)
+		}
+	}
+	if defaultXPIPath != "" {
+		return fileURL(defaultXPIPath)
+	}
+	return ""
 }
 
 func fileExists(p string) bool {

@@ -153,6 +153,14 @@ jobs:
           if sudo -u kgkid rm -f "$CHROME_POL" 2>/dev/null && [ ! -f "$CHROME_POL" ]; then echo "the child deleted a policy file"; exit 1; fi
           echo "policies ok"
 
+      # P2-159: the package ships the Mozilla-signed add-on where the Firefox policy points.
+      - name: The signed Firefox add-on is in the package and named in the Firefox policy
+        run: |
+          x=/usr/lib/raisesteady-guard/raisesteady-guard.xpi
+          unzip -l "$x" | grep -q META-INF/mozilla.rsa || { echo "$x is missing or not signed"; exit 1; }
+          fid="$(jq -r '.firefox.id' shared/ext-ids.json)"
+          jq -e --arg id "$fid" --arg u "file://$x" '.policies.ExtensionSettings[$id].install_url == $u' "$FF_POL"
+
       - name: Localhost API answers the token and refuses web origins
         run: |
           cid="$(jq -r '.chromium.chromeStoreId // .chromium.devId' shared/ext-ids.json)"
@@ -254,17 +262,17 @@ jobs:
             "$ff" --headless --remote-debugging-port=9335 --profile /tmp/kgff about:blank >/tmp/ff.log 2>&1 &
             sleep 15
             grep -i "polic" /tmp/ff.log | head -10 || true
-            if grep -q "raisesteady-guard.xpi" /tmp/ff.log; then
-              echo "Firefox applies the policies (it fetches the add-on named in ExtensionSettings)"
-              # Firefox prints "Policies:" and the reason on the next line; the only one allowed is
-              # the add-on download (the signed add-on is not shipped yet).
-              pe="$(grep -c "Policies:" /tmp/ff.log || true)"; xf="$(grep -c "raisesteady-guard.xpi" /tmp/ff.log || true)"
-              grep -A1 "Policies:" /tmp/ff.log || true
-              if [ "$pe" -gt "$xf" ]; then echo "Firefox rejects one of our policies"; exit 1; fi
-              pgrep -f "profile /tmp/kgff" >/dev/null || { echo "the guard closed Firefox"; exit 1; }
+            # Firefox prints "Policies:" and the reason on the next line for a policy it rejects; since
+            # 0.2.2 the add-on file is there, so none is allowed (P2-159).
+            if grep -q "Policies:" /tmp/ff.log; then grep -A1 "Policies:" /tmp/ff.log; echo "Firefox rejects one of our policies"; exit 1; fi
+            pgrep -f "profile /tmp/kgff" >/dev/null || { echo "the guard closed Firefox"; exit 1; }
+            # The .tar.gz puts the signed add-on next to the program; Firefox installs it by itself
+            # (which also shows it applied ExtensionSettings).
+            if jq -e '.addons[] | select(.id == "guard@raisesteady.com" and .active == true)' /tmp/kgff/extensions.json >/dev/null 2>&1; then
+              echo "Firefox installed the signed add-on: $(jq -c '.addons[] | select(.id == "guard@raisesteady.com") | {version, active, signedState}' /tmp/kgff/extensions.json)"
               checked=$((checked+1))
             else
-              echo "::warning::Firefox's log does not show our policies: NOT verified"; tail -20 /tmp/ff.log
+              echo "Firefox did not install our add-on"; jq -c '.addons[]? | {id, active}' /tmp/kgff/extensions.json 2>/dev/null | head; tail -20 /tmp/ff.log; exit 1
             fi
             pkill -f "profile /tmp/kgff" || true
           fi
@@ -302,6 +310,12 @@ jobs:
             echo "snap Firefox applies the policies (it fetches the add-on named in ExtensionSettings)"
           else
             echo "::warning::snap Firefox's log does not show our policies: NOT verified"; tail -20 /tmp/snapff.log
+          fi
+          # P2-159: whether a snap (sandboxed) Firefox can read the add-on file outside its sandbox
+          if sudo jq -e '.addons[] | select(.id == "guard@raisesteady.com" and .active == true)' /home/kgkid/snapff/extensions.json >/dev/null 2>&1; then
+            echo "snap Firefox installed the signed add-on"
+          else
+            echo "::warning::snap Firefox did not install our add-on: NOT working in snap Firefox"; sudo jq -c '.addons[]? | {id, active}' /home/kgkid/snapff/extensions.json 2>/dev/null | head -5
           fi
           sleep 6
           closed1="$(sudo grep -c 'closed' /var/lib/raisesteady-guard/agent.log || true)"

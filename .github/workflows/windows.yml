@@ -162,6 +162,23 @@ jobs:
           if (-not (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\RaiseSteady Guard\*.url")) { throw "Parent settings shortcut missing" }
           if (-not (Test-Path "$env:KG_DIR\THIRD-PARTY-NOTICES.txt")) { throw "licence notices not shipped" }
 
+      # P2-159: the Mozilla-signed add-on ships next to the agent and Firefox installs it by itself.
+      - name: Firefox installs the signed add-on from the install folder
+        run: |
+          if (-not (Test-Path "$env:KG_DIR\raisesteady-guard.xpi")) { throw "no raisesteady-guard.xpi in $env:KG_DIR" }
+          $ff = 'C:\Program Files\Mozilla Firefox\firefox.exe'
+          if (-not (Test-Path $ff)) { Write-Output "::warning::Firefox is not on this runner: NOT checked"; exit 0 }
+          $prof = "$env:RUNNER_TEMP\kgff"; New-Item -ItemType Directory -Force $prof | Out-Null
+          $p = Start-Process $ff -ArgumentList '-headless','-no-remote','-profile',$prof,'about:blank' -PassThru
+          Start-Sleep 25
+          Get-Process firefox -ErrorAction SilentlyContinue | Stop-Process -Force
+          Start-Sleep 2
+          $j = Get-Content "$prof\extensions.json" -Raw -ErrorAction SilentlyContinue
+          if ($j -notmatch '"id":"guard@raisesteady.com"') { Write-Output ($j | Select-Object -First 1); throw "Firefox did not install our add-on" }
+          $a = ($j | ConvertFrom-Json).addons | Where-Object { $_.id -eq 'guard@raisesteady.com' }
+          Write-Output "Firefox installed the signed add-on: version $($a.version), active $($a.active), signed $($a.signedState)"
+          if (-not $a.active) { throw "our add-on is installed but not active" }
+
       - name: A wrong PIN does not uninstall
         run: |
           $p = Start-Process -FilePath "$env:KG_DIR\uninstall.exe" -ArgumentList '/S','/PIN=9999',"_?=$env:KG_DIR" -Wait -PassThru

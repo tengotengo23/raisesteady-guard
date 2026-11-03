@@ -6,7 +6,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
-VERSION="${KG_VERSION:-0.2.1}"
+VERSION="${KG_VERSION:-0.2.2}"
 
 if [ "${1:-}" != "--skip-agent" ] || [ ! -f "$DIST/raisesteady-guard-agent-amd64.exe" ]; then
   "$ROOT/tools/build-agent.sh" ${KG_AGENT_FLAGS:-}
@@ -19,6 +19,12 @@ fi
 [ -n "$MAKENSIS" ] || { echo "NSIS is not installed (brew install makensis)"; exit 1; }
 
 winpath() { if command -v cygpath >/dev/null; then cygpath -w "$1"; else echo "$1"; fi; }
+# The Firefox add-on signed by Mozilla (signed/README.md) goes next to the agent, where the
+# Firefox policy installs it from, unless the build already made one.
+if [ ! -f "$DIST/raisesteady-guard.xpi" ] && [ -f "$ROOT/signed/raisesteady-guard-firefox.xpi" ]; then
+  mkdir -p "$DIST" && cp "$ROOT/signed/raisesteady-guard-firefox.xpi" "$DIST/raisesteady-guard.xpi"
+fi
+echo "Firefox add-on in the installer: $([ -f "$DIST/raisesteady-guard.xpi" ] && echo yes || echo none)"
 
 # The installer ships the licence notices (THIRD-PARTY-NOTICES.txt).
 NOTICES="${KG_NOTICES:-$ROOT/THIRD-PARTY-NOTICES.txt}"

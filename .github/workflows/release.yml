@@ -240,7 +240,7 @@ jobs:
             echo
             echo "Made with AI and provided \"as is\", without any guarantee; support is voluntary and updates are not promised. Read [About this project]($home#about-this-project) before you install."
             echo
-            echo "The extension zips are the store packages, also for testing. On a home PC the extension installs from the browser stores once it is published there."
+            echo "Firefox: the extension is signed by Mozilla, comes with the installer and the Linux packages, and installs by itself. Chrome, Edge and Brave: it installs from their stores once it is published there. The extension zips are the store packages, also for testing."
             echo
             echo "Checksums: SHA256SUMS.txt."
           } > notes.md

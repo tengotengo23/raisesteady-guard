@@ -30,7 +30,7 @@ done
 for l in en ka ru; do cp "$ROOT/installer/terms-$l.txt" "$DATA/terms-$l.txt"; done
 cp "$ROOT/ext/ui/tokens.css" "$WEB/tokens.css"
 
-VERSION="${KG_VERSION:-0.2.1}"   # package version: digits and dots only
+VERSION="${KG_VERSION:-0.2.2}"   # package version: digits and dots only
 PV="$VERSION"                     # program version: with the commit
 if git -C "$ROOT" rev-parse --short HEAD >/dev/null 2>&1; then
   PV="$VERSION+$(git -C "$ROOT" rev-parse --short HEAD)"
@@ -56,7 +56,11 @@ NFPM="${NFPM:-nfpm}"
 command -v "$NFPM" >/dev/null || { echo "nFPM not found: set NFPM or install v2.47.0"; exit 1; }
 
 XPI=""
+# The Firefox add-on signed by Mozilla (signed/README.md), unless the build already made one.
+[ ! -f "$ROOT/dist/raisesteady-guard.xpi" ] && [ -f "$ROOT/signed/raisesteady-guard-firefox.xpi" ] && \
+  mkdir -p "$ROOT/dist" && cp "$ROOT/signed/raisesteady-guard-firefox.xpi" "$ROOT/dist/raisesteady-guard.xpi"
 [ -f "$ROOT/dist/raisesteady-guard.xpi" ] && XPI="$ROOT/dist/raisesteady-guard.xpi"
+echo "Firefox add-on in the packages: ${XPI:-none}"
 rm -f "$OUT"/*.deb "$OUT"/*.rpm "$OUT"/*.tar.gz
 for arch in amd64 arm64; do
   cfg="$OUT/nfpm-$arch.yaml"

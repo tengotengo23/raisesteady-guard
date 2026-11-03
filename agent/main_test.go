@@ -17,6 +17,28 @@ func TestFileURL(t *testing.T) {
 	}
 }
 
+// The add-on next to the program wins (the .tar.gz in /opt, P2-159); without one, the platform default.
+func TestDefaultXPIURL(t *testing.T) {
+	dir := t.TempDir()
+	exe := filepath.Join(dir, "raisesteady-guard")
+	if got := defaultXPIURL(exe); got != fileURLOrEmpty(defaultXPIPath) {
+		t.Fatalf("no file next to the program: %q", got)
+	}
+	if err := os.WriteFile(filepath.Join(dir, "raisesteady-guard.xpi"), []byte("x"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := defaultXPIURL(exe), fileURL(filepath.Join(dir, "raisesteady-guard.xpi")); got != want {
+		t.Fatalf("file next to the program: %q, want %q", got, want)
+	}
+}
+
+func fileURLOrEmpty(p string) string {
+	if p == "" {
+		return ""
+	}
+	return fileURL(p)
+}
+
 func TestAccountsINI(t *testing.T) {
 	p := filepath.Join(t.TempDir(), "a.ini")
 	err := writeAccountsINI(p, []accountLine{{SID: "S-1-5-21-1-2-3-1001", Name: "ნინო [kid]\r\n"}, {SID: "S-1-5-21-1-2-3-1000", Name: "Parent", Admin: true}}, map[string]bool{"S-1-5-21-1-2-3-1000": true}, "users")
