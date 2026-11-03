@@ -29,7 +29,7 @@ done
 [ -f "$ROOT/ext/ui/tokens.css" ] || { echo "missing ext/ui/tokens.css"; exit 1; }
 cp "$ROOT/ext/ui/tokens.css" "$WEB/tokens.css"
 
-VERSION="${KG_VERSION:-0.1.0}"
+VERSION="${KG_VERSION:-0.1.1}"
 if git -C "$ROOT" rev-parse --short HEAD >/dev/null 2>&1; then
   VERSION="$VERSION+$(git -C "$ROOT" rev-parse --short HEAD)"
 fi

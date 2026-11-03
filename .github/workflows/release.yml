@@ -190,6 +190,8 @@ jobs:
               echo "**[Code signing policy]($home#code-signing-policy):** these files are not code-signed yet; free signing through SignPath Foundation is planned. Windows may show \"Windows protected your PC\": click More info, then Run anyway."
             fi
             echo
+            echo "Made with AI and provided \"as is\", without any guarantee; support is voluntary and updates are not promised. Read [About this project]($home#about-this-project) before you install."
+            echo
             echo "The extension zips are the store packages, also for testing. On a home PC the extension installs from the browser stores once it is published there."
             echo
             echo "Checksums: SHA256SUMS.txt."

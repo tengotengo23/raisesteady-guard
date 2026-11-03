@@ -15,7 +15,7 @@ RequestExecutionLevel admin
   !define APP_NAME "RaiseSteady Guard"
 !endif
 !ifndef VERSION
-  !define VERSION "0.1.0"
+  !define VERSION "0.1.1"
 !endif
 !ifndef DIST
   !define DIST "..\dist"
@@ -79,6 +79,8 @@ Var FamilyDns   ; "on" or "off": AdGuard DNS Family for new accounts
 !define MUI_WELCOMEPAGE_TITLE "$(WelcomeTitle)"
 !define MUI_WELCOMEPAGE_TEXT "$(WelcomeText)"
 !insertmacro MUI_PAGE_WELCOME
+; Terms: no guarantees, no responsibility, privacy, licence (terms-<lang>.rtf; the parent clicks I Agree).
+!insertmacro MUI_PAGE_LICENSE $(TermsFile)
 Page custom AccountsPage AccountsLeave
 Page custom AgePinPage AgePinLeave
 Page custom DnsPage DnsLeave

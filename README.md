@@ -2,7 +2,9 @@
 
 Free, open-source child-safe browsing for a Windows PC: one installer and one browser extension. A parent installs it once. It makes the child's browsers safer and keeps browsing within an age-based daily time.
 
-Status: early (version 0.1.0). Tested in automated runs on Windows; not yet tested by families on home PCs. The extension is not in the browser stores yet, so on a home PC only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
+
+Status: early (version 0.1.1). Tested in automated runs on Windows; not yet tested by families on home PCs. The extension is not in the browser stores yet, so on a home PC only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 
@@ -42,6 +44,12 @@ Video time is part of browsing time, not added to it. The defaults are based on 
 - The child needs a standard Windows account, not an administrator one. An administrator can remove it.
 - It does not follow clock changes. The day and bedtime use the clock offset set at install, so changing the Windows time zone gives a child no extra time. When summer or winter time starts, change the offset on the parent page.
 - No filter is perfect. Stay close and talk with your child.
+
+## About this project
+
+- **Made with AI.** The code was written by an AI assistant and checked with automated tests and reviews. No independent expert has audited it.
+- **No guarantees.** It is provided "as is", without any guarantee or warranty of any kind, to the extent permitted by law. It may miss unsuitable sites, a child may find a way round it, and it may not work on every PC. Nexodyne Limited and the contributors take no responsibility for any loss or damage from installing or using it, to the extent permitted by law (see also sections 15 and 16 of the [GPL-3.0](LICENSE)).
+- **Support is voluntary.** Questions and bug reports are welcome in [Issues](../../issues), but there is no promise of an answer, a fix or future updates.
 
 ## Before it fully works on a home PC
 

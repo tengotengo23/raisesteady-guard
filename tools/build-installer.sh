@@ -6,7 +6,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DIST="$ROOT/dist"
-VERSION="${KG_VERSION:-0.1.0}"
+VERSION="${KG_VERSION:-0.1.1}"
 
 if [ "${1:-}" != "--skip-agent" ] || [ ! -f "$DIST/raisesteady-guard-agent-amd64.exe" ]; then
   "$ROOT/tools/build-agent.sh" ${KG_AGENT_FLAGS:-}
