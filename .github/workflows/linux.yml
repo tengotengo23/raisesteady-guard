@@ -268,11 +268,22 @@ jobs:
             pgrep -f "profile /tmp/kgff" >/dev/null || { echo "the guard closed Firefox"; exit 1; }
             # The .tar.gz puts the signed add-on next to the program; Firefox installs it by itself
             # (which also shows it applied ExtensionSettings).
-            if jq -e '.addons[] | select(.id == "guard@raisesteady.com" and .active == true)' /tmp/kgff/extensions.json >/dev/null 2>&1; then
+            # Firefox writes extensions.json a little after the install: wait up to 60 s.
+            ok=""
+            for i in $(seq 1 30); do
+              if jq -e '.addons[] | select(.id == "guard@raisesteady.com" and .active == true)' /tmp/kgff/extensions.json >/dev/null 2>&1; then ok=1; break; fi
+              sleep 2
+            done
+            if [ -n "$ok" ]; then
               echo "Firefox installed the signed add-on: $(jq -c '.addons[] | select(.id == "guard@raisesteady.com") | {version, active, signedState}' /tmp/kgff/extensions.json)"
               checked=$((checked+1))
             else
-              echo "Firefox did not install our add-on"; jq -c '.addons[]? | {id, active}' /tmp/kgff/extensions.json 2>/dev/null | head; tail -20 /tmp/ff.log; exit 1
+              echo "Firefox did not install our add-on. Evidence:"
+              echo "policy: $(jq -c '.policies.ExtensionSettings' "$FF_POL")"
+              u="$(jq -r '.policies.ExtensionSettings["guard@raisesteady.com"].install_url' "$FF_POL")"; f="${u#file://}"
+              ls -la "$f" || true; unzip -l "$f" 2>/dev/null | grep -c META-INF || true
+              ls -la /tmp/kgff | head -30; jq -c '.addons[]? | {id, active, location}' /tmp/kgff/extensions.json 2>/dev/null | head
+              tail -30 /tmp/ff.log; exit 1
             fi
             pkill -f "profile /tmp/kgff" || true
           fi
