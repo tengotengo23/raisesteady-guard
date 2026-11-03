@@ -86,7 +86,10 @@ func (s *Server) Handler() http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
 		h.Set("X-Content-Type-Options", "nosniff")
-		h.Set("Referrer-Policy", "no-referrer")
+		// same-origin, not no-referrer: under no-referrer a browser sends "Origin: null" with the
+		// parent page's own forms, and the origin check then refuses the right PIN (P2-157).
+		// Other sites still get no referrer.
+		h.Set("Referrer-Policy", "same-origin")
 		h.Set("Cache-Control", "no-store")
 		h.Set("Cross-Origin-Resource-Policy", "same-origin")
 		if !s.hostOK(r.Host) {

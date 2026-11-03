@@ -15,7 +15,7 @@ tools/build-installer.sh                 # also runs build-agent.sh; writes dist
 tools/build-installer.sh --skip-agent    # reuse the built agents
 ```
 
-- `KG_VERSION=0.2.0` sets the version (default 0.2.0). With `KG_WINRES=1` the agent build adds the Windows file details (product name, version, icon) through go-winres v0.3.3; the release build on GitHub sets it.
+- `KG_VERSION=0.2.1` sets the version (default 0.2.1). With `KG_WINRES=1` the agent build adds the Windows file details (product name, version, icon) through go-winres v0.3.3; the release build on GitHub sets it.
 - `build-agent.sh` copies `shared/age-bands.json`, `bookmarks.json`, `ext-ids.json`, `unsupported-browsers.json` and `ext/ui/tokens.css` into the Go module for `go:embed` (git-ignored copies; never edit them there). Age bands are required; a missing optional file is built empty and the build says so (`raisesteady-guard-agent status` lists it under `missingData`).
 - The installer ships `THIRD-PARTY-NOTICES.txt` and `agent/NOTICE-go.txt` (Go, x/sys, x/crypto, NSIS licences) into the install folder; the build stops with a message if the first is missing.
 - Go module `agent/`, dependencies only `golang.org/x/sys` and `golang.org/x/crypto` (pinned in `go.mod`/`go.sum`).

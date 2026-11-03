@@ -36,6 +36,35 @@ jobs:
         shell: bash
         run: bash tools/build-agent.sh
 
+      # The real browsers' own Origin and Sec-Fetch headers, which the Go tests cannot send (P2-157:
+      # the right PIN got "forbidden"). The parent page from the agent's code, before the install:
+      # once installed, the policies for under 13 close the browsers' debugging ports.
+      - name: The parent page takes the PIN in Edge, Chrome and Firefox
+        env:
+          PUPPETEER_SKIP_DOWNLOAD: "true"
+        run: |
+          npm install --no-save --no-audit --no-fund --prefix "$env:RUNNER_TEMP\pp" puppeteer@25.13.0 | Out-Null
+          if ($LASTEXITCODE -ne 0) { throw "npm install puppeteer failed" }
+          $env:PUPPETEER_FROM = "$env:RUNNER_TEMP\pp\package.json"
+          $env:KG_SERVE_SECONDS = '600'
+          $serve = Start-Process go -ArgumentList 'test','./internal/api','-run','TestServeForBrowser','-count=1' -WorkingDirectory agent -PassThru -NoNewWindow -RedirectStandardOutput "$env:RUNNER_TEMP\serve.log"
+          Remove-Item Env:KG_SERVE_SECONDS
+          $browsers = @(
+            @('chrome', 'C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe'),
+            @('chrome', 'C:\Program Files\Google\Chrome\Application\chrome.exe'),
+            @('firefox', 'C:\Program Files\Mozilla Firefox\firefox.exe'))
+          $n = 0; $failed = @()
+          foreach ($b in $browsers) {
+            if (-not (Test-Path $b[1])) { Write-Output "::warning::$($b[1]) is not on this runner: NOT checked"; continue }
+            node tests\e2e\parent-login.mjs $b[0] $b[1]
+            if ($LASTEXITCODE -ne 0) { $failed += $b[1] } else { $n++ }
+          }
+          try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 5 http://127.0.0.1:47615/__stop | Out-Null } catch {}
+          $serve | Wait-Process -Timeout 30 -ErrorAction SilentlyContinue
+          Get-Process api.test -ErrorAction SilentlyContinue | Stop-Process -Force
+          if ($failed.Count) { Get-Content "$env:RUNNER_TEMP\serve.log" -Tail 20; throw "parent page failed in: $($failed -join ', ')" }
+          if ($n -lt 3) { throw "only $n of 3 browsers checked" }
+
       - name: Build the installer
         shell: bash
         run: bash tools/build-installer.sh --skip-agent

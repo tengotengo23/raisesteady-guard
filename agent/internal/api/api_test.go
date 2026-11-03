@@ -497,10 +497,24 @@ func TestParentCSRFAndOrigin(t *testing.T) {
 	if r.saves != 1 {
 		t.Fatalf("bad input saved: %d", r.saves)
 	}
-	// Login from another origin is refused too (login CSRF).
+	// Login from another origin is refused too (login CSRF), and so is an opaque one ("null": a sandboxed frame).
 	b2 := &browser{r: r, t: t, cookies: map[string]*http.Cookie{}}
-	if w := b2.send("POST", "/parent/login", url.Values{"pin": {"2468"}}, "https://evil.example"); w.Code != http.StatusForbidden || b2.cookies[sessionCookie] != nil {
-		t.Fatalf("cross-origin login: %d", w.Code)
+	for _, o := range []string{"https://evil.example", "null"} {
+		if w := b2.send("POST", "/parent/login", url.Values{"pin": {"2468"}}, o); w.Code != http.StatusForbidden || b2.cookies[sessionCookie] != nil {
+			t.Fatalf("login from %s: %d", o, w.Code)
+		}
+	}
+}
+
+// Browsers send our own origin with the parent page's forms only if the page's referrer policy allows it:
+// under "no-referrer" they send "Origin: null" and the right PIN got "forbidden" (P2-157; the real-browser
+// check is tests/e2e/parent-login.mjs).
+func TestReferrerPolicyKeepsOwnOrigin(t *testing.T) {
+	r := newRig(t)
+	for _, path := range []string{"/parent", "/parent?lang=ka", "/v1/state"} {
+		if got := r.do(req{path: path}).Header().Get("Referrer-Policy"); got != "same-origin" {
+			t.Fatalf("%s: Referrer-Policy %q, want same-origin", path, got)
+		}
 	}
 }
 
