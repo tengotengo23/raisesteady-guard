@@ -297,6 +297,10 @@ func (s *Server) handleDefaults(w http.ResponseWriter, r *http.Request, lang str
 
 func (s *Server) handleAccounts(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
 	f := r.PostForm
+	if s.WholeComputer {
+		s.redirect(w, r, lang, "err", "bad_input", "sec", "accounts")
+		return
+	}
 	everyone := f.Get("everyone") == "on"
 	known := map[string]LocalAccount{}
 	if s.LocalAccounts != nil {
@@ -433,6 +437,7 @@ type pageData struct {
 	PinToday             string
 	LocalAccounts        []acctOpt
 	Everyone             bool
+	WholeComputer        bool
 }
 
 func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
@@ -488,6 +493,7 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 		d.AccountName = T(lang, "everyone")
 		d.Everyone = true
 	}
+	d.WholeComputer = s.WholeComputer
 	for j, a := range cfg.Accounts {
 		name := a.Name
 		if a.SID == core.AllSID {

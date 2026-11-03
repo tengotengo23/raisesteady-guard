@@ -1,14 +1,14 @@
 # RaiseSteady Guard
 
-Free, open-source child-safe browsing for a Windows PC: one installer and one browser extension. A parent installs it once. It makes the child's browsers safer and keeps browsing within an age-based daily time.
+Free, open-source child-safe browsing for Windows and Linux computers: one installer (or package) and one browser extension. A parent installs it once. It makes the child's browsers safer and keeps browsing within an age-based daily time.
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
-Status: early (version 0.1.1). Tested in automated runs on Windows; not yet tested by families on home PCs. The extension is not in the browser stores yet, so on a home PC only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Status: early (version 0.2.0). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. The extension is not in the browser stores yet, so on a home PC only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 
-**On the child's Windows account**, checked again every 5 minutes:
+**On the child's Windows account** (on Linux: every account on the computer, see [Install on Linux](#install-on-linux)), checked again every 5 minutes:
 - Google safe search and YouTube Restricted Mode in Chrome, Edge and Brave; Bing safe search in Edge. In Firefox, and for Bing in Chrome and Brave, safe search comes from the family DNS filter (and from the extension once it is installed).
 - the family DNS filter (AdGuard DNS Family) in all four browsers, unless the parent switches it off
 - no private or guest windows and no other extensions; pop-ups and notification requests are blocked; developer tools are off under 13
@@ -41,8 +41,8 @@ Video time is part of browsing time, not added to it. The defaults are based on 
 ## What it does not do
 
 - It protects web browsers only. Games, chat apps and other programs are not covered.
-- The child needs a standard Windows account, not an administrator one. An administrator can remove it.
-- It does not follow clock changes. The day and bedtime use the clock offset set at install, so changing the Windows time zone gives a child no extra time. When summer or winter time starts, change the offset on the parent page.
+- The child needs a standard account, not an administrator one (on Linux: no sudo). An administrator can remove it.
+- It does not follow clock changes. The day and bedtime use the clock offset set at install, so changing the time zone gives a child no extra time. When summer or winter time starts, change the offset on the parent page.
 - No filter is perfect. Stay close and talk with your child.
 
 ## About this project
@@ -55,7 +55,7 @@ Video time is part of browsing time, not added to it. The defaults are based on 
 
 On a home PC, Chrome, Edge and Brave install a required extension only from their own stores, and Firefox only one signed by Mozilla. Until the extension is published there, the installer sets the browser settings above, but the extension (time limits, page check, YouTube without the feed, ad blocker) does not install.
 
-## Install
+## Install on Windows
 
 1. Download `RaiseSteadyGuardSetup.exe` from [Releases](../../releases).
 2. Release files are not code-signed yet, so Windows may show "Windows protected your PC". Click **More info**, then **Run anyway**.
@@ -65,9 +65,23 @@ The parent page is in the Start menu as "Parent settings". Languages: English, G
 
 Keep the PIN safe: changing the settings, updating and removing all need it, and there is no way to reset it yet. Five wrong PINs lock it for 15 minutes.
 
+## Install on Linux
+
+For 64-bit Linux with systemd (Intel and AMD, or ARM: take the files marked arm64 or aarch64). From [Releases](../../releases):
+
+- **Ubuntu, Debian, Linux Mint:** `raisesteady-guard_<version>-1_amd64.deb`, then `sudo apt install ./raisesteady-guard_<version>-1_amd64.deb`
+- **Fedora and other RPM systems:** `raisesteady-guard-<version>-1.x86_64.rpm`, then `sudo dnf install ./raisesteady-guard-<version>-1.x86_64.rpm`
+- **Other Linux (Arch and others):** `raisesteady-guard-<version>-linux-amd64.tar.gz`, unpack it, then `sudo ./install.sh` in that folder
+
+Then run `sudo raisesteady-guard setup`: it shows the terms and asks for the child's age, a PIN and the family DNS filter. The parent page opens from the app menu ("RaiseSteady Guard") or at http://127.0.0.1:47615/parent.
+
+On Linux, browsers read these settings for the whole computer, so they apply to every account on it, including the parent's. It works best on a computer the child uses. Protected browsers: Chrome, Chromium, Edge, Brave and Firefox from their deb, rpm or snap packages, and the Firefox Flatpak installed for all users. Other browsers, and copies of these elsewhere, are closed. A browser that cannot see the settings (a trick some advanced users try) is closed too. Setup and the parent page are in English, Georgian or Russian, from the system language.
+
 ## Remove
 
-Settings, Apps, "RaiseSteady Guard", Uninstall. An administrator and the PIN are needed. Everything it set is removed, and settings that were there before are put back.
+Windows: Settings, Apps, "RaiseSteady Guard", Uninstall. An administrator and the PIN are needed. Everything it set is removed, and settings that were there before are put back.
+
+Linux: `sudo apt remove raisesteady-guard` or `sudo dnf remove raisesteady-guard` (from the .tar.gz: `sudo /opt/raisesteady-guard/uninstall.sh`). An administrator is needed. Everything it set is removed; Firefox policies set by another tool are put back.
 
 ## Privacy
 

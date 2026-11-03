@@ -620,3 +620,19 @@ func TestParentSavesTimeZone(t *testing.T) {
 		t.Fatal("the saved offset is not selected")
 	}
 }
+
+func TestParentWholeComputerOnLinux(t *testing.T) {
+	r := newRig(t)
+	r.s.WholeComputer = true
+	b := &browser{r: r, t: t, cookies: map[string]*http.Cookie{}}
+	b.login("2468")
+	page := b.send("GET", "/parent", nil, "").Body.String()
+	if !strings.Contains(page, "every account on this computer") || strings.Contains(page, `name="sid"`) || !strings.Contains(page, "sudo") {
+		t.Error("Linux page shows an account choice or lacks the whole-computer note")
+	}
+	before := len(r.cfg.Accounts)
+	w := b.send("POST", "/parent/accounts", url.Values{"csrf": {b.csrf()}, "sid": {kidA}}, "http://127.0.0.1:47615")
+	if !strings.Contains(w.Header().Get("Location"), "err=bad_input") || len(r.cfg.Accounts) != before {
+		t.Error("an account choice was accepted on Linux")
+	}
+}

@@ -37,7 +37,7 @@ const (
 	exitNotAdmin = 5
 )
 
-const usage = `raisesteady-guard-agent: the Windows service of ` + core.AppName + `.
+const usage = `raisesteady-guard: the Windows and Linux service of ` + core.AppName + `.
 
   service                         run as the RaiseSteadyGuard service (the service manager does this)
   install --accounts all|SID,SID --band ID (--pin PIN | --pin-env NAME) [--port N] [--firefox-xpi URL] [--family-dns on|off]
@@ -46,20 +46,16 @@ const usage = `raisesteady-guard-agent: the Windows service of ` + core.AppName 
   apply-once                      write the policies now (administrators)
   status                          show the state as JSON (no PIN, no tokens)
   list-accounts [--ini PATH]      list this PC's accounts (for the installer)
+  setup [--yes --band ID (--pin PIN | --pin-env NAME) --family-dns on|off]
+                                  Linux: terms, age, PIN and family filter, then install (sudo)
+  package-remove                  Linux: what the package manager runs on removal (root, no PIN)
+  guard-list                      what the browser guard sees now and what it would close (administrators)
   version
 
 Exit codes: 0 ok, 1 error, 2 usage, 3 wrong PIN, 4 PIN locked, 5 needs an administrator.
 `
 
 func main() { os.Exit(run(os.Args[1:], os.Stdout, os.Stderr)) }
-
-func dataDir() string {
-	base := os.Getenv("ProgramData")
-	if base == "" {
-		base = `C:\ProgramData`
-	}
-	return filepath.Join(base, "RaiseSteadyGuard")
-}
 
 // logger writes to agent.log in the data folder (rotated at 1 MB) and, for
 // commands, to stderr. It never receives a PIN or a token.
@@ -136,6 +132,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	xpi := fs.String("firefox-xpi", "", "Firefox install_url")
 	familyDNS := fs.String("family-dns", "on", "on or off: the AdGuard DNS Family resolver for new accounts")
 	ini := fs.String("ini", "", "write an INI file")
+	yes := fs.Bool("yes", false, "setup: ask nothing (give --band and the PIN)")
+	all := fs.Bool("all", false, "guard-list: every process, not only browsers")
 	if err := fs.Parse(rest); err != nil {
 		return exitUsage
 	}
@@ -148,7 +146,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return exitOK
 	}
 	if !supported() {
-		fmt.Fprintln(stderr, "This command works on Windows only.")
+		fmt.Fprintln(stderr, "This command works on Windows and Linux only.")
 		return exitError
 	}
 	data, err := core.LoadData()
@@ -162,7 +160,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if isAdmin() {
 			return true
 		}
-		fmt.Fprintln(stderr, "Please run this as an administrator.")
+		fmt.Fprintln(stderr, adminHint)
 		return false
 	}
 	switch cmd {
@@ -200,10 +198,17 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if *xpi == "" {
 			if x := filepath.Join(filepath.Dir(exe), "raisesteady-guard.xpi"); fileExists(x) {
 				*xpi = fileURL(x)
+			} else if defaultXPIPath != "" {
+				*xpi = fileURL(defaultXPIPath)
 			}
 		}
+		acc, err := checkAccounts(*accounts)
+		if err != nil {
+			fmt.Fprintln(stderr, err)
+			return exitUsage
+		}
 		res, err := agent.Install(sys, svcs, data, paths, agent.InstallOptions{
-			Accounts: *accounts, Band: *band, Pin: p, Port: *port, ExePath: exe, FirefoxXPI: *xpi,
+			Accounts: acc, Band: *band, Pin: p, Port: *port, ExePath: exe, FirefoxXPI: *xpi,
 			FamilyDNSOff: *familyDNS == "off",
 		}, nil)
 		lg := &logger{path: paths.Log}
@@ -213,6 +218,60 @@ func run(args []string, stdout, stderr io.Writer) int {
 			if len(data.Missing) > 0 {
 				fmt.Fprintf(stdout, "Built without: %s\n", strings.Join(data.Missing, ", "))
 			}
+		}
+		return codeFor(err, stderr)
+	case "setup":
+		if !needAdmin() {
+			return exitNotAdmin
+		}
+		f := setupFlags{yes: *yes, band: *band, port: *port, xpi: *xpi}
+		fs.Visit(func(fl *flag.Flag) {
+			if fl.Name == "family-dns" {
+				f.familyDNS = *familyDNS
+			}
+		})
+		if *pin != "" || *pinEnv != "" {
+			p, err := readPin(fs, pin, pinEnv)
+			if err != nil {
+				fmt.Fprintln(stderr, err)
+				return exitUsage
+			}
+			f.pin = p
+		}
+		if f.xpi == "" && defaultXPIPath != "" {
+			f.xpi = fileURL(defaultXPIPath)
+		}
+		sio := newSetupIO(stdout)
+		sio.lang = langFromEnv()
+		code := runSetup(sio, f, sys, svcs, data, paths)
+		if code == exitOK {
+			(&logger{path: paths.Log}).logf("setup %s done", version)
+		}
+		return code
+	case "guard-list":
+		// What the guard sees now: each person's browser process and what it would do.
+		if !needAdmin() {
+			return exitNotAdmin
+		}
+		a, err := agent.Load(sys, data, paths, nil)
+		if err != nil {
+			return codeFor(err, stderr)
+		}
+		lines, err := a.GuardList(*all)
+		if err != nil {
+			return codeFor(err, stderr)
+		}
+		for _, l := range lines {
+			fmt.Fprintln(stdout, l)
+		}
+		return exitOK
+	case "package-remove":
+		if !needAdmin() {
+			return exitNotAdmin
+		}
+		res, err := agent.PackageRemove(sys, svcs, data, paths, nil)
+		if err == nil {
+			fmt.Fprintf(stdout, "Removed. %d policy values removed or put back.\n", res.Removed)
 		}
 		return codeFor(err, stderr)
 	case "uninstall":
@@ -298,10 +357,14 @@ func fileExists(p string) bool {
 	return err == nil && !st.IsDir()
 }
 
-// fileURL turns C:\Program Files\RaiseSteadyGuard\raisesteady-guard.xpi into a file:/// URL.
+// fileURL turns C:\Program Files\RaiseSteadyGuard\raisesteady-guard.xpi
+// (or /usr/lib/raisesteady-guard/raisesteady-guard.xpi) into a file:/// URL.
 func fileURL(p string) string {
 	p = strings.ReplaceAll(p, `\`, "/")
-	u := url.URL{Scheme: "file", Path: "/" + p}
+	if !strings.HasPrefix(p, "/") {
+		p = "/" + p
+	}
+	u := url.URL{Scheme: "file", Path: p}
 	return u.String()
 }
 

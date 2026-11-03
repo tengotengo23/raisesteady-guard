@@ -99,6 +99,12 @@
     {{if .Browsers}}<ul class="list">{{range .Browsers}}<li><span>{{.Name}}{{if .Account}} <span class="muted">· {{.Account}}</span>{{end}}</span> <span class="state {{.State}}">{{.Text}}</span></li>{{end}}</ul>{{else}}<p class="muted">{{t .Lang "no_browsers"}}</p>{{end}}
   </section>
 
+  {{if .WholeComputer}}
+  <section class="card" aria-labelledby="accounts-h">
+    <h2 id="accounts-h">{{t .Lang "sec_accounts_linux"}}</h2>
+    <p>{{t .Lang "linux_all"}}</p>
+  </section>
+  {{else}}
   <section class="card" aria-labelledby="accounts-h">
     <h2 id="accounts-h">{{t .Lang "sec_accounts"}}</h2>
     <form method="post" action="/parent/accounts" class="stack">
@@ -109,6 +115,7 @@
       {{if eq .MsgSec "accounts"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
     </form>
   </section>
+  {{end}}
 
   <section class="card" aria-labelledby="privacy-h">
     <h2 id="privacy-h">{{t .Lang "sec_privacy"}}</h2>
@@ -131,7 +138,7 @@
     </form>
   </section>
 {{end}}
-  <p class="honest">{{t .Lang "browsers_only"}} {{t .Lang "honest"}}</p>
+  <p class="honest">{{if .WholeComputer}}{{t .Lang "browsers_only_linux"}} {{t .Lang "honest_linux"}}{{else}}{{t .Lang "browsers_only"}} {{t .Lang "honest"}}{{end}}</p>
 </main>
 </body>
 </html>

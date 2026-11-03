@@ -2,7 +2,7 @@
 # One-way export of this folder to the public open-source repository.
 # kidguard/ inside the Nexodyne repository stays the home of the code; this
 # copies its tracked files to a separate working tree, writes the public
-# Windows test workflow from ../.github/workflows/kidguard-windows.yml (paths
+# Windows and Linux test workflows from ../.github/workflows/kidguard-{windows,linux}.yml (paths
 # without the kidguard/ prefix), runs the secret scan and commits there.
 #
 #   tools/publish-oss.sh <target dir> "<commit message>" [--push]
@@ -32,17 +32,19 @@ git -C "$KG" ls-files -z . > "$LIST"
 find "$TARGET" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
 rsync -a --from0 --files-from="$LIST" "$KG/" "$TARGET/"
 
-# Public Windows test workflow: same steps, root paths, runs on push and pull requests.
+# Public Windows and Linux test workflows: same steps, root paths, run on push and pull requests.
 mkdir -p "$TARGET/.github/workflows"
-python3 - "$MONO/.github/workflows/kidguard-windows.yml" "$TARGET/.github/workflows/windows.yml" <<'PY'
+for os in windows linux; do
+python3 - "$MONO/.github/workflows/kidguard-$os.yml" "$TARGET/.github/workflows/$os.yml" "$os" <<'PY'
 import re, sys
-src, dst = sys.argv[1], sys.argv[2]
+src, dst, name = sys.argv[1], sys.argv[2], sys.argv[3]
 s = open(src, encoding='utf-8').read()
 s = re.sub(r'(?ms)^on:\n.*?^(?=permissions:)', 'on:\n  workflow_dispatch:\n  push:\n    branches: [main]\n  pull_request:\n\n', s, count=1)
 s = s.replace('kidguard/', '').replace('kidguard\\', '')
-s = s.replace('name: kidguard-windows', 'name: windows')
+s = s.replace('name: kidguard-' + name, 'name: ' + name)
 open(dst, 'w', encoding='utf-8').write(s)
 PY
+done
 
 if [ -f "$SCAN" ]; then
   ( cd "$TARGET" && git add -A && python3 "$SCAN" --staged )

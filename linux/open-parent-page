@@ -1,0 +1,16 @@
+#!/bin/sh
+# RaiseSteady Guard: opens the parent page, or says how to set up first.
+PORT=47615
+if systemctl is-active --quiet raisesteady-guard.service; then
+  exec xdg-open "http://127.0.0.1:$PORT/parent"
+fi
+case "${LC_ALL:-${LC_MESSAGES:-$LANG}}" in
+  ka*) MSG="ჯერ არ არის დაყენებული. გახსენით ტერმინალი და აკრიფეთ: sudo raisesteady-guard setup" ;;
+  ru*) MSG="Ещё не настроен. Откройте терминал и наберите: sudo raisesteady-guard setup" ;;
+  *)   MSG="Not set up yet. Open a terminal and type: sudo raisesteady-guard setup" ;;
+esac
+if command -v notify-send >/dev/null 2>&1; then
+  notify-send --app-name="RaiseSteady Guard" --icon=raisesteady-guard "RaiseSteady Guard" "$MSG"
+else
+  echo "$MSG" >&2
+fi

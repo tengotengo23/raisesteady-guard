@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "Browsers the agent cannot protect (they ignore the Chrome, Edge and Firefox policies the agent writes, or bypass filtering by design). In a protected account they are closed within 3 seconds. A process matches by its exe name, by the ProductName in its version info, or by a part of its path (lower case, backslashes). Exe names shared with other programs (browser.exe, chrome.exe, firefox.exe) are matched only by product name or path. Vivaldi is listed because its Windows policy support is not documented by Vivaldi (checked 3 Nov 2026); move it back when a test shows vivaldi://policy applying ours.",
+  "note": "Browsers the agent cannot protect (they ignore the Chrome, Edge and Firefox policies the agent writes, or bypass filtering by design). In a protected account they are closed within 3 seconds. A process matches by its exe name, by the ProductName in its version info, or by a part of its path (lower case, backslashes). Exe names shared with other programs (browser.exe, chrome.exe, firefox.exe) are matched only by product name or path. Vivaldi is listed because its Windows policy support is not documented by Vivaldi (checked 3 Nov 2026); move it back when a test shows vivaldi://policy applying ours. Linux (P2-154): browsers from the deb, rpm and snap packages in their usual folders, and the Firefox Flatpak installed for the whole computer, read our policy files; any other copy, user-installed Flatpak or other browser snap is matched by linuxExe (program name), linuxPath, flatpak (app id) or snap (name) and closed.",
   "supportedProducts": [
     "Google Chrome",
     "Google Chrome for Testing",
@@ -24,6 +24,16 @@
       ],
       "pathContains": [
         "\\vivaldi\\application\\"
+      ],
+      "linuxExe": [
+        "vivaldi-bin",
+        "vivaldi"
+      ],
+      "flatpak": [
+        "com.vivaldi.Vivaldi"
+      ],
+      "snap": [
+        "vivaldi"
       ]
     },
     {
@@ -40,6 +50,18 @@
       "pathContains": [
         "\\programs\\opera\\",
         "\\opera software\\"
+      ],
+      "linuxExe": [
+        "opera",
+        "opera-beta",
+        "opera-developer"
+      ],
+      "flatpak": [
+        "com.opera.Opera"
+      ],
+      "snap": [
+        "opera",
+        "opera-beta"
       ]
     },
     {
@@ -76,6 +98,16 @@
       ],
       "pathContains": [
         "\\tor browser\\browser\\"
+      ],
+      "linuxExe": [
+        "firefox.real"
+      ],
+      "linuxPath": [
+        "/tor-browser/",
+        "/torbrowser/"
+      ],
+      "flatpak": [
+        "org.torproject.torbrowser-launcher"
       ]
     },
     {
@@ -89,6 +121,16 @@
       ],
       "pathContains": [
         "\\mullvad browser\\"
+      ],
+      "linuxExe": [
+        "mullvadbrowser",
+        "mullvadbrowser.real"
+      ],
+      "linuxPath": [
+        "/mullvad-browser/"
+      ],
+      "flatpak": [
+        "net.mullvad.MullvadBrowser"
       ]
     },
     {
@@ -101,6 +143,12 @@
       ],
       "pathContains": [
         "\\yandex\\yandexbrowser\\"
+      ],
+      "linuxExe": [
+        "yandex_browser"
+      ],
+      "linuxPath": [
+        "/opt/yandex/browser"
       ]
     },
     {
@@ -141,7 +189,10 @@
       "product": [
         "Pale Moon"
       ],
-      "pathContains": []
+      "pathContains": [],
+      "linuxExe": [
+        "palemoon"
+      ]
     },
     {
       "id": "basilisk",
@@ -152,7 +203,10 @@
       "product": [
         "Basilisk"
       ],
-      "pathContains": []
+      "pathContains": [],
+      "linuxExe": [
+        "basilisk"
+      ]
     },
     {
       "id": "waterfox",
@@ -165,6 +219,13 @@
       ],
       "pathContains": [
         "\\waterfox\\"
+      ],
+      "linuxExe": [
+        "waterfox",
+        "waterfox-bin"
+      ],
+      "flatpak": [
+        "net.waterfox.waterfox"
       ]
     },
     {
@@ -178,6 +239,13 @@
       ],
       "pathContains": [
         "\\librewolf\\"
+      ],
+      "linuxExe": [
+        "librewolf",
+        "librewolf-bin"
+      ],
+      "flatpak": [
+        "io.gitlab.librewolf-community"
       ]
     },
     {
@@ -191,6 +259,13 @@
       ],
       "pathContains": [
         "\\floorp\\"
+      ],
+      "linuxExe": [
+        "floorp",
+        "floorp-bin"
+      ],
+      "flatpak": [
+        "one.ablaze.floorp"
       ]
     },
     {
@@ -202,6 +277,14 @@
       ],
       "pathContains": [
         "\\zen browser\\"
+      ],
+      "linuxExe": [
+        "zen",
+        "zen-bin"
+      ],
+      "flatpak": [
+        "app.zen_browser.zen",
+        "io.github.zen_browser.zen"
       ]
     },
     {
@@ -213,7 +296,10 @@
       "product": [
         "SeaMonkey"
       ],
-      "pathContains": []
+      "pathContains": [],
+      "linuxExe": [
+        "seamonkey"
+      ]
     },
     {
       "id": "kmeleon",
@@ -235,6 +321,15 @@
       ],
       "pathContains": [
         "\\chromium\\application\\"
+      ],
+      "linuxExe": [
+        "chromium",
+        "chromium-browser",
+        "chrome"
+      ],
+      "flatpak": [
+        "org.chromium.Chromium",
+        "io.github.ungoogled_software.ungoogled_chromium"
       ]
     },
     {
@@ -259,6 +354,13 @@
       ],
       "pathContains": [
         "\\thorium\\"
+      ],
+      "linuxExe": [
+        "thorium",
+        "thorium-browser"
+      ],
+      "linuxPath": [
+        "/opt/chromium.org/thorium"
       ]
     },
     {
@@ -432,6 +534,12 @@
       ],
       "pathContains": [
         "\\naver\\naver whale\\"
+      ],
+      "linuxExe": [
+        "whale"
+      ],
+      "linuxPath": [
+        "/opt/naver/whale"
       ]
     },
     {
@@ -500,7 +608,13 @@
       "product": [
         "Midori"
       ],
-      "pathContains": []
+      "pathContains": [],
+      "linuxExe": [
+        "midori"
+      ],
+      "flatpak": [
+        "org.midori_browser.Midori"
+      ]
     },
     {
       "id": "falkon",
@@ -511,7 +625,13 @@
       "product": [
         "Falkon"
       ],
-      "pathContains": []
+      "pathContains": [],
+      "linuxExe": [
+        "falkon"
+      ],
+      "flatpak": [
+        "org.kde.falkon"
+      ]
     },
     {
       "id": "min",
@@ -555,7 +675,110 @@
       "product": [
         "Ladybird"
       ],
-      "pathContains": []
+      "pathContains": [],
+      "linuxExe": [
+        "ladybird"
+      ],
+      "flatpak": [
+        "org.ladybird.Ladybird"
+      ]
+    },
+    {
+      "id": "epiphany",
+      "name": "GNOME Web",
+      "exe": [],
+      "product": [],
+      "pathContains": [],
+      "linuxExe": [
+        "epiphany",
+        "epiphany-browser"
+      ],
+      "flatpak": [
+        "org.gnome.Epiphany"
+      ]
+    },
+    {
+      "id": "konqueror",
+      "name": "Konqueror",
+      "exe": [],
+      "product": [],
+      "pathContains": [],
+      "linuxExe": [
+        "konqueror"
+      ],
+      "flatpak": [
+        "org.kde.konqueror"
+      ]
+    },
+    {
+      "id": "qutebrowser",
+      "name": "qutebrowser",
+      "exe": [],
+      "product": [],
+      "pathContains": [],
+      "flatpak": [
+        "org.qutebrowser.qutebrowser"
+      ]
+    },
+    {
+      "id": "chrome-other",
+      "name": "Google Chrome (other copy)",
+      "exe": [],
+      "product": [],
+      "pathContains": [],
+      "linuxExe": [
+        "google-chrome",
+        "google-chrome-stable"
+      ],
+      "flatpak": [
+        "com.google.Chrome",
+        "com.google.ChromeDev"
+      ]
+    },
+    {
+      "id": "edge-other",
+      "name": "Microsoft Edge (other copy)",
+      "exe": [],
+      "product": [],
+      "pathContains": [],
+      "linuxExe": [
+        "msedge"
+      ],
+      "flatpak": [
+        "com.microsoft.Edge"
+      ]
+    },
+    {
+      "id": "brave-other",
+      "name": "Brave (other copy)",
+      "exe": [],
+      "product": [],
+      "pathContains": [],
+      "linuxExe": [
+        "brave",
+        "brave-browser"
+      ],
+      "flatpak": [
+        "com.brave.Browser"
+      ],
+      "snap": [
+        "brave"
+      ]
+    },
+    {
+      "id": "firefox-other",
+      "name": "Firefox (other copy)",
+      "exe": [],
+      "product": [],
+      "pathContains": [],
+      "linuxExe": [
+        "firefox",
+        "firefox-bin",
+        "firefox-esr"
+      ],
+      "flatpak": [
+        "org.mozilla.firefox"
+      ]
     }
   ]
 }

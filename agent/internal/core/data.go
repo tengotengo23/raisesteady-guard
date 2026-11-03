@@ -11,8 +11,18 @@ import (
 // The files in data/ are copied from shared/ by tools/build-agent.sh.
 // Never edit them here.
 //
-//go:embed data/*.json
+//go:embed data/*.json data/*.txt
 var dataFS embed.FS
+
+// Terms returns the terms text (installer/terms-<lang>.txt: no guarantees,
+// privacy, licence) in en, ka or ru; English when the language is missing.
+func Terms(lang string) string {
+	if b, err := dataFS.ReadFile("data/terms-" + lang + ".txt"); err == nil && len(b) > 0 {
+		return string(b)
+	}
+	b, _ := dataFS.ReadFile("data/terms-en.txt")
+	return string(b)
+}
 
 // Band is one entry of shared/age-bands.json.
 type Band struct {
@@ -71,6 +81,11 @@ type Unsupported struct {
 	Exe          []string `json:"exe"`
 	Product      []string `json:"product"`
 	PathContains []string `json:"pathContains"`
+	// Linux: program names, parts of the path, Flatpak app ids and snap names.
+	LinuxExe  []string `json:"linuxExe,omitempty"`
+	LinuxPath []string `json:"linuxPath,omitempty"`
+	Flatpak   []string `json:"flatpak,omitempty"`
+	Snap      []string `json:"snap,omitempty"`
 }
 
 // UnsupportedList is the parsed unsupported-browsers.json.

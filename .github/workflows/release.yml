@@ -1,5 +1,5 @@
-# Release: build the agent and the installer on Windows, the extension zips on
-# Linux, sign the Windows files through SignPath Foundation once signing is set
+# Release: build the agent and the installer on Windows, the extension zips and
+# the Linux packages (.deb, .rpm, .tar.gz) on Linux, sign the Windows files through SignPath Foundation once signing is set
 # up, and publish a GitHub release with them.
 #
 # Runs on a version tag (v0.1.0), or by hand (Actions, release, Run workflow)
@@ -157,8 +157,44 @@ jobs:
             dist/raisesteady-guard-*-firefox.zip
           if-no-files-found: error
 
+  linux:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    permissions:
+      contents: read
+    steps:
+      - name: Check the tag
+        run: '[[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must look like v1.2.3"; exit 1; }'
+
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: nFPM (packages), pinned
+        run: go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0
+
+      - name: Build and test the Linux program and packages
+        run: |
+          grep -q "\"version\": \"${TAG#v}\"" ext/manifest.json || { echo "ext/manifest.json version is not ${TAG#v}"; exit 1; }
+          KG_VERSION="${TAG#v}" NFPM="$(go env GOPATH)/bin/nfpm" bash tools/build-linux.sh
+
+      - name: Keep the packages for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-files
+          path: |
+            dist/linux/*.deb
+            dist/linux/*.rpm
+            dist/linux/*.tar.gz
+          if-no-files-found: error
+
   publish:
-    needs: [windows, extension]
+    needs: [windows, extension, linux]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -176,13 +212,25 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           cd dist
-          sha256sum RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip > SHA256SUMS.txt
+          v="${TAG#v}"
+          linux="raisesteady-guard_${v}-1_amd64.deb raisesteady-guard_${v}-1_arm64.deb raisesteady-guard-${v}-1.x86_64.rpm raisesteady-guard-${v}-1.aarch64.rpm raisesteady-guard-${v}-linux-amd64.tar.gz raisesteady-guard-${v}-linux-arm64.tar.gz"
+          for f in $linux; do [ -f "$f" ] || { echo "missing $f"; exit 1; }; done
+          # shellcheck disable=SC2086
+          sha256sum RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip $linux > SHA256SUMS.txt
           cat SHA256SUMS.txt
           home="https://github.com/$GH_REPO"
           {
-            echo "RaiseSteady Guard ${TAG#v}: free, open-source child-safe browsing for Windows."
+            echo "RaiseSteady Guard ${v}: free, open-source child-safe browsing for Windows and Linux."
             echo
-            echo "Download \`RaiseSteadyGuardSetup.exe\` and run it; Windows asks for an administrator. What it does, its limits and privacy: [README]($home#readme)."
+            echo "**Windows 10 and 11:** download \`RaiseSteadyGuardSetup.exe\` and run it; Windows asks for an administrator."
+            echo
+            echo "**Linux** (64-bit, with systemd): install the file for your system, then run \`sudo raisesteady-guard setup\`."
+            echo "- Ubuntu, Debian, Linux Mint: \`raisesteady-guard_${v}-1_amd64.deb\`, then \`sudo apt install ./raisesteady-guard_${v}-1_amd64.deb\`"
+            echo "- Fedora and other RPM systems: \`raisesteady-guard-${v}-1.x86_64.rpm\`, then \`sudo dnf install ./raisesteady-guard-${v}-1.x86_64.rpm\`"
+            echo "- Other Linux: \`raisesteady-guard-${v}-linux-amd64.tar.gz\`, unpack it, then \`sudo ./install.sh\`"
+            echo "- ARM computers: the files marked arm64 or aarch64."
+            echo
+            echo "On Linux the browser settings apply to every account on the computer, including the parent's. What it does, its limits and privacy: [README]($home#readme)."
             echo
             if [ "$SIGN" = true ]; then
               echo "**[Code signing policy]($home#code-signing-policy):** Free code signing provided by [SignPath.io](https://about.signpath.io/), certificate by [SignPath Foundation](https://signpath.org/)."
@@ -196,5 +244,6 @@ jobs:
             echo
             echo "Checksums: SHA256SUMS.txt."
           } > notes.md
-          gh release create "$TAG" --verify-tag --title "RaiseSteady Guard ${TAG#v}" --notes-file notes.md \
-            RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip SHA256SUMS.txt
+          # shellcheck disable=SC2086
+          gh release create "$TAG" --verify-tag --title "RaiseSteady Guard ${v}" --notes-file notes.md \
+            RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip $linux SHA256SUMS.txt

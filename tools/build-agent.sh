@@ -26,10 +26,15 @@ for f in age-bands.json bookmarks.json ext-ids.json unsupported-browsers.json; d
     : > "$DATA/$f"
   fi
 done
+# The setup command (Linux) shows the same terms as the Windows installer.
+for l in en ka ru; do
+  [ -f "$ROOT/installer/terms-$l.txt" ] || { echo "missing installer/terms-$l.txt"; exit 1; }
+  cp "$ROOT/installer/terms-$l.txt" "$DATA/terms-$l.txt"
+done
 [ -f "$ROOT/ext/ui/tokens.css" ] || { echo "missing ext/ui/tokens.css"; exit 1; }
 cp "$ROOT/ext/ui/tokens.css" "$WEB/tokens.css"
 
-VERSION="${KG_VERSION:-0.1.1}"
+VERSION="${KG_VERSION:-0.2.0}"
 if git -C "$ROOT" rev-parse --short HEAD >/dev/null 2>&1; then
   VERSION="$VERSION+$(git -C "$ROOT" rev-parse --short HEAD)"
 fi

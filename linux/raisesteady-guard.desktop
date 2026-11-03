@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=RaiseSteady Guard
+Comment=Parent page: settings and PIN
+Comment[ka]=მშობლის გვერდი: პარამეტრები და PIN-კოდი
+Comment[ru]=Страница для родителей: настройки и PIN-код
+Exec=/usr/lib/raisesteady-guard/open-parent-page
+Icon=raisesteady-guard
+Terminal=false
+Categories=Settings;Security;
+Keywords=parental;child;safe;filter;

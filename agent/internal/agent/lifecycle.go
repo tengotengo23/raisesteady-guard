@@ -205,6 +205,17 @@ func Uninstall(sys System, svc Services, data *core.Data, p Paths, pin string, n
 			return none, err
 		}
 	}
+	return removeAll(sys, svc, data, p, now)
+}
+
+// PackageRemove is Uninstall for a Linux package manager: only root can run
+// it, and root is the parent's administrator account, so no PIN is asked.
+func PackageRemove(sys System, svc Services, data *core.Data, p Paths, now func() time.Time) (policy.Result, error) {
+	return removeAll(sys, svc, data, p, now)
+}
+
+func removeAll(sys System, svc Services, data *core.Data, p Paths, now func() time.Time) (policy.Result, error) {
+	var none policy.Result
 	if err := svc.Stop(); err != nil {
 		return none, fmt.Errorf("stop service: %w", err)
 	}

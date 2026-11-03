@@ -126,6 +126,11 @@ func Load(sys System, data *core.Data, p Paths, now func() time.Time) (*Agent, e
 	a.Store = st
 	a.Lock = &core.Lockout{Path: p.Lockout, Now: a.Local}
 	a.Guard = &guard.Guard{Sys: sys.GuardSys(), List: data.Unsupported, Protected: a.Protected, Now: now}
+	if c, ok := sys.(interface {
+		Classify(core.UnsupportedList, string, string) guard.Match
+	}); ok {
+		a.Guard.Classify = c.Classify // Linux
+	}
 	return a, nil
 }
 
@@ -161,6 +166,9 @@ func (a *Agent) SaveConfig(c core.Config) error {
 func (a *Agent) Protected(sid string) bool {
 	cfg := a.Config()
 	if cfg.Mode == core.ModeAll {
+		if p, ok := a.Sys.(interface{ IsPerson(sid string) bool }); ok {
+			return p.IsPerson(sid) // Linux: a person's uid
+		}
 		// Every person's account: local, domain and Microsoft Entra users.
 		return strings.HasPrefix(sid, "S-1-5-21-") || strings.HasPrefix(sid, "S-1-12-1-")
 	}
@@ -260,6 +268,12 @@ func (a *Agent) applyLocked(desired []policy.Entry, offline bool) policy.Result 
 		}
 	}
 	res := policy.Apply(alias, &a.st.Policy, desired)
+	// Linux: the registry view is rendered to the browsers' policy files.
+	if f, ok := reg.(interface{ Flush() error }); ok {
+		if err := f.Flush(); err != nil {
+			res.Errors = append(res.Errors, "write policy files: "+err.Error())
+		}
+	}
 	a.last = res
 	a.st.LastApply = a.now()
 	if err := core.SaveJSON(a.Paths.State, &a.st); err != nil {
@@ -291,7 +305,14 @@ func (a *Agent) forgetRoot(root string) {
 
 // Detect refreshes the list of installed browsers.
 func (a *Agent) Detect() []detect.Found {
-	f := detect.Detect(a.Sys.DetectEnv(), a.Data.Unsupported)
+	var f []detect.Found
+	if d, ok := a.Sys.(interface {
+		DetectBrowsers(core.UnsupportedList) []detect.Found
+	}); ok {
+		f = d.DetectBrowsers(a.Data.Unsupported) // Linux
+	} else {
+		f = detect.Detect(a.Sys.DetectEnv(), a.Data.Unsupported)
+	}
 	a.foundMu.Lock()
 	a.found = f
 	a.foundMu.Unlock()
@@ -371,6 +392,7 @@ func (a *Agent) Server() *api.Server {
 	return &api.Server{
 		Port: cfg.Port, Bands: &a.Data.Bands, Store: a.Store, Lock: a.Lock, Now: a.Local,
 		Config: a.Config, Save: a.SaveConfig, Browsers: a.BrowserStatus,
+		WholeComputer: wholeComputer(a.Sys),
 		LocalAccounts: func() []api.LocalAccount {
 			l, err := a.Sys.LocalAccounts()
 			if err != nil {
@@ -438,3 +460,12 @@ func (a *Agent) Run(ctx context.Context, logon <-chan string) {
 		}
 	}
 }
+
+// wholeComputer reports whether the system has machine-wide browser policies only (Linux).
+func wholeComputer(sys System) bool {
+	w, ok := sys.(interface{ WholeComputerOnly() bool })
+	return ok && w.WholeComputerOnly()
+}
+
+// GuardList is the guard-list command's answer.
+func (a *Agent) GuardList(all bool) ([]string, error) { return a.Guard.Report(all) }

@@ -51,6 +51,9 @@ type Server struct {
 	Save          func(core.Config) error
 	Browsers      func() []BrowserStatus
 	LocalAccounts func() []LocalAccount
+	// WholeComputer (Linux): browser settings are for every account, so the
+	// page has no account choice and refuses one.
+	WholeComputer bool
 
 	mu       sync.Mutex // serializes configuration changes
 	sessMu   sync.Mutex

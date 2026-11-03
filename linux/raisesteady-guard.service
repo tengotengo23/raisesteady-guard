@@ -1,0 +1,19 @@
+# RaiseSteady Guard: safe browser settings for children.
+[Unit]
+Description=RaiseSteady Guard: safe browser settings for children
+Documentation=https://github.com/tengotengo23/raisesteady-guard
+After=local-fs.target
+ConditionPathExists=/var/lib/raisesteady-guard/config.json
+
+[Service]
+Type=simple
+ExecStart=/usr/lib/raisesteady-guard/raisesteady-guard service
+Restart=always
+RestartSec=5
+ProtectSystem=true
+ProtectHome=read-only
+PrivateTmp=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

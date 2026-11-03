@@ -3,6 +3,7 @@
 package guard
 
 import (
+	"fmt"
 	"path/filepath"
 	"strconv"
 	"strings"
@@ -115,6 +116,8 @@ type Guard struct {
 	List      core.UnsupportedList
 	Protected func(sid string) bool
 	Now       func() time.Time
+	// Classify replaces the Windows rules (Linux sets ClassifyLinux).
+	Classify func(list core.UnsupportedList, path, product string) Match
 
 	mu       sync.Mutex
 	products map[string]string // path -> product name
@@ -164,7 +167,11 @@ func (g *Guard) Tick() (int, error) {
 		if p.Session == 0 || p.Path == "" || p.SID == "" || !g.Protected(p.SID) {
 			continue
 		}
-		m := Classify(g.List, p.Path, g.product(p.Path))
+		classify := Classify
+		if g.Classify != nil {
+			classify = g.Classify
+		}
+		m := classify(g.List, p.Path, g.product(p.Path))
 		if m.Unsupported == nil {
 			continue
 		}
@@ -228,4 +235,42 @@ func LangFromLocale(tag string) string {
 	default:
 		return "en"
 	}
+}
+
+// Report returns one line per process of a protected account that is a browser
+// (supported or not): pid, owner, path and what the guard does with it.
+func (g *Guard) Report(all bool) ([]string, error) {
+	procs, err := g.Sys.Processes()
+	if err != nil {
+		return nil, err
+	}
+	classify := Classify
+	if g.Classify != nil {
+		classify = g.Classify
+	}
+	var out []string
+	for _, p := range procs {
+		prot := p.Session != 0 && p.Path != "" && p.SID != "" && g.Protected(p.SID)
+		m := classify(g.List, p.Path, g.Sys.ProductName(p.Path))
+		if all {
+			v := "-"
+			if m.Unsupported != nil {
+				v = "close (" + m.Unsupported.Name + ")"
+			} else if m.SupportedID != "" {
+				v = "protected (" + m.SupportedID + ")"
+			}
+			out = append(out, fmt.Sprintf("%d\t%s\tperson=%v\t%s\t%s", p.PID, p.SID, prot, v, p.Path))
+			continue
+		}
+		if !prot {
+			continue
+		}
+		switch {
+		case m.Unsupported != nil:
+			out = append(out, strconv.FormatUint(uint64(p.PID), 10)+"\t"+p.SID+"\tclose ("+m.Unsupported.Name+")\t"+p.Path)
+		case m.SupportedID != "":
+			out = append(out, strconv.FormatUint(uint64(p.PID), 10)+"\t"+p.SID+"\tprotected ("+m.SupportedID+")\t"+p.Path)
+		}
+	}
+	return out, nil
 }

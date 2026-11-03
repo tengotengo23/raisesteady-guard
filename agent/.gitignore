@@ -1,3 +1,4 @@
 # Copied by tools/build-agent.sh from shared and ext/ui; never edit here.
 internal/core/data/*.json
+internal/core/data/*.txt
 internal/api/web/tokens.css
