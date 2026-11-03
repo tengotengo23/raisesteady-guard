@@ -1,0 +1,5 @@
+dist/
+.cache/
+*.pem
+node_modules/
+agent/rsrc_windows_*.syso

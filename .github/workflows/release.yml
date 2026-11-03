@@ -1,0 +1,156 @@
+# Release: build the agent, the installer and the extension zips from a version
+# tag (v0.1.0), sign the Windows files through SignPath Foundation once signing
+# is set up, and publish a GitHub release with them.
+#
+# Signing starts when the repository has the variables SIGNPATH_ORGANIZATION_ID
+# and SIGNPATH_PROJECT_SLUG and the secret SIGNPATH_API_TOKEN (SignPath project
+# with the signing policy "release-signing" and the artifact configurations
+# "agent" and "installer"). Without them the release is built unsigned and says so.
+# Every job runs on GitHub-hosted runners, as SignPath's open-source checks require.
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+jobs:
+  # Build and sign with a read-only token; only the publish job below may write.
+  build:
+    runs-on: windows-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      actions: read
+    defaults:
+      run:
+        shell: bash
+    env:
+      SIGN: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && vars.SIGNPATH_PROJECT_SLUG != '' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Version from the tag
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          [[ "$v" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must look like v1.2.3, got $GITHUB_REF_NAME"; exit 1; }
+          grep -q "\"version\": \"$v\"" ext/manifest.json || { echo "ext/manifest.json version is not $v"; exit 1; }
+          echo "KG_VERSION=$v" >> "$GITHUB_ENV"
+
+      - name: Install NSIS
+        shell: pwsh
+        run: choco install nsis -y --no-progress
+
+      - name: Build and test the agent, with the Windows file details
+        run: KG_WINRES=1 bash tools/build-agent.sh
+
+      - name: Upload the agent for signing
+        id: agent-unsigned
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-unsigned
+          path: dist/raisesteady-guard-agent-*.exe
+
+      - name: Sign the agent (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: agent
+          github-artifact-id: ${{ steps.agent-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist/signed-agent
+
+      - name: Use the signed agent in the installer
+        if: env.SIGN == 'true'
+        run: cp dist/signed-agent/raisesteady-guard-agent-*.exe dist/
+
+      - name: Build the installer
+        run: bash tools/build-installer.sh --skip-agent
+
+      - name: Upload the installer for signing
+        id: installer-unsigned
+        if: env.SIGN == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-unsigned
+          path: dist/RaiseSteadyGuardSetup.exe
+
+      - name: Sign the installer (SignPath)
+        if: env.SIGN == 'true'
+        uses: signpath/github-action-submit-signing-request@f6d04783b4569d051e0c80105fe66e82819d0092 # v3.0
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: ${{ vars.SIGNPATH_ORGANIZATION_ID }}
+          project-slug: ${{ vars.SIGNPATH_PROJECT_SLUG }}
+          signing-policy-slug: release-signing
+          artifact-configuration-slug: installer
+          github-artifact-id: ${{ steps.installer-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: dist/signed-installer
+
+      - name: Use the signed installer
+        if: env.SIGN == 'true'
+        run: cp dist/signed-installer/RaiseSteadyGuardSetup.exe dist/RaiseSteadyGuardSetup.exe
+
+      - name: Build the extension zips
+        run: node tools/build-ext.mjs
+
+      - name: Checksums
+        run: |
+          cd dist
+          sha256sum RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+
+      - name: Keep the release files for the publish job
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: |
+            dist/RaiseSteadyGuardSetup.exe
+            dist/raisesteady-guard-*-chromium.zip
+            dist/raisesteady-guard-*-firefox.zip
+            dist/SHA256SUMS.txt
+          if-no-files-found: error
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      SIGN: ${{ vars.SIGNPATH_ORGANIZATION_ID != '' && vars.SIGNPATH_PROJECT_SLUG != '' }}
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: release-files
+          path: dist
+
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          if [ "$SIGN" = true ]; then
+            note="The Windows files are signed. Free code signing provided by SignPath.io, certificate by SignPath Foundation."
+          else
+            note="The Windows files are not code-signed yet: Windows may show 'Windows protected your PC'. Click More info, then Run anyway."
+          fi
+          gh release create "$GITHUB_REF_NAME" --title "$GITHUB_REF_NAME" --notes "$note See the README for what it does and its limits." \
+            dist/RaiseSteadyGuardSetup.exe dist/raisesteady-guard-*-chromium.zip dist/raisesteady-guard-*-firefox.zip dist/SHA256SUMS.txt

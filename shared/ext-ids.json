@@ -1,0 +1,11 @@
+{
+  "chromium": {
+    "devId": "jihggkhiiiinnflomjjnpomgeijgfnlg",
+    "chromeStoreId": null,
+    "edgeStoreId": null
+  },
+  "firefox": {
+    "id": "guard@raisesteady.com"
+  },
+  "note": "devId comes from the public key in ext/manifest.json 'key' (dev builds only; store builds strip it). The private key is kept outside the repository."
+}

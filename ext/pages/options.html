@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title></title>
+<link rel="stylesheet" href="../ui/tokens.css">
+<link rel="stylesheet" href="../ui/kit.css">
+<link rel="stylesheet" href="pages.css">
+<script type="module" src="options.js"></script>
+</head>
+<body>
+<main class="kg-wrap kg-narrow kg-stack">
+  <h1 id="title"></h1>
+
+  <!-- Managed by the Windows app -->
+  <section id="managed" class="kg-card" hidden>
+    <p id="managedNote"></p>
+    <p><a id="parentLink" class="kg-btn" href="#" data-i18n="openParent"></a></p>
+  </section>
+
+  <!-- PIN lock -->
+  <section id="lock" class="kg-card" hidden>
+    <form id="lockForm" class="bp-pin" autocomplete="off" novalidate>
+      <label class="kg-label" for="lockPin" data-i18n="lockText"></label>
+      <input id="lockPin" class="kg-input" type="password" inputmode="numeric" pattern="[0-9]*" maxlength="8" autocomplete="off">
+      <button class="kg-btn" type="submit" data-i18n="unlock"></button>
+    </form>
+    <p id="lockMsg" class="kg-note kg-bad" role="alert" hidden></p>
+  </section>
+
+  <!-- Standalone settings -->
+  <form id="form" class="op-grid" hidden novalidate>
+    <p id="intro" class="kg-muted"></p>
+    <p id="today" class="kg-note" hidden></p>
+
+    <fieldset class="kg-card" style="border:1px solid var(--kg-line)">
+      <legend class="kg-label" data-i18n="ageTitle"></legend>
+      <div id="ages" class="kg-choices" role="radiogroup"></div>
+      <p class="kg-small kg-muted" data-i18n="ageHint" style="margin-top:8px"></p>
+    </fieldset>
+
+    <section class="kg-card op-grid">
+      <h2 data-i18n="pinTitle"></h2>
+      <div class="op-two">
+        <div class="kg-field"><label for="pin1" data-i18n="pinNew"></label><input id="pin1" class="kg-input" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
+        <div class="kg-field"><label for="pin2" data-i18n="pinRepeat"></label><input id="pin2" class="kg-input" type="password" inputmode="numeric" maxlength="8" autocomplete="new-password"></div>
+      </div>
+      <p id="pinKeep" class="kg-small kg-muted" data-i18n="pinKeep" hidden></p>
+      <p id="pinMsg" class="kg-note kg-bad" role="alert" hidden></p>
+    </section>
+
+    <section class="kg-card op-grid">
+      <h2 data-i18n="limitsTitle"></h2>
+      <div class="op-two">
+        <div class="kg-field"><label for="browseMin" data-i18n="browseLimit"></label><input id="browseMin" class="kg-input" type="number" min="0" max="1440" step="5" inputmode="numeric">
+          <label class="kg-check"><input id="browseNone" type="checkbox"><span data-i18n="noLimitBox"></span></label></div>
+        <div class="kg-field"><label for="videoMin" data-i18n="videoLimit"></label><input id="videoMin" class="kg-input" type="number" min="0" max="1440" step="5" inputmode="numeric">
+          <label class="kg-check"><input id="videoNone" type="checkbox"><span data-i18n="noLimitBox"></span></label></div>
+      </div>
+      <p id="limitsHint" class="kg-small kg-muted"></p>
+    </section>
+
+    <section class="kg-card op-grid">
+      <h2 data-i18n="bedTitle"></h2>
+      <div class="op-two">
+        <div class="kg-field"><label for="bedStart" data-i18n="bedFrom"></label><input id="bedStart" class="kg-input" type="time"></div>
+        <div class="kg-field"><label for="bedEnd" data-i18n="bedTo"></label><input id="bedEnd" class="kg-input" type="time"></div>
+      </div>
+      <label class="kg-check"><input id="bedNone" type="checkbox"><span data-i18n="bedOff"></span></label>
+    </section>
+
+    <section class="kg-card op-grid">
+      <h2 data-i18n="switchesTitle"></h2>
+      <label class="kg-check"><input id="focusMode" type="checkbox"><span data-i18n="focusLabel"></span></label>
+      <label class="kg-check"><input id="adblock" type="checkbox"><span data-i18n="adsLabel"></span></label>
+    </section>
+
+    <section class="kg-card op-grid">
+      <div class="kg-field"><label for="allow" data-i18n="allowTitle"></label><textarea id="allow" class="kg-textarea" spellcheck="false" aria-describedby="listHint"></textarea></div>
+      <div class="kg-field"><label for="block" data-i18n="blockTitle"></label><textarea id="block" class="kg-textarea" spellcheck="false" aria-describedby="listHint"></textarea></div>
+      <p id="listHint" class="kg-small kg-muted" data-i18n="listHint"></p>
+    </section>
+
+    <div class="op-actions">
+      <button class="kg-btn" type="submit" data-i18n="save"></button>
+      <p id="saveMsg" class="kg-note" role="status" hidden></p>
+    </div>
+
+    <p class="kg-small kg-muted" data-i18n="limitsHonest"></p>
+    <p class="kg-small kg-muted" data-i18n="standaloneHonest"></p>
+  </form>
+
+  <p class="kg-small kg-muted" data-i18n="privacy"></p>
+</main>
+</body>
+</html>

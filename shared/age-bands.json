@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "bands": [
+    { "id": "3-5",   "minAge": 3,  "maxAge": 5,  "browseMin": 60,  "videoMin": 30, "bedtime": { "start": "19:30", "end": "07:00" }, "youtube": "strict",   "youtubeMode": "curated", "social": "block",    "breakEveryMin": 20 },
+    { "id": "6-8",   "minAge": 6,  "maxAge": 8,  "browseMin": 90,  "videoMin": 45, "bedtime": { "start": "20:00", "end": "07:00" }, "youtube": "strict",   "youtubeMode": "focus",   "social": "block",    "breakEveryMin": 30 },
+    { "id": "9-12",  "minAge": 9,  "maxAge": 12, "browseMin": 120, "videoMin": 60, "bedtime": { "start": "21:00", "end": "07:00" }, "youtube": "strict",   "youtubeMode": "focus",   "social": "block",    "breakEveryMin": 40 },
+    { "id": "13-15", "minAge": 13, "maxAge": 15, "browseMin": 120, "videoMin": 90, "bedtime": { "start": "22:00", "end": "06:30" }, "youtube": "moderate", "youtubeMode": "focus",   "social": "feedfree", "breakEveryMin": 45 },
+    { "id": "16-17", "minAge": 16, "maxAge": 17, "browseMin": 120, "videoMin": 90, "bedtime": { "start": "23:00", "end": "06:30" }, "youtube": "moderate", "youtubeMode": "focus",   "social": "feedfree", "breakEveryMin": 45 }
+  ],
+  "sources": [
+    "WHO, Guidelines on physical activity, sedentary behaviour and sleep for children under 5 years of age (2019): sedentary screen time at most 1 hour a day for ages 2-4, less is better.",
+    "Canadian 24-Hour Movement Guidelines for Children and Youth (ages 5-17): no more than 2 hours a day of recreational screen time."
+  ]
+}

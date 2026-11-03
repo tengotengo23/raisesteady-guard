@@ -1,0 +1,94 @@
+/* RaiseSteady Guard UI kit: components on tokens.css. No new colours here: tokens only. */
+*, *::before, *::after { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; min-height: 100vh; background: var(--kg-bg); color: var(--kg-text);
+  font-family: var(--kg-font); font-size: var(--kg-size); line-height: var(--kg-line-h);
+  overflow-wrap: break-word;
+}
+img, svg { max-width: 100%; }
+h1, h2, h3 { line-height: 1.25; margin: 0 0 0.5em; text-wrap: balance; }
+h1 { font-size: var(--kg-size-xl); font-weight: 750; }
+h2 { font-size: var(--kg-size-l); font-weight: 700; }
+p { margin: 0 0 0.75em; text-wrap: pretty; }
+a { color: var(--kg-accent); }
+.kg-wrap { width: 100%; max-width: 64rem; margin: 0 auto; padding: var(--kg-gap); }
+.kg-narrow { max-width: 40rem; }
+.kg-stack > * + * { margin-top: var(--kg-gap); }
+.kg-card {
+  background: var(--kg-surface); border-radius: var(--kg-radius); box-shadow: var(--kg-shadow);
+  padding: clamp(16px, 4vw, 28px); border: 1px solid var(--kg-line);
+}
+.kg-soft { background: var(--kg-soft); border-color: transparent; box-shadow: none; }
+.kg-muted { color: var(--kg-text-2); }
+.kg-small { font-size: var(--kg-size-s); }
+.kg-row { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.kg-hidden, [hidden] { display: none !important; }
+
+/* Buttons and links that act like buttons: at least 44 px, text wraps instead of overflowing. */
+.kg-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: var(--kg-tap); min-width: var(--kg-tap); padding: 0.55em 1.2em; border-radius: 999px;
+  font: inherit; font-weight: 650; line-height: 1.25; text-align: center; text-decoration: none; white-space: normal;
+  cursor: pointer; border: 2px solid transparent; max-width: 100%;
+  background: var(--kg-accent); color: var(--kg-accent-text);
+  transition: transform var(--kg-time) var(--kg-ease), background-color var(--kg-time) var(--kg-ease);
+}
+.kg-btn:hover { transform: translateY(-1px); }
+.kg-btn:active { transform: none; }
+.kg-btn.kg-ghost { background: transparent; color: var(--kg-text); border-color: var(--kg-line); }
+.kg-btn.kg-sun { background: var(--kg-yellow); color: var(--kg-navy); }
+.kg-btn[disabled] { opacity: 0.6; cursor: default; transform: none; }
+.kg-link { display: inline-flex; align-items: center; min-height: var(--kg-tap); padding: 0 4px; font-weight: 600; }
+
+/* Forms */
+.kg-field { display: grid; gap: 6px; }
+.kg-field > label, .kg-label { font-weight: 650; }
+.kg-input, .kg-select, .kg-textarea {
+  font: inherit; color: var(--kg-text); background: var(--kg-surface); width: 100%;
+  min-height: var(--kg-tap); padding: 0.5em 0.75em; border: 2px solid var(--kg-line); border-radius: var(--kg-radius-s);
+}
+.kg-textarea { min-height: 6.5em; resize: vertical; }
+.kg-input:focus, .kg-select:focus, .kg-textarea:focus { border-color: var(--kg-focus); outline: none; }
+.kg-input:focus-visible, .kg-select:focus-visible, .kg-textarea:focus-visible { outline: 3px solid var(--kg-focus); outline-offset: 2px; }
+.kg-check { display: flex; gap: 12px; align-items: flex-start; min-height: var(--kg-tap); padding: 8px 0; cursor: pointer; }
+.kg-check input { width: 24px; height: 24px; margin: 2px 0 0; flex: none; accent-color: var(--kg-navy); }
+.kg-choices { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr)); gap: 10px; }
+.kg-choice { position: relative; }
+.kg-choice input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
+.kg-choice span {
+  display: flex; align-items: center; justify-content: center; text-align: center; min-height: var(--kg-tap);
+  padding: 0.5em; border: 2px solid var(--kg-line); border-radius: var(--kg-radius-s); font-weight: 650; background: var(--kg-surface);
+}
+.kg-choice input:checked + span { border-color: var(--kg-accent); background: var(--kg-soft); }
+.kg-choice input:focus-visible + span { outline: 3px solid var(--kg-focus); outline-offset: 2px; }
+
+/* Messages sit under the thing they belong to. */
+.kg-note { margin-top: 8px; padding: 10px 14px; border-radius: var(--kg-radius-s); background: var(--kg-soft); }
+.kg-note.kg-bad { color: var(--kg-stop); }
+.kg-note.kg-good { color: var(--kg-ok); }
+
+/* Time meter */
+.kg-meter { height: 12px; border-radius: 999px; background: var(--kg-soft); overflow: hidden; }
+.kg-meter > i { display: block; height: 100%; width: var(--kg-fill, 0%); background: var(--kg-mint); border-radius: inherit; transition: width var(--kg-time) var(--kg-ease); }
+.kg-meter.kg-low > i { background: var(--kg-yellow); }
+.kg-meter.kg-out > i { background: var(--kg-coral); }
+
+/* Tiles (bookmarks) */
+.kg-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 14rem), 1fr)); gap: 12px; padding: 0; margin: 0; list-style: none; }
+.kg-tile {
+  display: flex; flex-direction: column; gap: 4px; height: 100%; min-height: var(--kg-tap); padding: 14px 16px;
+  border-radius: var(--kg-radius-s); background: var(--kg-surface); border: 1px solid var(--kg-line);
+  color: var(--kg-text); text-decoration: none;
+  transition: transform var(--kg-time) var(--kg-ease), border-color var(--kg-time) var(--kg-ease);
+}
+.kg-tile:hover { transform: translateY(-2px); border-color: var(--kg-accent); }
+.kg-tile strong { font-size: var(--kg-size); }
+.kg-tile span { font-size: var(--kg-size-s); color: var(--kg-text-2); }
+.kg-tag { display: inline-block; align-self: flex-start; margin-top: 4px; padding: 0 8px; border-radius: 999px; background: var(--kg-soft); font-size: 0.8125rem; color: var(--kg-text); }
+
+@media (prefers-reduced-motion: reduce) {
+  .kg-btn, .kg-tile { transition: opacity var(--kg-time) var(--kg-ease), border-color var(--kg-time) var(--kg-ease); }
+  .kg-btn:hover, .kg-tile:hover { transform: none; opacity: 0.92; }
+  .kg-meter > i { transition: opacity var(--kg-time) var(--kg-ease); }
+}

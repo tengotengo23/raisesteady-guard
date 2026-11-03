@@ -1,0 +1,16 @@
+{
+  "name": "raisesteady-guard",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Child-safe browsing for Windows: one installer and one browser extension.",
+  "license": "GPL-3.0-only",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "build:ext": "node tools/build-ext.mjs",
+    "test:unit": "node --test tests/unit/",
+    "test:e2e": "node tools/build-ext.mjs --dev && node tests/e2e/a-e2e.mjs && node tests/e2e/b-e2e.mjs"
+  },
+  "devDependencies": {
+    "puppeteer": "25.13.0"
+  }
+}

@@ -1,0 +1,278 @@
+# RaiseSteady Guard on a real Windows machine: build the agent and
+# the installer, install silently for everyone, check the service, the policies
+# and the localhost API, uninstall with the PIN and check that nothing is left.
+name: windows
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    env:
+      KG_DIR: C:\Program Files\RaiseSteadyGuard
+      KG_DATA: C:\ProgramData\RaiseSteadyGuard
+      KG_URL: http://127.0.0.1:47615
+      KG_PIN_TEST: "1234"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: agent/go.mod
+          cache-dependency-path: agent/go.sum
+
+      - name: Install NSIS
+        run: choco install nsis -y --no-progress
+
+      - name: Build and test the agent (vet, tests, both architectures)
+        shell: bash
+        run: bash tools/build-agent.sh
+
+      - name: Build the installer
+        shell: bash
+        run: bash tools/build-installer.sh --skip-agent
+
+      - name: Snapshot the policy keys before install
+        run: |
+          reg export "HKLM\SOFTWARE\Policies" "$env:RUNNER_TEMP\before.reg" /y | Out-Null
+          if (-not $?) { "" | Set-Content "$env:RUNNER_TEMP\before.reg" }
+
+      - name: Silent install for everyone on this PC
+        run: |
+          $p = Start-Process -FilePath dist\RaiseSteadyGuardSetup.exe -ArgumentList '/S','/ACCOUNTS=all','/BAND=9-12',"/PIN=$env:KG_PIN_TEST" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "installer exit code $($p.ExitCode)" }
+
+      - name: Service runs, starts automatically and restarts on failure
+        run: |
+          $s = Get-Service RaiseSteadyGuard
+          if ($s.Status -ne 'Running') { throw "service is $($s.Status)" }
+          if ($s.StartType -ne 'Automatic') { throw "start type is $($s.StartType)" }
+          $f = sc.exe qfailure RaiseSteadyGuard | Out-String
+          if ($f -notmatch 'RESTART') { throw "no restart on failure: $f" }
+          $c = sc.exe qc RaiseSteadyGuard | Out-String
+          if ($c -notmatch 'LocalSystem') { throw "not LocalSystem: $c" }
+
+      - name: Policies for Chrome, Edge and Firefox, with the managed config
+        run: |
+          $ids = Get-Content shared\ext-ids.json -Raw | ConvertFrom-Json
+          $cid = if ($ids.chromium.chromeStoreId) { $ids.chromium.chromeStoreId } else { $ids.chromium.devId }
+          $eid = if ($ids.chromium.edgeStoreId) { $ids.chromium.edgeStoreId } else { $cid }
+          $fid = $ids.firefox.id
+          function Need($path, $name, $want) {
+            $v = (Get-ItemProperty -Path $path -Name $name -ErrorAction Stop).$name
+            if ($null -ne $want -and "$v" -ne "$want") { throw "$path\$name = $v, want $want" }
+            return $v
+          }
+          $chrome = 'HKLM:\SOFTWARE\Policies\Google\Chrome'
+          $edge = 'HKLM:\SOFTWARE\Policies\Microsoft\Edge'
+          $ff = 'HKLM:\SOFTWARE\Policies\Mozilla\Firefox'
+          $list = (Get-ItemProperty "$chrome\ExtensionInstallForcelist").PSObject.Properties | Where-Object { $_.Value -like "$cid;*" }
+          if (-not $list) { throw "Chrome force-install entry missing" }
+          $list = (Get-ItemProperty "$edge\ExtensionInstallForcelist").PSObject.Properties | Where-Object { $_.Value -like "$eid;*" }
+          if (-not $list) { throw "Edge force-install entry missing" }
+          Need $chrome 'IncognitoModeAvailability' 1 | Out-Null
+          Need $chrome 'ForceYouTubeRestrict' 2 | Out-Null
+          Need $chrome 'DnsOverHttpsMode' 'secure' | Out-Null
+          Need $edge 'InPrivateModeAvailability' 1 | Out-Null
+          Need $edge 'ForceBingSafeSearch' 2 | Out-Null
+          Need $ff 'DisablePrivateBrowsing' 1 | Out-Null
+          $es = ((Need $ff 'ExtensionSettings' $null) -join "`n") | ConvertFrom-Json
+          if ($es.$fid.installation_mode -ne 'force_installed') { throw "Firefox force install missing" }
+          Need "$ff\DNSOverHTTPS" 'Locked' 1 | Out-Null
+          foreach ($mk in @("$chrome\3rdparty\extensions\$cid\policy", "$edge\3rdparty\extensions\$eid\policy", "$ff\3rdparty\Extensions\$fid")) {
+            Need $mk 'agentPort' 47615 | Out-Null
+            Need $mk 'ageBand' '9-12' | Out-Null
+            $t = Need $mk 'agentToken' $null
+            if ($t -notmatch '^[0-9a-f]{64}$') { throw "bad token format in $mk" }
+          }
+          Write-Host "policies ok"
+
+      - name: Data folder is for SYSTEM and Administrators only
+        run: |
+          $acl = Get-Acl $env:KG_DATA
+          if (-not $acl.AreAccessRulesProtected) { throw "ACL inherits from the parent" }
+          $who = $acl.Access | ForEach-Object { $_.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value } | Sort-Object -Unique
+          $bad = $who | Where-Object { $_ -ne 'S-1-5-18' -and $_ -ne 'S-1-5-32-544' }
+          if ($bad) { throw "unexpected access for: $bad" }
+
+      - name: Localhost API answers the token and refuses web origins
+        run: |
+          $ids = Get-Content shared\ext-ids.json -Raw | ConvertFrom-Json
+          $cid = if ($ids.chromium.chromeStoreId) { $ids.chromium.chromeStoreId } else { $ids.chromium.devId }
+          $tok = (Get-ItemProperty "HKLM:\SOFTWARE\Policies\Google\Chrome\3rdparty\extensions\$cid\policy").agentToken
+          for ($i = 0; $i -lt 30; $i++) {
+            if ((Test-NetConnection 127.0.0.1 -Port 47615 -WarningAction SilentlyContinue).TcpTestSucceeded) { break }
+            Start-Sleep 1
+          }
+          $st = Invoke-RestMethod "$env:KG_URL/v1/state" -Headers @{ 'X-KG-Token' = $tok }
+          if ($st.band -ne '9-12' -or $st.limits.browseMin -ne 120) { throw "state: $($st | ConvertTo-Json -Compress)" }
+          $r = Invoke-WebRequest "$env:KG_URL/v1/state" -Headers @{ 'X-KG-Token' = $tok; 'Origin' = 'https://example.com' } -SkipHttpErrorCheck -SkipHeaderValidation
+          if ($r.StatusCode -ne 403) { throw "web origin got $($r.StatusCode)" }
+          if ($r.Headers['Access-Control-Allow-Origin']) { throw "ACAO sent to a web origin" }
+          $r = Invoke-WebRequest "$env:KG_URL/v1/usage" -Method Options -Headers @{ 'Origin' = 'https://example.com'; 'Access-Control-Request-Method' = 'POST' } -SkipHttpErrorCheck -SkipHeaderValidation
+          if ($r.StatusCode -ne 403) { throw "web preflight got $($r.StatusCode)" }
+          $r = Invoke-WebRequest "$env:KG_URL/v1/state" -SkipHttpErrorCheck
+          if ($r.StatusCode -ne 401) { throw "no token got $($r.StatusCode)" }
+          $r = Invoke-WebRequest "$env:KG_URL/v1/state" -Headers @{ 'X-KG-Token' = $tok; 'Origin' = "chrome-extension://$cid" } -SkipHttpErrorCheck -SkipHeaderValidation
+          if ($r.StatusCode -ne 200 -or $r.Headers['Access-Control-Allow-Origin'] -ne "chrome-extension://$cid") { throw "extension origin: $($r.StatusCode)" }
+          $p = Invoke-WebRequest "$env:KG_URL/parent" -SkipHttpErrorCheck
+          if ($p.StatusCode -ne 200 -or $p.Content -notmatch 'Parent settings') { throw "parent page: $($p.StatusCode)" }
+          $out = & "$env:KG_DIR\raisesteady-guard-agent.exe" status | Out-String
+          if ($out -match $tok) { throw "status prints a token" }
+          if (($out | ConvertFrom-Json).installed -ne $true) { throw "status: $out" }
+          & "$env:KG_DIR\raisesteady-guard-agent.exe" list-accounts
+          if ($LASTEXITCODE -ne 0) { throw "list-accounts failed" }
+          if (-not (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\RaiseSteady Guard\*.url")) { throw "Parent settings shortcut missing" }
+          if (-not (Test-Path "$env:KG_DIR\THIRD-PARTY-NOTICES.txt")) { throw "licence notices not shipped" }
+
+      - name: A wrong PIN does not uninstall
+        run: |
+          $p = Start-Process -FilePath "$env:KG_DIR\uninstall.exe" -ArgumentList '/S','/PIN=9999',"_?=$env:KG_DIR" -Wait -PassThru
+          if ($p.ExitCode -eq 0) { throw "uninstall with a wrong PIN succeeded" }
+          if ((Get-Service RaiseSteadyGuard).Status -ne 'Running') { throw "service stopped after a wrong PIN" }
+
+      - name: Silent uninstall with the PIN
+        run: |
+          Start-Process -FilePath "$env:KG_DIR\uninstall.exe" -ArgumentList '/S',"/PIN=$env:KG_PIN_TEST" -Wait
+          # The uninstaller copies itself to TEMP and returns at once: wait for it.
+          for ($i = 0; $i -lt 90 -and (Test-Path $env:KG_DIR); $i++) { Start-Sleep 1 }
+
+      - name: Nothing is left
+        run: |
+          if (Get-Service RaiseSteadyGuard -ErrorAction SilentlyContinue) { throw "service still there" }
+          if (Test-Path $env:KG_DIR) { throw "program folder still there: $(Get-ChildItem $env:KG_DIR)" }
+          if (Test-Path $env:KG_DATA) { throw "data folder still there" }
+          if (Test-Path 'HKLM:\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\RaiseSteadyGuard') { throw "uninstall entry still there" }
+          if (Test-Path "$env:ProgramData\Microsoft\Windows\Start Menu\Programs\RaiseSteady Guard") { throw "Start-menu folder still there" }
+          reg export "HKLM\SOFTWARE\Policies" "$env:RUNNER_TEMP\after.reg" /y | Out-Null
+          if (-not $?) { "" | Set-Content "$env:RUNNER_TEMP\after.reg" }
+          $a = Get-Content "$env:RUNNER_TEMP\before.reg" -Raw
+          $b = Get-Content "$env:RUNNER_TEMP\after.reg" -Raw
+          if ($a -ne $b) {
+            Compare-Object ($a -split "`r?`n") ($b -split "`r?`n") | Format-Table -AutoSize | Out-String -Width 300 | Write-Host
+            throw "HKLM\SOFTWARE\Policies differs from before the install"
+          }
+          Write-Host "clean"
+
+      - name: Per-user mode, and a standard user cannot change or delete the policies
+        run: |
+          $ids = Get-Content shared\ext-ids.json -Raw | ConvertFrom-Json
+          $cid = if ($ids.chromium.chromeStoreId) { $ids.chromium.chromeStoreId } else { $ids.chromium.devId }
+          $pw = 'Kg!' + [guid]::NewGuid().ToString('N') + 'a1'
+          # net user asks Y/N for passwords over 14 characters (run 41621877545 failed there); New-LocalUser does not ask.
+          New-LocalUser -Name kgkid -Password (ConvertTo-SecureString $pw -AsPlainText -Force) -PasswordNeverExpires -ErrorAction Stop | Out-Null
+          $sid = (New-Object System.Security.Principal.NTAccount('kgkid')).Translate([System.Security.Principal.SecurityIdentifier]).Value
+          $cred = New-Object System.Management.Automation.PSCredential('kgkid', (ConvertTo-SecureString $pw -AsPlainText -Force))
+          # Keep a process running as the child so the child's hive is loaded (like a signed-in child).
+          $holder = Start-Process powershell.exe -Credential $cred -LoadUserProfile -WindowStyle Hidden -ArgumentList '-NoProfile','-Command','Start-Sleep 900' -PassThru
+          for ($i = 0; $i -lt 60 -and -not (Test-Path "Registry::HKEY_USERS\$sid"); $i++) { Start-Sleep 1 }
+          if (-not (Test-Path "Registry::HKEY_USERS\$sid")) { throw "the child's hive did not load" }
+          $p = Start-Process -FilePath dist\RaiseSteadyGuardSetup.exe -ArgumentList '/S',"/ACCOUNTS=$sid",'/BAND=13-15','/DNS=off',"/PIN=$env:KG_PIN_TEST" -Wait -PassThru
+          if ($p.ExitCode -ne 0) { throw "per-user install exit code $($p.ExitCode)" }
+          $key = "Registry::HKEY_USERS\$sid\Software\Policies\Google\Chrome"
+          if ((Get-ItemProperty $key).IncognitoModeAvailability -ne 1) { throw "per-user policy missing" }
+          # /DNS=off: no AdGuard resolver for this account, the other policies stay.
+          if ($null -ne (Get-ItemProperty $key).DnsOverHttpsTemplates) { throw "/DNS=off still wrote the DoH template" }
+          if ((Get-ItemProperty $key).ForceGoogleSafeSearch -ne 1) { throw "/DNS=off dropped safe search" }
+          if (Test-Path "Registry::HKEY_USERS\$sid\Software\Policies\Mozilla\Firefox\DNSOverHTTPS") { throw "/DNS=off still wrote Firefox DoH" }
+          if ((Get-ItemProperty $key).DeveloperToolsAvailability -ne 0) { throw "13-15 must have DevTools blocked on extensions only (0)" }
+          if ((Get-ItemProperty $key).ProxyMode -ne 'direct') { throw "ProxyMode not direct" }
+          if (Test-Path 'HKLM:\SOFTWARE\Policies\Google\Chrome\3rdparty') { throw "per-user mode wrote machine policies" }
+          foreach ($k in @("Registry::HKEY_USERS\$sid\Software\Policies\Google", $key, "$key\ExtensionInstallForcelist", "$key\3rdparty\extensions\$cid\policy")) {
+            $acl = Get-Acl $k
+            $owner = $acl.GetOwner([System.Security.Principal.SecurityIdentifier]).Value
+            if ($owner -ne 'S-1-5-18') { throw "$k is owned by $owner, not SYSTEM" }
+            if (-not $acl.AreAccessRulesProtected) { throw "$k inherits its ACL" }
+            foreach ($r in $acl.Access) {
+              $who = $r.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value
+              if ($who -ne 'S-1-5-18' -and $who -ne 'S-1-5-32-544' -and ([int]$r.RegistryRights -band 0xD0006) -ne 0) { throw "$who may write $k ($($r.RegistryRights))" }
+            }
+          }
+          function AsChild($exe, [string[]]$a) { (Start-Process $exe -Credential $cred -ArgumentList $a -Wait -PassThru -WindowStyle Hidden).ExitCode }
+          if ((AsChild reg.exe @('add','HKCU\Software\Policies\Google\Chrome','/v','IncognitoModeAvailability','/t','REG_DWORD','/d','0','/f')) -eq 0) { throw "the child changed a policy" }
+          if ((AsChild reg.exe @('add','HKCU\Software\Policies\Google\Chrome\Extra','/f')) -eq 0) { throw "the child created a key" }
+          if ((AsChild reg.exe @('delete','HKCU\Software\Policies\Google\Chrome\ExtensionInstallForcelist','/f')) -eq 0) { throw "the child deleted the force-list" }
+          AsChild powershell.exe @('-NoProfile','-Command','Remove-Item -Recurse -Force HKCU:\Software\Policies\Google -ErrorAction SilentlyContinue') | Out-Null
+          if ((Get-ItemProperty $key).IncognitoModeAvailability -ne 1 -or -not (Test-Path "$key\ExtensionInstallForcelist")) { throw "the child's tries changed something" }
+          # Does the browser apply them? Start it as the child, headless, and read its policy page
+          # (text inside shadow roots too) through the DevTools protocol on a local port.
+          New-Item -ItemType Directory -Force C:\kgtest | Out-Null
+          icacls C:\kgtest /grant "kgkid:(OI)(CI)F" | Out-Null
+          function Read-PolicyPage($exe, $scheme, $port) {
+            $udd = "C:\kgtest\$scheme"
+            $p = Start-Process $exe -Credential $cred -PassThru -WindowStyle Hidden -ArgumentList '--headless=new','--disable-gpu','--no-first-run','--no-default-browser-check',"--remote-debugging-port=$port","--user-data-dir=$udd","${scheme}://policy"
+            $ws = $null
+            for ($i = 0; $i -lt 40 -and -not $ws; $i++) {
+              Start-Sleep 1
+              try {
+                $pg = Invoke-RestMethod "http://127.0.0.1:$port/json/list" -TimeoutSec 2 | Where-Object { $_.url -like "${scheme}://policy*" } | Select-Object -First 1
+                if ($pg) { $ws = $pg.webSocketDebuggerUrl }
+              } catch {}
+            }
+            if (-not $ws) { throw "could not reach the DevTools port of $exe started as the child (exited: $($p.HasExited), code: $(if ($p.HasExited) { $p.ExitCode } else { 'running' }))" }
+            Start-Sleep 6
+            $js = '(function(){var o=[];function w(n){if(n.shadowRoot)w(n.shadowRoot);for(var c of n.childNodes){if(c.nodeType===3)o.push(c.textContent);else w(c);}}w(document);return o.join(" ").replace(/\s+/g," ");})()'
+            $msg = @{ id = 1; method = 'Runtime.evaluate'; params = @{ expression = $js; returnByValue = $true } } | ConvertTo-Json -Compress -Depth 5
+            $c = [System.Net.WebSockets.ClientWebSocket]::new()
+            $c.ConnectAsync([Uri]$ws, [Threading.CancellationToken]::None).Wait()
+            $b = [Text.Encoding]::UTF8.GetBytes($msg)
+            $c.SendAsync([ArraySegment[byte]]::new($b), [System.Net.WebSockets.WebSocketMessageType]::Text, $true, [Threading.CancellationToken]::None).Wait()
+            $buf = New-Object byte[] 1048576
+            $ms = New-Object IO.MemoryStream
+            do {
+              $r = $c.ReceiveAsync([ArraySegment[byte]]::new($buf), [Threading.CancellationToken]::None).Result
+              $ms.Write($buf, 0, $r.Count)
+            } while (-not $r.EndOfMessage)
+            $c.Dispose()
+            Stop-Process -Id $p.Id -Force -ErrorAction SilentlyContinue
+            $v = ([Text.Encoding]::UTF8.GetString($ms.ToArray()) | ConvertFrom-Json).result.result.value
+            if (-not $v) { throw "$exe policy page returned no text" }
+            return $v
+          }
+          function Check-Policies($name, $text, [string[]]$want) {
+            foreach ($w in $want) { if ($text -notmatch [regex]::Escape($w)) { Write-Host $text.Substring(0, [Math]::Min(3000, $text.Length)); throw "$name policy page lacks $w" } }
+            if ($text -notmatch 'Current user') { Write-Host $text.Substring(0, [Math]::Min(3000, $text.Length)); throw "$name shows no user-level policies" }
+            Write-Host "$name applies the policies from the user level"
+          }
+          # Run 41628773910: Edge started with -Credential never opened its DevTools port on the runner.
+          # A browser that cannot start is reported as NOT verified (warning); a page that is read but lacks a policy fails the run.
+          $browsers = @(
+            @{ n = 'Edge'; exe = "${env:ProgramFiles(x86)}\Microsoft\Edge\Application\msedge.exe"; s = 'edge'; p = 9333; w = @('InPrivateModeAvailability', 'ExtensionInstallForcelist', 'ForceBingSafeSearch') },
+            @{ n = 'Chrome'; exe = "$env:ProgramFiles\Google\Chrome\Application\chrome.exe"; s = 'chrome'; p = 9334; w = @('IncognitoModeAvailability', 'ExtensionInstallForcelist', 'ForceGoogleSafeSearch') }
+          )
+          $checked = 0
+          foreach ($b in $browsers) {
+            if (-not (Test-Path $b.exe)) { Write-Host "$($b.n) is not installed on this runner: not checked"; continue }
+            try { $t = Read-PolicyPage $b.exe $b.s $b.p }
+            catch { Write-Host "::warning::$($b.n) started as the child did not open its debug port, so the policies it applies were NOT verified: $($_.Exception.Message)"; continue }
+            Check-Policies $b.n $t $b.w
+            $checked++
+          }
+          Write-Host "browsers whose applied policies were read as the child: $checked"
+          Get-CimInstance Win32_Process -Filter "name='msedge.exe' or name='chrome.exe'" | ForEach-Object { Stop-Process -Id $_.ProcessId -Force -ErrorAction SilentlyContinue }
+          Start-Process -FilePath "$env:KG_DIR\uninstall.exe" -ArgumentList '/S',"/PIN=$env:KG_PIN_TEST" -Wait
+          for ($i = 0; $i -lt 90 -and (Test-Path $env:KG_DIR); $i++) { Start-Sleep 1 }
+          if (Test-Path "Registry::HKEY_USERS\$sid\Software\Policies\Google") { throw "per-user policies left after uninstall" }
+          if (Get-Service RaiseSteadyGuard -ErrorAction SilentlyContinue) { throw "service left after the per-user uninstall" }
+          Stop-Process -Id $holder.Id -Force -ErrorAction SilentlyContinue
+          net user kgkid /delete | Out-Null
+          Write-Host "per-user ok"
+
+      - name: Agent log (on failure)
+        if: failure()
+        run: |
+          if (Test-Path "$env:KG_DATA\agent.log") { Get-Content "$env:KG_DATA\agent.log" -Tail 200 }
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: KidGuardSetup
+          path: dist/RaiseSteadyGuardSetup.exe
+          if-no-files-found: error

@@ -1,0 +1,702 @@
+{
+  "version": 1,
+  "folders": [
+    {
+      "id": "learn",
+      "title": {
+        "en": "Learn",
+        "ka": "სწავლა",
+        "ru": "Учёба"
+      },
+      "items": [
+        {
+          "title": "Khan Academy",
+          "url": "https://www.khanacademy.org/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Free lessons in maths, science and more, with practice.",
+            "ka": "უფასო გაკვეთილები მათემატიკაში, მეცნიერებასა და სხვა საგნებში, ვარჯიშებით.",
+            "ru": "Бесплатные уроки по математике, естественным наукам и другим предметам, с упражнениями."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Khan Academy Kids",
+          "url": "https://learn.khanacademy.org/khan-academy-kids/",
+          "bands": [
+            "3-5",
+            "6-8"
+          ],
+          "desc": {
+            "en": "Games, books and lessons for young children.",
+            "ka": "თამაშები, წიგნები და გაკვეთილები პატარებისთვის.",
+            "ru": "Игры, книги и уроки для малышей."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "PBS Kids",
+          "url": "https://pbskids.org/",
+          "bands": [
+            "3-5",
+            "6-8",
+            "9-12"
+          ],
+          "desc": {
+            "en": "Games and videos with favourite characters.",
+            "ka": "თამაშები და ვიდეოები საყვარელი პერსონაჟებით.",
+            "ru": "Игры и видео с любимыми героями."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Starfall",
+          "url": "https://www.starfall.com/h/",
+          "bands": [
+            "3-5",
+            "6-8"
+          ],
+          "desc": {
+            "en": "First letters, sounds and reading. Some parts are paid.",
+            "ka": "პირველი ასოები, ბგერები და კითხვა. ზოგი ნაწილი ფასიანია.",
+            "ru": "Первые буквы, звуки и чтение. Часть материалов платная."
+          },
+          "cost": "free-with-paid-extras"
+        },
+        {
+          "title": "BBC Bitesize",
+          "url": "https://www.bbc.co.uk/bitesize",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Short lessons and quizzes for school subjects.",
+            "ka": "მოკლე გაკვეთილები და ვიქტორინები სასკოლო საგნებში.",
+            "ru": "Короткие уроки и тесты по школьным предметам."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "CK-12",
+          "url": "https://www.ck12.org/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Free textbooks and practice in maths and science.",
+            "ka": "უფასო სახელმძღვანელოები და ვარჯიშები მათემატიკასა და მეცნიერებაში.",
+            "ru": "Бесплатные учебники и упражнения по математике и естественным наукам."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "TED-Ed",
+          "url": "https://ed.ted.com/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Short animated lessons on big ideas.",
+            "ka": "მოკლე ანიმაციური გაკვეთილები დიდ იდეებზე.",
+            "ru": "Короткие анимированные уроки о больших идеях."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Duolingo",
+          "url": "https://www.duolingo.com/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Learn a language in small daily steps. Paid plan is optional.",
+            "ka": "ისწავლეთ ენა პატარა ყოველდღიური ნაბიჯებით. ფასიანი გეგმა არჩევითია.",
+            "ru": "Учите язык маленькими шагами каждый день. Платный тариф необязателен."
+          },
+          "cost": "free-with-paid-extras"
+        },
+        {
+          "title": "Desmos",
+          "url": "https://www.desmos.com/calculator",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "A graphing calculator that makes maths visible.",
+            "ka": "გრაფიკული კალკულატორი, რომელიც მათემატიკას თვალსაჩინოს ხდის.",
+            "ru": "Графический калькулятор, который делает математику наглядной."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Math Is Fun",
+          "url": "https://www.mathsisfun.com/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Maths explained in plain words, with games.",
+            "ka": "მათემატიკა მარტივი სიტყვებით, თამაშებით.",
+            "ru": "Математика простыми словами, с играми."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "OpenStax",
+          "url": "https://openstax.org/",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Free, peer-reviewed textbooks.",
+            "ka": "უფასო, რეცენზირებული სახელმძღვანელოები.",
+            "ru": "Бесплатные рецензируемые учебники."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Seterra",
+          "url": "https://www.seterra.com/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Map quizzes: countries, capitals and rivers.",
+            "ka": "რუკის ვიქტორინები: ქვეყნები, დედაქალაქები და მდინარეები.",
+            "ru": "Викторины по картам: страны, столицы и реки."
+          },
+          "cost": "free"
+        }
+      ]
+    },
+    {
+      "id": "read",
+      "title": {
+        "en": "Read",
+        "ka": "კითხვა",
+        "ru": "Чтение"
+      },
+      "items": [
+        {
+          "title": "Storyline Online",
+          "url": "https://www.storylineonline.net/",
+          "bands": [
+            "3-5",
+            "6-8",
+            "9-12"
+          ],
+          "desc": {
+            "en": "Actors read picture books aloud.",
+            "ka": "მსახიობები ხმამაღლა კითხულობენ საბავშვო წიგნებს.",
+            "ru": "Актёры читают вслух детские книги с картинками."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Oxford Owl",
+          "url": "https://www.oxfordowl.co.uk/",
+          "bands": [
+            "3-5",
+            "6-8",
+            "9-12"
+          ],
+          "desc": {
+            "en": "Free reading books for early readers. Free sign-up.",
+            "ka": "უფასო წიგნები დამწყები მკითხველებისთვის. რეგისტრაცია უფასოა.",
+            "ru": "Бесплатные книги для начинающих читателей. Регистрация бесплатная."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Open Library",
+          "url": "https://openlibrary.org/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Borrow millions of books online for free.",
+            "ka": "ასობით ათასი წიგნის უფასოდ ონლაინ სესხება.",
+            "ru": "Миллионы книг можно бесплатно взять онлайн."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Project Gutenberg",
+          "url": "https://www.gutenberg.org/",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Over 70,000 classic books to read free.",
+            "ka": "70 000-ზე მეტი კლასიკური წიგნი უფასოდ საკითხავად.",
+            "ru": "Более 70 000 классических книг для бесплатного чтения."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "National Parliamentary Library of Georgia",
+          "url": "https://www.nplg.gov.ge/geo/home",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Georgia’s national digital library.",
+            "ka": "საქართველოს პარლამენტის ეროვნული ბიბლიოთეკა.",
+            "ru": "Национальная парламентская библиотека Грузии."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Simple English Wikipedia",
+          "url": "https://simple.wikipedia.org/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "An encyclopedia written in simple words.",
+            "ka": "ენციკლოპედია მარტივი სიტყვებით დაწერილი.",
+            "ru": "Энциклопедия, написанная простыми словами."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Wikipedia",
+          "url": "https://en.wikipedia.org/",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "The free encyclopedia. Ask a parent about anything unclear.",
+            "ka": "თავისუფალი ენციკლოპედია. გაუგებარი რამ მშობელს ჰკითხეთ.",
+            "ru": "Свободная энциклопедия. Если что-то неясно, спросите родителей."
+          },
+          "cost": "free"
+        }
+      ]
+    },
+    {
+      "id": "code",
+      "title": {
+        "en": "Code and make",
+        "ka": "კოდი და შექმნა",
+        "ru": "Код и творчество"
+      },
+      "items": [
+        {
+          "title": "Scratch",
+          "url": "https://scratch.mit.edu/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "Build games and stories with blocks of code.",
+            "ka": "შექმენით თამაშები და ისტორიები კოდის ბლოკებით.",
+            "ru": "Создавайте игры и истории из блоков кода."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Code.org",
+          "url": "https://code.org/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Coding lessons and the Hour of Code.",
+            "ka": "პროგრამირების გაკვეთილები და „კოდის საათი“.",
+            "ru": "Уроки программирования и «Час кода»."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Blockly Games",
+          "url": "https://blockly.games/",
+          "bands": [
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "Puzzles that teach programming step by step.",
+            "ka": "თავსატეხები, რომლებიც ნაბიჯ-ნაბიჯ ასწავლის პროგრამირებას.",
+            "ru": "Головоломки, которые шаг за шагом учат программировать."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "MakeCode",
+          "url": "https://makecode.microbit.org/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Program a micro:bit or a game with blocks or code.",
+            "ka": "დაპროგრამეთ micro:bit ან თამაში ბლოკებით ან კოდით.",
+            "ru": "Программируйте micro:bit или игру блоками или кодом."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "CodeCombat",
+          "url": "https://www.codecombat.com/",
+          "bands": [
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "Learn to code by playing. Some levels are paid.",
+            "ka": "ისწავლეთ კოდი თამაშით. ზოგი დონე ფასიანია.",
+            "ru": "Учитесь программировать в игре. Часть уровней платная."
+          },
+          "cost": "free-with-paid-extras"
+        },
+        {
+          "title": "MIT App Inventor",
+          "url": "https://appinventor.mit.edu/",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Make your own phone apps with blocks.",
+            "ka": "შექმენით საკუთარი აპები ბლოკებით.",
+            "ru": "Создавайте свои приложения для телефона из блоков."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Tinkercad",
+          "url": "https://www.tinkercad.com/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Design 3D models and simple circuits.",
+            "ka": "შექმენით 3D მოდელები და მარტივი სქემები.",
+            "ru": "Создавайте 3D-модели и простые схемы."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "freeCodeCamp",
+          "url": "https://www.freecodecamp.org/",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Free courses on web development and more.",
+            "ka": "უფასო კურსები ვებ-პროგრამირებასა და სხვა თემებზე.",
+            "ru": "Бесплатные курсы по веб-разработке и не только."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "CS50",
+          "url": "https://cs50.harvard.edu/x/",
+          "bands": [
+            "16-17"
+          ],
+          "desc": {
+            "en": "Harvard’s free introduction to computer science.",
+            "ka": "ჰარვარდის უფასო შესავალი კომპიუტერულ მეცნიერებაში.",
+            "ru": "Бесплатное введение в информатику от Гарварда."
+          },
+          "cost": "free"
+        }
+      ]
+    },
+    {
+      "id": "typing",
+      "title": {
+        "en": "Typing",
+        "ka": "კლავიატურაზე წერა",
+        "ru": "Печать"
+      },
+      "items": [
+        {
+          "title": "TypingClub",
+          "url": "https://www.typingclub.com/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Learn to type with short lessons. Paid plan is optional.",
+            "ka": "ისწავლეთ კლავიატურაზე წერა მოკლე გაკვეთილებით. ფასიანი გეგმა არჩევითია.",
+            "ru": "Учитесь печатать на коротких уроках. Платный тариф необязателен."
+          },
+          "cost": "free-with-paid-extras"
+        },
+        {
+          "title": "Typing.com",
+          "url": "https://www.typing.com/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Free typing lessons and games.",
+            "ka": "უფასო გაკვეთილები და თამაშები კლავიატურაზე წერისთვის.",
+            "ru": "Бесплатные уроки и игры для освоения печати."
+          },
+          "cost": "free"
+        }
+      ]
+    },
+    {
+      "id": "games",
+      "title": {
+        "en": "Games that teach",
+        "ka": "თამაშები, რომლებიც ასწავლის",
+        "ru": "Игры, которые учат"
+      },
+      "items": [
+        {
+          "title": "RaiseSteady",
+          "url": "https://raisesteady.com/library",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "Games, stories and quizzes that build calm, kind habits. Free with an account.",
+            "ka": "თამაშები, ისტორიები და ვიქტორინები, რომლებიც მშვიდ და კეთილ ჩვევებს ავითარებს. უფასოა ანგარიშით.",
+            "ru": "Игры, истории и викторины, которые формируют спокойные и добрые привычки. Бесплатно с аккаунтом."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Lichess",
+          "url": "https://lichess.org/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Free chess with puzzles and lessons. Turn off chat in settings.",
+            "ka": "უფასო ჭადრაკი თავსატეხებითა და გაკვეთილებით. პარამეტრებში გამორთეთ ჩატი.",
+            "ru": "Бесплатные шахматы с задачами и уроками. Чат лучше отключить в настройках."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Chrome Music Lab",
+          "url": "https://musiclab.chromeexperiments.com/",
+          "bands": [
+            "3-5",
+            "6-8",
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "Play with sound and music in simple experiments.",
+            "ka": "ითამაშეთ ხმითა და მუსიკით მარტივ ექსპერიმენტებში.",
+            "ru": "Играйте со звуком и музыкой в простых опытах."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "GeoGebra",
+          "url": "https://www.geogebra.org/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Explore maths with shapes, graphs and games.",
+            "ka": "შეისწავლეთ მათემატიკა ფიგურებით, გრაფიკებითა და თამაშებით.",
+            "ru": "Изучайте математику с помощью фигур, графиков и игр."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Sesame Street",
+          "url": "https://www.sesamestreet.org/",
+          "bands": [
+            "3-5",
+            "6-8"
+          ],
+          "desc": {
+            "en": "Games and videos with Elmo and friends.",
+            "ka": "თამაშები და ვიდეოები ელმოსა და მეგობრებთან ერთად.",
+            "ru": "Игры и видео с Элмо и друзьями."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "BBC CBeebies",
+          "url": "https://www.bbc.co.uk/cbeebies",
+          "bands": [
+            "3-5",
+            "6-8"
+          ],
+          "desc": {
+            "en": "Games and stories for young children.",
+            "ka": "თამაშები და ისტორიები პატარებისთვის.",
+            "ru": "Игры и истории для малышей."
+          },
+          "cost": "free"
+        }
+      ]
+    },
+    {
+      "id": "science",
+      "title": {
+        "en": "Science and nature",
+        "ka": "მეცნიერება და ბუნება",
+        "ru": "Наука и природа"
+      },
+      "items": [
+        {
+          "title": "NASA Space Place",
+          "url": "https://spaceplace.nasa.gov/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "Space and Earth science for kids.",
+            "ka": "კოსმოსისა და დედამიწის მეცნიერება ბავშვებისთვის.",
+            "ru": "Наука о космосе и Земле для детей."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "NASA for Kids and Students",
+          "url": "https://www.nasa.gov/learning-resources/for-kids-and-students/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Games, activities and news from NASA.",
+            "ka": "თამაშები, აქტივობები და სიახლეები NASA-სგან.",
+            "ru": "Игры, задания и новости от NASA."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "PhET Simulations",
+          "url": "https://phet.colorado.edu/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Try science and maths experiments on screen.",
+            "ka": "სცადეთ მეცნიერებისა და მათემატიკის ექსპერიმენტები ეკრანზე.",
+            "ru": "Проводите опыты по науке и математике на экране."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "National Geographic Kids",
+          "url": "https://kids.nationalgeographic.com/",
+          "bands": [
+            "6-8",
+            "9-12",
+            "13-15"
+          ],
+          "desc": {
+            "en": "Animals, places and amazing facts.",
+            "ka": "ცხოველები, ადგილები და გასაოცარი ფაქტები.",
+            "ru": "Животные, места и удивительные факты."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Science News Explores",
+          "url": "https://www.snexplores.org/",
+          "bands": [
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Science news written for young readers.",
+            "ka": "სამეცნიერო სიახლეები ახალგაზრდა მკითხველისთვის.",
+            "ru": "Научные новости для юных читателей."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Google Arts & Culture",
+          "url": "https://artsandculture.google.com/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Tour museums and see art from around the world.",
+            "ka": "მოინახულეთ მუზეუმები და ნახეთ ხელოვნება მთელი მსოფლიოდან.",
+            "ru": "Прогуляйтесь по музеям и посмотрите искусство со всего мира."
+          },
+          "cost": "free"
+        },
+        {
+          "title": "Exploratorium",
+          "url": "https://www.exploratorium.edu/",
+          "bands": [
+            "9-12",
+            "13-15",
+            "16-17"
+          ],
+          "desc": {
+            "en": "Hands-on science from a San Francisco museum.",
+            "ka": "პრაქტიკული მეცნიერება სან-ფრანცისკოს მუზეუმიდან.",
+            "ru": "Наука своими руками от музея в Сан-Франциско."
+          },
+          "cost": "free"
+        }
+      ]
+    }
+  ]
+}

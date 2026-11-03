@@ -1,0 +1,95 @@
+{
+  "version": 1,
+  "feeds": [
+    {
+      "domain": "tiktok.com",
+      "name": "TikTok",
+      "minAge": 13
+    },
+    {
+      "domain": "instagram.com",
+      "name": "Instagram",
+      "minAge": 13
+    },
+    {
+      "domain": "facebook.com",
+      "name": "Facebook",
+      "minAge": 13
+    },
+    {
+      "domain": "x.com",
+      "name": "X",
+      "minAge": 13
+    },
+    {
+      "domain": "twitter.com",
+      "name": "X (Twitter)",
+      "minAge": 13
+    },
+    {
+      "domain": "snapchat.com",
+      "name": "Snapchat",
+      "minAge": 13
+    },
+    {
+      "domain": "reddit.com",
+      "name": "Reddit",
+      "minAge": 13
+    },
+    {
+      "domain": "discord.com",
+      "name": "Discord",
+      "minAge": 13
+    },
+    {
+      "domain": "discord.gg",
+      "name": "Discord invites",
+      "minAge": 13
+    },
+    {
+      "domain": "threads.net",
+      "name": "Threads",
+      "minAge": 13
+    },
+    {
+      "domain": "threads.com",
+      "name": "Threads",
+      "minAge": 13
+    },
+    {
+      "domain": "pinterest.com",
+      "name": "Pinterest",
+      "minAge": 13
+    },
+    {
+      "domain": "tumblr.com",
+      "name": "Tumblr",
+      "minAge": 13
+    },
+    {
+      "domain": "twitch.tv",
+      "name": "Twitch",
+      "minAge": 13
+    },
+    {
+      "domain": "kick.com",
+      "name": "Kick",
+      "minAge": 13
+    },
+    {
+      "domain": "bsky.app",
+      "name": "Bluesky",
+      "minAge": 13
+    },
+    {
+      "domain": "vk.com",
+      "name": "VK",
+      "minAge": 14
+    },
+    {
+      "domain": "ok.ru",
+      "name": "Odnoklassniki",
+      "minAge": 14
+    }
+  ]
+}

@@ -1,0 +1,84 @@
+THIRD-PARTY NOTICES - RaiseSteady Guard
+=====================================================
+
+This product includes data from the open lists and datasets below. Each list keeps its own
+licence; files derived from a share-alike list are shared under the same licence. Our own code
+is not derived from these lists. Full sources and versions: SOURCES.md.
+
+
+1. UT1 blacklists (Universite Toulouse Capitole)
+------------------------------------------------
+Source:      https://dsi.ut-capitole.fr/blacklists/
+Used in:     ext/rules/adult.json, ext/rules/gambling.json, ext/rules/bypass.json (with other lists)
+Licence:     Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+             https://creativecommons.org/licenses/by-sa/4.0/
+Attribution: "Blacklists UT1 (Universite Toulouse Capitole), CC BY-SA 4.0"
+Changes:     domains selected, de-duplicated, filtered by our exclusion lists and converted to
+             declarativeNetRequest rules. The derived rulesets above are shared under CC BY-SA 4.0.
+
+
+2. The Block List Project
+-------------------------
+Source:      https://github.com/blocklistproject/Lists (porn and gambling lists)
+Used in:     ext/rules/adult.json, ext/rules/gambling.json (with other lists)
+Licence:     The Unlicense
+Attribution: "Block List Project, https://github.com/blocklistproject/Lists"
+
+  This is free and unencumbered software released into the public domain.
+
+  Anyone is free to copy, modify, publish, use, compile, sell, or distribute this software,
+  either in source code form or as a compiled binary, for any purpose, commercial or
+  non-commercial, and by any means.
+
+  In jurisdictions that recognize copyright laws, the author or authors of this software
+  dedicate any and all copyright interest in the software to the public domain. We make this
+  dedication for the benefit of the public at large and to the detriment of our heirs and
+  successors. We intend this dedication to be an overt act of relinquishment in perpetuity of
+  all present and future rights to this software under copyright law.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+  PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY CLAIM, DAMAGES
+  OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT
+  OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+  For more information, please refer to <https://unlicense.org>
+
+
+3. EasyList and EasyPrivacy
+---------------------------
+Source:      https://easylist.to/ (and https://github.com/easylist/easylist)
+Used in:     ext/rules/ads.json (domain rules), ext/rules/cosmetic.css (element-hiding rules)
+Licence:     dual-licensed GPLv3+ or CC BY-SA 3.0+; we use it under Creative Commons
+             Attribution-ShareAlike 3.0 Unported (CC BY-SA 3.0)
+             https://creativecommons.org/licenses/by-sa/3.0/
+             https://easylist.to/pages/licence.html
+Attribution: "The EasyList authors (https://easylist.to/)"
+Changes:     only pure domain rules (ads.json) and CSS element-hiding rules (cosmetic.css) are
+             kept and converted. Both derived files are shared under CC BY-SA 3.0.
+
+
+4. Majestic Million
+-------------------
+Source:      https://majestic.com/reports/majestic-million
+Used for:    the order in which listed domains were chosen for the rulesets (popular first).
+             No Majestic data is shipped except through that choice.
+Licence:     Creative Commons Attribution 3.0 Unported (CC BY 3.0)
+             https://creativecommons.org/licenses/by/3.0/
+Attribution: "Data from Majestic Million, https://majestic.com/ (CC BY 3.0)"
+
+
+5. Tranco list (build time only)
+--------------------------------
+Source:      https://tranco-list.eu/list/GQ38K
+Used for:    choosing which site-specific EasyList rules go into ext/rules/cosmetic.css.
+             No Tranco data is shipped.
+Citation:    Victor Le Pochat, Tom Van Goethem, Samaneh Tajalizadehkhoob, Maciej Korczynski and
+             Wouter Joosen, "Tranco: A Research-Oriented Top Sites Ranking Hardened Against
+             Manipulation", NDSS 2019.
+
+
+6. Names and links
+------------------
+Site names in the bookmarks and YouTube channel names belong to their owners. Videos and
+thumbnails are loaded from YouTube by the viewer's browser and belong to their creators.

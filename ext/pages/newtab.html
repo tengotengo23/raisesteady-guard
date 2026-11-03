@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title data-i18n="ntTitle">New tab</title>
+<link rel="stylesheet" href="../ui/tokens.css">
+<link rel="stylesheet" href="../ui/kit.css">
+<link rel="stylesheet" href="pages.css">
+<script type="module" src="newtab.js"></script>
+</head>
+<body>
+<main class="kg-wrap kg-enter">
+  <header class="nt-head">
+    <h1 id="greet"></h1>
+  </header>
+
+  <section aria-labelledby="timeTitle">
+    <h2 id="timeTitle" class="kg-small kg-muted" data-i18n="timeLeftTitle"></h2>
+    <div class="nt-time">
+      <div class="kg-card">
+        <div class="nt-time-row"><b data-i18n="browsing"></b><span id="browseLeft"></span></div>
+        <div id="browseMeter" class="kg-meter" role="presentation"><i></i></div>
+      </div>
+      <div class="kg-card">
+        <div class="nt-time-row"><b data-i18n="videos"></b><span id="videoLeft"></span></div>
+        <div id="videoMeter" class="kg-meter" role="presentation"><i></i></div>
+      </div>
+    </div>
+    <p class="kg-small kg-muted" data-i18n="learningNote"></p>
+  </section>
+
+  <form id="search" class="nt-search" role="search" action="https://www.google.com/search" method="get">
+    <label for="q" class="kg-hidden" data-i18n="searchLabel"></label>
+    <input id="q" name="q" class="kg-input" type="search" autocomplete="off" data-i18n-attr="placeholder:searchPlaceholder;aria-label:searchLabel">
+    <input type="hidden" name="safe" value="active">
+    <button class="kg-btn" type="submit" data-i18n="searchBtn"></button>
+  </form>
+
+  <section id="marks" class="nt-section" hidden aria-labelledby="marksTitle">
+    <h2 id="marksTitle" data-i18n="bookmarksTitle"></h2>
+    <div id="tiles"></div>
+  </section>
+
+  <section id="vids" class="nt-section" hidden aria-labelledby="vidsTitle">
+    <h2 id="vidsTitle" data-i18n="videosTitle"></h2>
+    <div id="videoGrid" class="nt-videos"></div>
+  </section>
+</main>
+</body>
+</html>

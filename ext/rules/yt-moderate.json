@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "priority": 120,
+    "action": {
+      "type": "modifyHeaders",
+      "requestHeaders": [
+        {
+          "header": "YouTube-Restrict",
+          "operation": "set",
+          "value": "Moderate"
+        }
+      ]
+    },
+    "condition": {
+      "requestDomains": [
+        "youtube.com",
+        "youtubei.googleapis.com",
+        "youtube.googleapis.com",
+        "youtube-nocookie.com"
+      ],
+      "resourceTypes": [
+        "main_frame",
+        "sub_frame",
+        "xmlhttprequest",
+        "other"
+      ]
+    }
+  }
+]

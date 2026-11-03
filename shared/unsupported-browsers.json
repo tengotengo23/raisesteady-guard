@@ -1,0 +1,561 @@
+{
+  "version": 1,
+  "note": "Browsers the agent cannot protect (they ignore the Chrome, Edge and Firefox policies the agent writes, or bypass filtering by design). In a protected account they are closed within 3 seconds. A process matches by its exe name, by the ProductName in its version info, or by a part of its path (lower case, backslashes). Exe names shared with other programs (browser.exe, chrome.exe, firefox.exe) are matched only by product name or path. Vivaldi is listed because its Windows policy support is not documented by Vivaldi (checked 3 Nov 2026); move it back when a test shows vivaldi://policy applying ours.",
+  "supportedProducts": [
+    "Google Chrome",
+    "Google Chrome for Testing",
+    "Microsoft Edge",
+    "Brave Browser",
+    "Brave",
+    "Firefox",
+    "Mozilla Firefox",
+    "Firefox Developer Edition",
+    "Firefox Nightly"
+  ],
+  "browsers": [
+    {
+      "id": "vivaldi",
+      "name": "Vivaldi",
+      "exe": [
+        "vivaldi.exe"
+      ],
+      "product": [
+        "Vivaldi"
+      ],
+      "pathContains": [
+        "\\vivaldi\\application\\"
+      ]
+    },
+    {
+      "id": "opera",
+      "name": "Opera",
+      "exe": [
+        "opera.exe",
+        "opera_crashreporter.exe"
+      ],
+      "product": [
+        "Opera Internet Browser",
+        "Opera"
+      ],
+      "pathContains": [
+        "\\programs\\opera\\",
+        "\\opera software\\"
+      ]
+    },
+    {
+      "id": "opera-gx",
+      "name": "Opera GX",
+      "exe": [],
+      "product": [
+        "Opera GX Internet Browser",
+        "Opera GX"
+      ],
+      "pathContains": [
+        "\\programs\\opera gx\\"
+      ]
+    },
+    {
+      "id": "opera-air",
+      "name": "Opera Air",
+      "exe": [],
+      "product": [
+        "Opera Air"
+      ],
+      "pathContains": [
+        "\\programs\\opera air\\"
+      ]
+    },
+    {
+      "id": "tor",
+      "name": "Tor Browser",
+      "exe": [
+        "tor.exe"
+      ],
+      "product": [
+        "Tor Browser"
+      ],
+      "pathContains": [
+        "\\tor browser\\browser\\"
+      ]
+    },
+    {
+      "id": "mullvad",
+      "name": "Mullvad Browser",
+      "exe": [
+        "mullvadbrowser.exe"
+      ],
+      "product": [
+        "Mullvad Browser"
+      ],
+      "pathContains": [
+        "\\mullvad browser\\"
+      ]
+    },
+    {
+      "id": "yandex",
+      "name": "Yandex Browser",
+      "exe": [],
+      "product": [
+        "Yandex",
+        "Yandex Browser"
+      ],
+      "pathContains": [
+        "\\yandex\\yandexbrowser\\"
+      ]
+    },
+    {
+      "id": "ucbrowser",
+      "name": "UC Browser",
+      "exe": [
+        "ucbrowser.exe"
+      ],
+      "product": [
+        "UC Browser",
+        "UCBrowser"
+      ],
+      "pathContains": [
+        "\\ucbrowser\\"
+      ]
+    },
+    {
+      "id": "maxthon",
+      "name": "Maxthon",
+      "exe": [
+        "maxthon.exe",
+        "mxbrowser.exe"
+      ],
+      "product": [
+        "Maxthon",
+        "Maxthon Browser"
+      ],
+      "pathContains": [
+        "\\maxthon\\"
+      ]
+    },
+    {
+      "id": "palemoon",
+      "name": "Pale Moon",
+      "exe": [
+        "palemoon.exe"
+      ],
+      "product": [
+        "Pale Moon"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "basilisk",
+      "name": "Basilisk",
+      "exe": [
+        "basilisk.exe"
+      ],
+      "product": [
+        "Basilisk"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "waterfox",
+      "name": "Waterfox",
+      "exe": [
+        "waterfox.exe"
+      ],
+      "product": [
+        "Waterfox"
+      ],
+      "pathContains": [
+        "\\waterfox\\"
+      ]
+    },
+    {
+      "id": "librewolf",
+      "name": "LibreWolf",
+      "exe": [
+        "librewolf.exe"
+      ],
+      "product": [
+        "LibreWolf"
+      ],
+      "pathContains": [
+        "\\librewolf\\"
+      ]
+    },
+    {
+      "id": "floorp",
+      "name": "Floorp",
+      "exe": [
+        "floorp.exe"
+      ],
+      "product": [
+        "Floorp"
+      ],
+      "pathContains": [
+        "\\floorp\\"
+      ]
+    },
+    {
+      "id": "zen",
+      "name": "Zen Browser",
+      "exe": [],
+      "product": [
+        "Zen Browser"
+      ],
+      "pathContains": [
+        "\\zen browser\\"
+      ]
+    },
+    {
+      "id": "seamonkey",
+      "name": "SeaMonkey",
+      "exe": [
+        "seamonkey.exe"
+      ],
+      "product": [
+        "SeaMonkey"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "kmeleon",
+      "name": "K-Meleon",
+      "exe": [
+        "k-meleon.exe"
+      ],
+      "product": [
+        "K-Meleon"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "chromium",
+      "name": "Chromium",
+      "exe": [],
+      "product": [
+        "Chromium"
+      ],
+      "pathContains": [
+        "\\chromium\\application\\"
+      ]
+    },
+    {
+      "id": "supermium",
+      "name": "Supermium",
+      "exe": [],
+      "product": [
+        "Supermium"
+      ],
+      "pathContains": [
+        "\\supermium\\"
+      ]
+    },
+    {
+      "id": "thorium",
+      "name": "Thorium",
+      "exe": [
+        "thorium.exe"
+      ],
+      "product": [
+        "Thorium"
+      ],
+      "pathContains": [
+        "\\thorium\\"
+      ]
+    },
+    {
+      "id": "cent",
+      "name": "Cent Browser",
+      "exe": [],
+      "product": [
+        "Cent Browser"
+      ],
+      "pathContains": [
+        "\\centbrowser\\"
+      ]
+    },
+    {
+      "id": "iron",
+      "name": "SRWare Iron",
+      "exe": [],
+      "product": [
+        "SRWare Iron"
+      ],
+      "pathContains": [
+        "\\srware iron\\"
+      ]
+    },
+    {
+      "id": "slimjet",
+      "name": "Slimjet",
+      "exe": [
+        "slimjet.exe"
+      ],
+      "product": [
+        "Slimjet"
+      ],
+      "pathContains": [
+        "\\slimjet\\"
+      ]
+    },
+    {
+      "id": "epic",
+      "name": "Epic Privacy Browser",
+      "exe": [],
+      "product": [
+        "Epic Privacy Browser"
+      ],
+      "pathContains": [
+        "\\epic privacy browser\\"
+      ]
+    },
+    {
+      "id": "comodo-dragon",
+      "name": "Comodo Dragon",
+      "exe": [],
+      "product": [
+        "Comodo Dragon"
+      ],
+      "pathContains": [
+        "\\comodo\\dragon\\"
+      ]
+    },
+    {
+      "id": "avast",
+      "name": "Avast Secure Browser",
+      "exe": [
+        "avastbrowser.exe"
+      ],
+      "product": [
+        "Avast Secure Browser"
+      ],
+      "pathContains": [
+        "\\avast software\\browser\\"
+      ]
+    },
+    {
+      "id": "avg",
+      "name": "AVG Secure Browser",
+      "exe": [
+        "avgbrowser.exe"
+      ],
+      "product": [
+        "AVG Secure Browser"
+      ],
+      "pathContains": [
+        "\\avg\\browser\\"
+      ]
+    },
+    {
+      "id": "ccleaner",
+      "name": "CCleaner Browser",
+      "exe": [
+        "ccleanerbrowser.exe"
+      ],
+      "product": [
+        "CCleaner Browser"
+      ],
+      "pathContains": [
+        "\\ccleaner browser\\"
+      ]
+    },
+    {
+      "id": "norton",
+      "name": "Norton Private Browser",
+      "exe": [
+        "nortonbrowser.exe"
+      ],
+      "product": [
+        "Norton Private Browser",
+        "Norton Secure Browser"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "coccoc",
+      "name": "Cốc Cốc",
+      "exe": [],
+      "product": [
+        "Cốc Cốc",
+        "CocCoc",
+        "Coc Coc"
+      ],
+      "pathContains": [
+        "\\coccoc\\browser\\"
+      ]
+    },
+    {
+      "id": "360",
+      "name": "360 Browser",
+      "exe": [
+        "360se.exe",
+        "360chrome.exe",
+        "360chromex.exe"
+      ],
+      "product": [
+        "360安全浏览器",
+        "360极速浏览器",
+        "360 Secure Browser"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "qq",
+      "name": "QQ Browser",
+      "exe": [
+        "qqbrowser.exe"
+      ],
+      "product": [
+        "QQ浏览器",
+        "QQBrowser"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "sogou",
+      "name": "Sogou Explorer",
+      "exe": [
+        "sogouexplorer.exe"
+      ],
+      "product": [
+        "搜狗高速浏览器",
+        "Sogou Explorer"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "whale",
+      "name": "Naver Whale",
+      "exe": [
+        "whale.exe"
+      ],
+      "product": [
+        "Naver Whale"
+      ],
+      "pathContains": [
+        "\\naver\\naver whale\\"
+      ]
+    },
+    {
+      "id": "arc",
+      "name": "Arc",
+      "exe": [],
+      "product": [
+        "Arc"
+      ],
+      "pathContains": [
+        "\\thebrowsercompany.arc"
+      ]
+    },
+    {
+      "id": "duckduckgo",
+      "name": "DuckDuckGo",
+      "exe": [
+        "duckduckgo.exe"
+      ],
+      "product": [
+        "DuckDuckGo"
+      ],
+      "pathContains": [
+        "\\duckduckgo.desktopbrowser"
+      ]
+    },
+    {
+      "id": "sidekick",
+      "name": "Sidekick",
+      "exe": [
+        "sidekick.exe"
+      ],
+      "product": [
+        "Sidekick"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "wavebox",
+      "name": "Wavebox",
+      "exe": [
+        "wavebox.exe"
+      ],
+      "product": [
+        "Wavebox"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "torch",
+      "name": "Torch",
+      "exe": [],
+      "product": [
+        "Torch Browser"
+      ],
+      "pathContains": [
+        "\\torch\\application\\"
+      ]
+    },
+    {
+      "id": "midori",
+      "name": "Midori",
+      "exe": [
+        "midori.exe"
+      ],
+      "product": [
+        "Midori"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "falkon",
+      "name": "Falkon",
+      "exe": [
+        "falkon.exe"
+      ],
+      "product": [
+        "Falkon"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "min",
+      "name": "Min",
+      "exe": [],
+      "product": [
+        "Min"
+      ],
+      "pathContains": [
+        "\\programs\\min\\"
+      ]
+    },
+    {
+      "id": "lunascape",
+      "name": "Lunascape",
+      "exe": [
+        "lunascape.exe"
+      ],
+      "product": [
+        "Lunascape"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "sleipnir",
+      "name": "Sleipnir",
+      "exe": [
+        "sleipnir.exe"
+      ],
+      "product": [
+        "Sleipnir"
+      ],
+      "pathContains": []
+    },
+    {
+      "id": "ladybird",
+      "name": "Ladybird",
+      "exe": [
+        "ladybird.exe"
+      ],
+      "product": [
+        "Ladybird"
+      ],
+      "pathContains": []
+    }
+  ]
+}

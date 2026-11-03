@@ -1,0 +1,823 @@
+{
+  "version": 1,
+  "channels": [
+    {
+      "id": "UCoookXUzPciGrEZEXmh4Jjg",
+      "handle": "@sesamestreet",
+      "name": "Sesame Street",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "early learning"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCrNnk0wFBnCS1awGjq_ijGQ",
+      "handle": "@pbskids",
+      "name": "PBS KIDS",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "early learning",
+        "stories"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCLsooMJoIpl_7ux2jvdPB-Q",
+      "handle": "@SuperSimpleSongs",
+      "name": "Super Simple Songs - Kids Songs",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "songs",
+        "early learning"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCPlwvN0w4qFSP1FllALB92w",
+      "handle": "@Numberblocks",
+      "name": "Numberblocks",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "maths"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCEC-8nMiuXYH2QUs0yYcHTQ",
+      "handle": "@Bluey",
+      "name": "Bluey",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "stories",
+        "family"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCJkWoS4RsldA1coEIot5yDA",
+      "handle": "@MotherGooseClub",
+      "name": "Mother Goose Club",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "songs",
+        "early learning"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC0fXNmjDoC7ckPyT6qM8Urw",
+      "handle": "@cbeebies",
+      "name": "CBeebies",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "early learning",
+        "stories"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCnBdzaRy-Ky9Vh54XJlFz1Q",
+      "handle": "@StorylineOnline",
+      "name": "StorylineOnline",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "stories",
+        "reading"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC574PCE8QOIoXsOGAyL3obQ",
+      "handle": "@HeyDuggee",
+      "name": "Hey Duggee",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "stories"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCG2CL6EUjG8TVT1Tpl9nJdg",
+      "handle": "@MsRachel",
+      "name": "Ms Rachel - Toddler Learning Videos",
+      "bands": [
+        "3-5"
+      ],
+      "topics": [
+        "early learning",
+        "language"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC2ri4rEb8abnNwXvTjg5ARw",
+      "handle": "@khanacademykids",
+      "name": "Khan Academy Kids",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "early learning"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC5uIZ2KOZZeQDQo_Gsi_qbQ",
+      "handle": "@CosmicKidsYoga",
+      "name": "Cosmic Kids Yoga",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "movement",
+        "calm"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC2YBT7HYqCbbvzu3kKZ3wnw",
+      "handle": "@GoNoodle",
+      "name": "GoNoodle | Get Moving",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "movement"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCRFIPG2u1DxKLNuE3y2SjHA",
+      "handle": "@SciShowKids",
+      "name": "SciShow Kids",
+      "bands": [
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCONtPx56PSebXJOxbFv-2jQ",
+      "handle": "@CrashCourseKids",
+      "name": "Crash Course Kids",
+      "bands": [
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCXVCgDuD_QCkI7gTKU7-tpg",
+      "handle": "@NatGeoKids",
+      "name": "Nat Geo Kids",
+      "bands": [
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "animals",
+        "nature"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCJ5dVwsCLKlWuOZyi7WDwfw",
+      "handle": "@BrainPOP",
+      "name": "BrainPOP",
+      "bands": [
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "school subjects"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCebMFnw6WxozGmqGekJHOJg",
+      "handle": "@FreeSchool",
+      "name": "Free School",
+      "bands": [
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "school subjects",
+        "history"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCfPyVJEBD7Di1YYjTdS2v8g",
+      "handle": "@HomeschoolPop",
+      "name": "Homeschool Pop",
+      "bands": [
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "school subjects"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC5XMF3Inoi8R9nSI8ChOsdQ",
+      "handle": "@ArtforKidsHub",
+      "name": "Art for Kids Hub",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12",
+        "13-15"
+      ],
+      "topics": [
+        "art",
+        "drawing"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC4a-Gbdw7vOaccHmFo40b9g",
+      "handle": "@khanacademy",
+      "name": "Khan Academy",
+      "bands": [
+        "6-8",
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "school subjects",
+        "maths"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCsooa4yRKGN_zEE8iknghZA",
+      "handle": "@TEDEd",
+      "name": "TED-Ed",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "ideas",
+        "school subjects"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCuAAUqEBZhz6XsKzR1dtV2g",
+      "handle": "@bitesize",
+      "name": "bitesize",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "school subjects"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCLA_DiR1FfKNvjuUpBHmylQ",
+      "handle": "@NASA",
+      "name": "NASA",
+      "bands": [
+        "6-8",
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "space"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCAY-SMFNfynqz1bdoaV8BeQ",
+      "handle": "@NASAGoddard",
+      "name": "NASA Goddard",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "space",
+        "earth science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCwmZiChSryoWQCZMIQezgTg",
+      "handle": "@bbcearth",
+      "name": "BBC Earth",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "nature",
+        "animals"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCpVm7bg6pXKo1Pr6k5kxG9A",
+      "handle": "@NatGeo",
+      "name": "National Geographic",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "nature",
+        "exploration"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCWqPRUsJlZaDp-PVbqEch9g",
+      "handle": "@SmithsonianChannel",
+      "name": "Smithsonian Channel",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "history",
+        "science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC7zosc8-0T6Dfyo1bg0w7KA",
+      "handle": "@naturalhistorymuseum",
+      "name": "Natural History Museum",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "nature",
+        "science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC2zO7i36zSzyYxa96giSqPw",
+      "handle": "@ScienceMuseum",
+      "name": "Science Museum",
+      "bands": [
+        "9-12",
+        "13-15"
+      ],
+      "topics": [
+        "science",
+        "making"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCvpQ-l09fCVxJd3urZbxzHg",
+      "handle": "@BritishMuseum",
+      "name": "The British Museum",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "history",
+        "art"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCZYTClx2T1of7BRZ86-8fow",
+      "handle": "@SciShow",
+      "name": "SciShow",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCrMePiHCWG4Vwqv3t7W9EFg",
+      "handle": "@SciShowSpace",
+      "name": "SciShow Space",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "space"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCeiYXex_fwgYDonaTcSIk6w",
+      "handle": "@MinuteEarth",
+      "name": "MinuteEarth",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "earth science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCUHW94eEFW7hkUMVaZz4eDg",
+      "handle": "@MinutePhysics",
+      "name": "minutephysics",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "physics"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCsXVk37bltHxD1rDPwtNM8Q",
+      "handle": "@kurzgesagt",
+      "name": "Kurzgesagt – In a Nutshell",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "science",
+        "big questions"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCHnyfMqiRRG1u-2MsSQLbXA",
+      "handle": "@veritasium",
+      "name": "Veritasium",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC6nSFpj9HTCZ5t-N3Rm3-HA",
+      "handle": "@Vsauce",
+      "name": "Vsauce",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "science",
+        "big questions"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC6107grRI4m0o2-emgoDnAA",
+      "handle": "@smartereveryday",
+      "name": "SmarterEveryDay",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "science",
+        "engineering"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCY1kMZp36IQSyNx_9h4mpCg",
+      "handle": "@MarkRober",
+      "name": "Mark Rober",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "engineering",
+        "making"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCEIwxahdLz7bap-VDs9h35A",
+      "handle": "@stevemould",
+      "name": "Steve Mould",
+      "bands": [
+        "9-12",
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "science",
+        "experiments"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCj1VqrHhDte54oLgPG4xpuQ",
+      "handle": "@StuffMadeHere",
+      "name": "Stuff Made Here",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "engineering",
+        "making"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCAK3X_yAuxrQo_6q_mzPK8w",
+      "handle": "@PracticalEngineering",
+      "name": "Practical Engineering Australia",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "engineering"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCR1IuLEqb6UEA_zQ81kwXfg",
+      "handle": "@RealEngineering",
+      "name": "Real Engineering",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "engineering"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCoxcjq-8xIDTYp3uz647V5A",
+      "handle": "@Numberphile",
+      "name": "Numberphile",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "maths"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCYO_jab_esuFRV4b17AJtAw",
+      "handle": "@3blue1brown",
+      "name": "3Blue1Brown",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "maths"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCSju5G2aFaWMqn-_0YBtq5A",
+      "handle": "@StandUpMaths",
+      "name": "Stand-up Maths",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "maths"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC1_uAIS3r8Vu6JjXWvastJg",
+      "handle": "@Mathologer",
+      "name": "Mathologer",
+      "bands": [
+        "16-17"
+      ],
+      "topics": [
+        "maths"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCvjgXvBlbQiydffZU7m1_aw",
+      "handle": "@TheCodingTrain",
+      "name": "The Coding Train",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "coding",
+        "creative coding"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCcabW7890RKJzL968QWEykA",
+      "handle": "@cs50",
+      "name": "CS50",
+      "bands": [
+        "16-17"
+      ],
+      "topics": [
+        "coding"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC8butISFwT-Wl7EV0hUK0BQ",
+      "handle": "@freecodecamp",
+      "name": "freeCodeCamp.org",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "coding"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCkyfHZ6bY2TjqbJhiH8Y2QQ",
+      "handle": "@TheBrainScoop",
+      "name": "thebrainscoop",
+      "bands": [
+        "13-15",
+        "16-17"
+      ],
+      "topics": [
+        "nature",
+        "museum science"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCAuUUnT6oDeKwE6v1NGQxug",
+      "handle": "@TED",
+      "name": "TED",
+      "bands": [
+        "16-17"
+      ],
+      "topics": [
+        "ideas"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UC7_gcs09iThXybpVgjHZ_7g",
+      "handle": "@PBSSpaceTime",
+      "name": "PBS Space Time",
+      "bands": [
+        "16-17"
+      ],
+      "topics": [
+        "physics",
+        "space"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCs_uv3QyUIQjBoL1Ij5BdlQ",
+      "handle": "@Fixiki",
+      "name": "Фиксики",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "how things work",
+        "cartoons"
+      ],
+      "lang": "ru"
+    },
+    {
+      "id": "UC5A-Wp9ujcr5g9sYagAafEA",
+      "handle": "@smeshariki",
+      "name": "TVSmeshariki",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "cartoons",
+        "values"
+      ],
+      "lang": "ru"
+    },
+    {
+      "id": "UCdgDIIKpFlpHB1L0LZnh5EQ",
+      "handle": "@Luntik",
+      "name": "Лунтик",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "cartoons"
+      ],
+      "lang": "ru"
+    },
+    {
+      "id": "UCHS2LM1n3f5cyL-ebgkqyLw",
+      "handle": "@soyuzmultfilm",
+      "name": "Союзмультфильм",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "classic cartoons"
+      ],
+      "lang": "ru"
+    },
+    {
+      "id": "UCSPd93is2UQsd_jZ6yHBfqQ",
+      "handle": "@Postnauka",
+      "name": "ПостНаука",
+      "bands": [
+        "16-17"
+      ],
+      "topics": [
+        "science",
+        "talks"
+      ],
+      "lang": "ru"
+    }
+  ]
+}

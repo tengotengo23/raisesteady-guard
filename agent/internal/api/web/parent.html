@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="{{.Lang}}">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>{{.Title}} · {{.AppName}}</title>
+<link rel="stylesheet" href="/parent/app.css">
+</head>
+<body>
+<header class="top">
+  <div class="wrap top-row">
+    <p class="brand">{{.AppName}}</p>
+    <nav class="langs" aria-label="{{t .Lang "language"}}">
+      {{range .Langs}}<a href="/parent?lang={{.Code}}{{if $.LoggedIn}}&amp;a={{$.Account}}{{end}}" lang="{{.Code}}"{{if eq .Code $.Lang}} aria-current="true"{{end}}>{{.Name}}</a>{{end}}
+    </nav>
+  </div>
+</header>
+<main class="wrap">
+  <h1 class="kg-enter">{{.Title}}</h1>
+{{if not .LoggedIn}}
+  <section class="card kg-enter" aria-labelledby="login-h">
+    <h2 id="login-h">{{t .Lang "login_lead"}}</h2>
+    <form method="post" action="/parent/login" class="stack">
+      <input type="hidden" name="lang" value="{{.Lang}}">
+      <label for="pin">{{t .Lang "pin"}}</label>
+      <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autofocus>
+      <button type="submit" class="btn">{{t .Lang "login"}}</button>
+      {{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}
+    </form>
+  </section>
+{{else}}
+  <div class="bar">
+    <p class="lead">{{t .Lang "for_account"}} <strong>{{.AccountName}}</strong>{{if .PinToday}}<br><span class="muted">{{.PinToday}}</span>{{end}}</p>
+    <form method="post" action="/parent/logout">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}">
+      <button type="submit" class="btn ghost">{{t .Lang "logout"}}</button>
+    </form>
+  </div>
+  {{if .Tabs}}<nav class="tabs" aria-label="{{t .Lang "account"}}">{{range .Tabs}}<a href="/parent?a={{.Index}}&amp;lang={{$.Lang}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
+
+  <section class="card" aria-labelledby="limits-h">
+    <h2 id="limits-h">{{t .Lang "sec_limits"}}</h2>
+    <form method="post" action="/parent/save" class="stack">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}"><input type="hidden" name="a" value="{{.Account}}">
+      <label for="band">{{t .Lang "age"}}</label>
+      <select id="band" name="band">{{range .Bands}}<option value="{{.ID}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+      <div class="pair">
+        <div class="stack"><label for="browseMin">{{t .Lang "browse_min"}}</label>
+        <input id="browseMin" name="browseMin" type="number" inputmode="numeric" min="5" max="720" step="5" value="{{.Settings.BrowseMin}}" required></div>
+        <div class="stack"><label for="videoMin">{{t .Lang "video_min"}}</label>
+        <input id="videoMin" name="videoMin" type="number" inputmode="numeric" min="5" max="720" step="5" value="{{.Settings.VideoMin}}" required></div>
+      </div>
+      <p class="hint">{{t .Lang "limit_hint"}}</p>
+      <fieldset>
+        <legend>{{t .Lang "bedtime"}}</legend>
+        <div class="pair">
+          <div class="stack"><label for="bedStart">{{t .Lang "starts"}}</label><input id="bedStart" name="bedStart" type="time" value="{{.Settings.Bedtime.Start}}" required></div>
+          <div class="stack"><label for="bedEnd">{{t .Lang "ends"}}</label><input id="bedEnd" name="bedEnd" type="time" value="{{.Settings.Bedtime.End}}" required></div>
+        </div>
+      </fieldset>
+      <label for="tz">{{t .Lang "tz"}}</label>
+      <select id="tz" name="tz">{{range .TZ}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
+      <p class="hint">{{t .Lang "tz_note"}}</p>
+      <label class="check"><input type="checkbox" name="focusMode" aria-describedby="focus-hint"{{if .Settings.FocusMode}} checked{{end}}> <span>{{t .Lang "focus"}}</span></label>
+      <p class="hint" id="focus-hint">{{t .Lang "focus_note"}}</p>
+      <label class="check"><input type="checkbox" name="adblock"{{if .Settings.Adblock}} checked{{end}}> <span>{{t .Lang "adblock"}}</span></label>
+      <label class="check"><input type="checkbox" name="familyDns" aria-describedby="familyDns-hint"{{if not .Settings.FamilyDNSOff}} checked{{end}}> <span>{{t .Lang "family_dns"}}</span></label>
+      <p class="hint" id="familyDns-hint">{{t .Lang "family_dns_note"}}</p>
+      <label for="allow">{{t .Lang "allow"}}</label>
+      <textarea id="allow" name="allow" rows="4" spellcheck="false" autocapitalize="off">{{.AllowText}}</textarea>
+      <label for="block">{{t .Lang "block"}}</label>
+      <textarea id="block" name="block" rows="4" spellcheck="false" autocapitalize="off">{{.BlockText}}</textarea>
+      <button type="submit" class="btn">{{t .Lang "save"}}</button>
+      {{if eq .MsgSec "limits"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
+    </form>
+    <form method="post" action="/parent/defaults" class="after">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}"><input type="hidden" name="a" value="{{.Account}}">
+      <button type="submit" class="btn ghost">{{t .Lang "defaults"}}</button>
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="report-h">
+    <h2 id="report-h">{{t .Lang "sec_report"}}</h2>
+    <div class="table-wrap">
+    <table>
+      <thead><tr><th scope="col">{{t .Lang "col_day"}}</th><th scope="col">{{t .Lang "col_browse"}}</th><th scope="col">{{t .Lang "col_video"}}</th><th scope="col">{{t .Lang "col_learn"}}</th><th scope="col">{{t .Lang "col_blocked"}}</th></tr></thead>
+      <tbody>{{range .Report}}<tr><th scope="row">{{.Day}}</th><td>{{.BrowseMin}} {{t $.Lang "min"}}</td><td>{{.VideoMin}} {{t $.Lang "min"}}</td><td>{{.LearningMin}} {{t $.Lang "min"}}</td><td>{{.Blocked}}</td></tr>{{end}}</tbody>
+    </table>
+    </div>
+    <h3>{{t .Lang "by_reason"}}</h3>
+    {{if .ByReason}}<ul class="list">{{range .ByReason}}<li><span>{{t $.Lang .Key}}</span> <span class="muted">{{.Count}}</span></li>{{end}}</ul>{{else}}<p class="muted">{{t .Lang "no_data"}}</p>{{end}}
+    <h3>{{t .Lang "top_sites"}}</h3>
+    {{if .TopSites}}<ol class="list">{{range .TopSites}}<li><span>{{.Domain}}</span> <span class="muted">{{.Min}} {{t $.Lang "min"}}</span></li>{{end}}</ol>{{else}}<p class="muted">{{t .Lang "no_data"}}</p>{{end}}
+  </section>
+
+  <section class="card" aria-labelledby="browsers-h">
+    <h2 id="browsers-h">{{t .Lang "sec_browsers"}}</h2>
+    {{if .Browsers}}<ul class="list">{{range .Browsers}}<li><span>{{.Name}}{{if .Account}} <span class="muted">· {{.Account}}</span>{{end}}</span> <span class="state {{.State}}">{{.Text}}</span></li>{{end}}</ul>{{else}}<p class="muted">{{t .Lang "no_browsers"}}</p>{{end}}
+  </section>
+
+  <section class="card" aria-labelledby="accounts-h">
+    <h2 id="accounts-h">{{t .Lang "sec_accounts"}}</h2>
+    <form method="post" action="/parent/accounts" class="stack">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}">
+      {{range .LocalAccounts}}<label class="check"><input type="checkbox" name="sid" value="{{.SID}}"{{if .Checked}} checked{{end}}> <span>{{.Name}}{{if .Admin}} <span class="muted">({{t $.Lang "admin_note"}})</span>{{end}}</span></label>{{end}}
+      <label class="check"><input type="checkbox" name="everyone"{{if .Everyone}} checked{{end}}> <span>{{t .Lang "everyone"}}<br><span class="muted">{{t .Lang "everyone_note"}}</span></span></label>
+      <button type="submit" class="btn">{{t .Lang "save"}}</button>
+      {{if eq .MsgSec "accounts"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
+    </form>
+  </section>
+
+  <section class="card" aria-labelledby="privacy-h">
+    <h2 id="privacy-h">{{t .Lang "sec_privacy"}}</h2>
+    <p>{{t .Lang "privacy_here"}}</p>
+    <p>{{t .Lang "privacy_out"}}</p>
+  </section>
+
+  <section class="card" aria-labelledby="pin-h">
+    <h2 id="pin-h">{{t .Lang "sec_pin"}}</h2>
+    <form method="post" action="/parent/pin" class="stack">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}">
+      <label for="pinNow">{{t .Lang "pin_now"}}</label>
+      <input id="pinNow" name="pinNow" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" maxlength="8" required>
+      <label for="pinNew">{{t .Lang "pin_new"}}</label>
+      <input id="pinNew" name="pinNew" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" maxlength="8" required>
+      <label for="pinAgain">{{t .Lang "pin_again"}}</label>
+      <input id="pinAgain" name="pinAgain" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" maxlength="8" required>
+      <button type="submit" class="btn">{{t .Lang "save"}}</button>
+      {{if eq .MsgSec "pin"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
+    </form>
+  </section>
+{{end}}
+  <p class="honest">{{t .Lang "browsers_only"}} {{t .Lang "honest"}}</p>
+</main>
+</body>
+</html>

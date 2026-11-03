@@ -1,0 +1,31 @@
+/* RaiseSteady Guard design tokens. RaiseSteady colours, calm and warm. Use these; add no colours. */
+:root {
+  --kg-navy: #282858; --kg-yellow: #fedb71; --kg-mint: #75c5a8; --kg-mint-light: #dff5ec;
+  --kg-coral: #fb7d7e; --kg-lavender: #e9d9ff; --kg-paper: #f7f6f1; --kg-card: #ffffff;
+  --kg-ink: #1d1d2c; --kg-muted: #4a4a68; --kg-line: #d9d8e6; --kg-focus: #3b3bb3;
+  --kg-ok: #1f7a57; --kg-warn: #8a5a00; --kg-stop: #a3313a;
+  --kg-bg: var(--kg-paper); --kg-surface: var(--kg-card); --kg-text: var(--kg-ink); --kg-text-2: var(--kg-muted);
+  --kg-accent: var(--kg-navy); --kg-accent-text: #ffffff; --kg-soft: var(--kg-lavender); --kg-sun: var(--kg-yellow);
+  --kg-font: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans", "Noto Sans Georgian", "BPG Arial", sans-serif;
+  --kg-size: 1rem; --kg-size-s: 0.9375rem; --kg-size-l: 1.25rem; --kg-size-xl: clamp(1.5rem, 1.2rem + 1.4vw, 2.25rem);
+  --kg-line-h: 1.5; --kg-radius: 18px; --kg-radius-s: 12px; --kg-gap: 16px; --kg-gap-l: 28px;
+  --kg-shadow: 0 2px 0 rgba(40, 40, 88, 0.08), 0 8px 24px rgba(40, 40, 88, 0.08);
+  --kg-tap: 44px; --kg-ease: cubic-bezier(.2, .7, .2, 1); --kg-time: 220ms;
+  color-scheme: light dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --kg-bg: #15152b; --kg-surface: #212142; --kg-text: #f2f1fa; --kg-text-2: #c3c2dc; --kg-line: #3a3a63;
+    --kg-accent: var(--kg-yellow); --kg-accent-text: #15152b; --kg-soft: #2e2a4f; --kg-sun: #5a4a12;
+    --kg-focus: #9fa0ff; --kg-ok: #7fd6b2; --kg-warn: #f3c969; --kg-stop: #ff9a9b;
+    --kg-shadow: 0 2px 0 rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.35);
+  }
+}
+/* Motion: transforms with Reduce Motion off; the same timing as a plain fade with it on. */
+.kg-enter { animation: kg-rise var(--kg-time) var(--kg-ease) both; }
+@keyframes kg-rise { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .kg-enter { animation-name: kg-fade; }
+  @keyframes kg-fade { from { opacity: 0; } to { opacity: 1; } }
+}
+:focus-visible { outline: 3px solid var(--kg-focus); outline-offset: 2px; }

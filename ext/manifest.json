@@ -1,0 +1,179 @@
+{
+  "manifest_version": 3,
+  "name": "__MSG_extName__",
+  "short_name": "__MSG_extShortName__",
+  "description": "__MSG_extDesc__",
+  "version": "0.1.0",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtSjxkQ5+7slf7AncwTNTLD4vOm7bGzeYZj17XGfq6v1gLm6y4iypAL7BgYhk+vtiuGqPyL2GLCwGmUO6Se79re1gqW9kRW4ZIWKqL1VfYroOtXdZTopYSpzZHMDMH4CtL8zU30S/dqOehTbzV2/tn5oTQtmg9kNTnwQm+NTXCe9xg+DxGN1SfJdw5U51qUVeD/PTrD5s0jBDO6lVfgIys4El43dz9YACc4+MXTdxJCzhQv6P4aFVTbs/Mr86byLBAmV7Gdw3JL4XSq3bLxWjVo2Lclx0jN5iQBAW3tUF0Voycd4cKWuemh2DpXVq8Luu778wKt1Nsvd4m24fQnzwnwIDAQAB",
+  "default_locale": "en",
+  "minimum_chrome_version": "120",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "32": "icons/icon-32.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "background": {
+    "service_worker": "background/main.js",
+    "type": "module"
+  },
+  "permissions": [
+    "storage",
+    "declarativeNetRequest",
+    "webNavigation",
+    "alarms",
+    "notifications",
+    "idle"
+  ],
+  "host_permissions": [
+    "<all_urls>"
+  ],
+  "action": {
+    "default_popup": "pages/popup.html",
+    "default_title": "__MSG_extName__",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "32": "icons/icon-32.png"
+    }
+  },
+  "options_ui": {
+    "page": "pages/options.html",
+    "open_in_tab": true
+  },
+  "chrome_url_overrides": {
+    "newtab": "pages/newtab.html"
+  },
+  "storage": {
+    "managed_schema": "managed_schema.json"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content/classify.js",
+        "content/page-check.js"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "http://*/*",
+        "https://*/*"
+      ],
+      "js": [
+        "content/cosmetic.js"
+      ],
+      "css": [
+        "rules/cosmetic.css"
+      ],
+      "run_at": "document_start",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://youtube.com/*"
+      ],
+      "js": [
+        "content/focus-youtube.js"
+      ],
+      "run_at": "document_start"
+    },
+    {
+      "matches": [
+        "*://*.youtube.com/*",
+        "*://youtube.com/*"
+      ],
+      "js": [
+        "content/yt-ads-main.js"
+      ],
+      "run_at": "document_start",
+      "world": "MAIN",
+      "all_frames": true
+    },
+    {
+      "matches": [
+        "*://*.tiktok.com/*",
+        "*://*.instagram.com/*",
+        "*://*.facebook.com/*",
+        "*://*.x.com/*",
+        "*://*.twitter.com/*",
+        "*://*.reddit.com/*",
+        "*://*.snapchat.com/*",
+        "*://*.pinterest.com/*",
+        "*://*.threads.net/*",
+        "*://*.threads.com/*",
+        "*://*.vk.com/*",
+        "*://*.ok.ru/*",
+        "*://*.tumblr.com/*"
+      ],
+      "js": [
+        "content/focus-social.js"
+      ],
+      "run_at": "document_start"
+    }
+  ],
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "adult",
+        "enabled": true,
+        "path": "rules/adult.json"
+      },
+      {
+        "id": "gambling",
+        "enabled": true,
+        "path": "rules/gambling.json"
+      },
+      {
+        "id": "bypass",
+        "enabled": true,
+        "path": "rules/bypass.json"
+      },
+      {
+        "id": "social",
+        "enabled": true,
+        "path": "rules/social.json"
+      },
+      {
+        "id": "ads",
+        "enabled": true,
+        "path": "rules/ads.json"
+      },
+      {
+        "id": "yt_ads",
+        "enabled": true,
+        "path": "rules/yt-ads.json"
+      },
+      {
+        "id": "safesearch",
+        "enabled": true,
+        "path": "rules/safesearch.json"
+      },
+      {
+        "id": "yt_strict",
+        "enabled": true,
+        "path": "rules/yt-strict.json"
+      },
+      {
+        "id": "yt_moderate",
+        "enabled": false,
+        "path": "rules/yt-moderate.json"
+      }
+    ]
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "pages/blocked.html"
+      ],
+      "matches": [
+        "<all_urls>"
+      ]
+    }
+  ]
+}

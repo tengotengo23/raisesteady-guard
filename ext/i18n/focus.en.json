@@ -1,0 +1,21 @@
+{
+  "gridLabel": "Videos picked for you",
+  "cardLabel": "{title}, from {channel}",
+  "gridEmpty": "New videos are on their way. Please look again a little later.",
+  "gridOffline": "The videos need the internet. They'll come back when you're online.",
+  "ytHeading": "What would you like to watch?",
+  "ytSearchLabel": "Search YouTube",
+  "ytSearchPlaceholder": "Search for a video",
+  "ytSearchBtn": "Search",
+  "ytCuratedNote": "Search shows videos only from the channels picked for your age.",
+  "ytCuratedNone": "No videos from the picked channels match this search. Try another word.",
+  "ytVideosTitle": "Videos for you",
+  "ytVideosFrom": "From channels picked for children of your age.",
+  "ytCommentsOff": "Comments are switched off.",
+  "socHeading": "Feed-free mode",
+  "socBody": "The endless feed is switched off here. Search, profiles and messages still work.",
+  "socSearchLabel": "Search {site}",
+  "socSearchPlaceholder": "What are you looking for?",
+  "socSearchBtn": "Search",
+  "socNoSearch": "Use the site's own search or menu to find what you came for."
+}

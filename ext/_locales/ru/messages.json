@@ -1,0 +1,14 @@
+{
+  "extName": {
+    "message": "RaiseSteady Guard",
+    "description": "Display name. Written by tools/build-ext.mjs from APP_NAME in ui/brand.js; do not edit here."
+  },
+  "extShortName": {
+    "message": "RaiseSteady Guard",
+    "description": "Short name. Written by tools/build-ext.mjs from APP_NAME."
+  },
+  "extDesc": {
+    "message": "Спокойный интернет по возрасту для детей: фильтр сайтов, безопасный поиск, лимиты времени, время сна и блокировка рекламы.",
+    "description": "Store description, at most 132 characters."
+  }
+}

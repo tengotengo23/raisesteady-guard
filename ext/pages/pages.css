@@ -1,0 +1,39 @@
+/* Page layouts. Components are in ../ui/kit.css; colours only from ../ui/tokens.css. */
+
+/* Block page */
+.bp-main { min-height: 100vh; display: flex; align-items: flex-start; justify-content: center; padding: clamp(16px, 6vh, 64px) 16px 32px; }
+.bp-card { width: 100%; max-width: 44rem; }
+.bp-art { width: 96px; height: 96px; margin: 0 0 12px; display: block; }
+.bp-site { display: inline-block; max-width: 100%; padding: 4px 12px; border-radius: var(--kg-radius-s); background: var(--kg-soft); font-weight: 600; overflow-wrap: anywhere; }
+.bp-next { margin-top: var(--kg-gap-l); }
+.bp-ask { margin-top: var(--kg-gap-l); padding-top: var(--kg-gap); border-top: 1px solid var(--kg-line); }
+.bp-pin { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); max-width: 22rem; }
+.bp-pin .kg-input { letter-spacing: 0.2em; font-variant-numeric: tabular-nums; }
+.bp-grants { display: flex; flex-wrap: wrap; gap: 10px; }
+
+/* New tab */
+.nt-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 0 var(--kg-gap); }
+.nt-head h1 { margin: 0; }
+.nt-time { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 14rem), 1fr)); gap: 12px; }
+.nt-time .kg-card { padding: 16px 18px; }
+.nt-time-row { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; margin-bottom: 8px; }
+.nt-time-row b { font-weight: 700; }
+.nt-search { display: flex; flex-wrap: wrap; gap: 10px; margin: var(--kg-gap-l) 0; }
+.nt-search .kg-input { flex: 1 1 14rem; min-height: 52px; border-radius: 999px; padding-inline: 1.1em; }
+.nt-search .kg-btn { min-height: 52px; }
+.nt-section { margin-top: var(--kg-gap-l); }
+.nt-videos:empty { display: none; }
+
+/* Popup */
+.pp { width: 22rem; max-width: 100vw; padding: 16px; }
+.pp h1 { font-size: var(--kg-size-l); }
+.pp-list { list-style: none; margin: 0; padding: 0; }
+.pp-list li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--kg-line); }
+.pp-list li:last-child { border-bottom: 0; }
+.pp-on { color: var(--kg-ok); font-weight: 650; }
+.pp-off { color: var(--kg-text-2); }
+
+/* Options */
+.op-grid { display: grid; gap: var(--kg-gap); }
+.op-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 12px; }
+.op-actions { padding: 12px 0 16px; }
