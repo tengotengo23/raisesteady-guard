@@ -222,7 +222,11 @@ class GuardAccessibilityService : AccessibilityService() {
     private fun block(pkg: String, v: Verdict.Closed) {
         val t = SystemClock.elapsedRealtime()
         val last = lastBlock
-        if (last != null && last.first == pkg && t - last.second < RELAUNCH_MS) return
+        if (last != null && last.first == pkg && t - last.second < RELAUNCH_MS) {
+            // Just closed: look again when the pause between two starts is over (the app may have come back).
+            main.postDelayed(tick, RELAUNCH_MS - (t - last.second) + 100)
+            return
+        }
         lastBlock = pkg to t
         Log.i(TAG, "closed $pkg: ${v.reason}")
         startActivity(BlockActivity.intent(this, pkg, v.reason, v.until?.toEpochMilli() ?: 0L))
@@ -271,13 +275,18 @@ class GuardAccessibilityService : AccessibilityService() {
         }
         rootRetries = 0
         val windowTitle = title ?: win.second
-        val texts = SettingsGuard.texts(win.first)
+        // The window's own search finds our label in rows the tree walk may not reach yet.
+        val found = runCatching { win.first.findAccessibilityNodeInfosByText(SettingsGuard.LABEL).isNotEmpty() }.getOrDefault(false)
+        val texts = SettingsGuard.texts(win.first).let { if (found) it + SettingsGuard.LABEL else it }
         if (!SettingsGuard.shouldCover(pkg, windowTitle, texts, titles, unlocked)) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "not covered: $pkg, title $windowTitle, ${texts.size} texts")
+            if (BuildConfig.DEBUG) Log.d(TAG, "not covered: $pkg, title $windowTitle, texts $texts")
             return
         }
         val t = SystemClock.elapsedRealtime()
-        if (t - lastCoverMs < COVER_MS) return
+        if (t - lastCoverMs < COVER_MS) {
+            main.postDelayed(contentCheck, COVER_MS - (t - lastCoverMs) + 100)
+            return
+        }
         lastCoverMs = t
         Log.i(TAG, "covered a page of $pkg")
         startActivity(PinGateActivity.intent(this))

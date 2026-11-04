@@ -95,6 +95,7 @@ object Notices {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setOngoing(true)
             .setSilent(true)
+            .setContentIntent(lock) // tapping the notice locks too: the button can be folded away
             .setTimeoutAfter(timeoutMs)
             .setGroup("com.raisesteady.guard.unlocked") // its own group: never folded in with other notices
             .addAction(0, context.getString(R.string.lock_now), lock)

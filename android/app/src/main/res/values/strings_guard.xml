@@ -21,7 +21,7 @@
     <string name="gate_text">It changes how RaiseSteady Guard protects this device.</string>
     <string name="gate_unlock">Unlock for 10 minutes</string>
     <string name="gate_back">Back</string>
-    <string name="unlocked_until">Settings are unlocked until %1$s.</string>
+    <string name="unlocked_until">Settings are unlocked until %1$s. Tap to lock them now.</string>
     <string name="lock_now">Lock now</string>
     <string name="notif_limits_off">Time limits are off. Ask a parent to open RaiseSteady Guard.</string>
     <string name="notif_five_minutes">5 minutes of game time left today.</string>

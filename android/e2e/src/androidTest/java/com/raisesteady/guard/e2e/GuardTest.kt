@@ -85,22 +85,19 @@ class GuardTest {
         shot("unlocked-app-info")
         device.pressHome()
 
-        // "Lock now" on the notice: the page needs the PIN again.
+        // "Lock now": tapping the notice (or its Lock now button) closes the pages again.
         device.openNotification()
-        val lockNow = By.text(Pattern.compile("(?i)lock now"))
-        val ours = By.res("com.android.systemui", "expandableNotificationRow").hasDescendant(By.textContains("Settings are unlocked"))
-        var lock = device.wait(androidx.test.uiautomator.Until.findObject(lockNow), 3_000)
-        repeat(3) {
-            if (lock != null) return@repeat
-            // Collapsed (or folded into a group): expand the innermost row that holds our notice.
-            device.findObjects(ours).asReversed().firstNotNullOfOrNull { row ->
-                row.findObject(By.res("android", "expand_button")) ?: row.findObject(By.res("android", "alternate_expand_target"))
-            }?.click()
-            lock = device.wait(androidx.test.uiautomator.Until.findObject(lockNow), 3_000)
-        }
+        val notice = By.textContains("Settings are unlocked")
+        assertTrue("no unlocked notice", device.wait(androidx.test.uiautomator.Until.hasObject(notice), 5_000) == true)
         shot("notice-unlocked")
-        assertTrue("no Lock now on the notice", lock != null)
-        lock!!.click()
+        var locked = false
+        repeat(3) {
+            if (locked) return@repeat
+            // A folded group opens on the first tap; the notice itself locks.
+            (device.findObject(By.text(Pattern.compile("(?i)lock now"))) ?: device.findObject(notice))?.click()
+            locked = device.wait(androidx.test.uiautomator.Until.gone(notice), 3_000) == true
+        }
+        assertTrue("the unlocked notice did not lock", locked)
         device.pressHome()
         Thread.sleep(1000)
         assertTrue("App info was not covered after Lock now", covered(appInfo, "App info after Lock now"))
