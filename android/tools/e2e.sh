@@ -29,7 +29,7 @@ echo "API $API, $(adb shell getprop ro.product.model | tr -d '\r'), $(adb shell 
 fail() { echo "e2e: $*"; adb logcat -d > "$OUT/logcat.txt" 2>/dev/null; exit 1; }
 
 # Wait for the package manager and the settings provider (boot_completed comes a little early).
-for i in $(seq 1 60); do
+for _ in $(seq 1 60); do
   adb shell pm path android >/dev/null 2>&1 && [ "$(adb shell getprop sys.boot_completed | tr -d '\r')" = 1 ] && break
   sleep 2
 done
