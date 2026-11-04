@@ -38,6 +38,7 @@ class GuardTest {
 
     /** Opens a Settings page by [cmd]; returns true when the PIN screen covered it within 2 s of Settings showing. */
     private fun covered(cmd: String, what: String): Boolean {
+        shell("am force-stop $SETTINGS") // each page opens fresh, not over a page left from before
         val out = shell(cmd)
         assertFalse("$what did not start: $out", out.contains("Error"))
         val end = System.currentTimeMillis() + 15_000

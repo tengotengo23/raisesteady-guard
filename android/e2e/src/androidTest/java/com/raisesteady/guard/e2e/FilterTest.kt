@@ -107,10 +107,17 @@ class FilterTest {
         val shown = E2e.waitText("be reached", 20_000) || E2e.waitText("DNS_PROBE_FINISHED_NXDOMAIN", 5_000)
         shot("chrome-blocked")
         assertTrue("Chrome did not show the DNS error page", shown)
-        open("https://www.google.com/search?q=test")
+        // Google's results page has no SafeSearch label (run 41914882360); its SafeSearch page says
+        // the setting is locked when the network forces it (forcesafesearch.google.com).
+        open("https://www.google.com/safesearch")
         skipChromeFirstRun()
         val label = E2e.waitText("SafeSearch", 20_000)
+        Thread.sleep(2000)
         shot("chrome-safesearch")
-        assertTrue("no SafeSearch label on Google's results page", label)
+        assertTrue("no SafeSearch page in Chrome", label)
+        assertTrue(
+            "Chrome's SafeSearch page does not say it is locked",
+            device.hasObject(By.textContains("locked")) || device.hasObject(By.textContains("network")),
+        )
     }
 }

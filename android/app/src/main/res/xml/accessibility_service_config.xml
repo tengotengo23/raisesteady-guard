@@ -1,9 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!-- Not an accessibility tool (Google Play rule): a parental control that sees which app is in front.
-     Window content is read only in Settings and the app installer (guard/SettingsGuard.kt). -->
+     Window content is read only in Settings and the app installer (guard/SettingsGuard.kt); content
+     changes are looked at only there too (lists in Settings fill in after the page opens). -->
 <accessibility-service xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowsChanged"
+    android:accessibilityEventTypes="typeWindowStateChanged|typeWindowsChanged|typeWindowContentChanged"
     android:accessibilityFeedbackType="feedbackGeneric"
     android:accessibilityFlags="flagReportViewIds|flagRetrieveInteractiveWindows"
     android:canRetrieveWindowContent="true"

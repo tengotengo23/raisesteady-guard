@@ -15,7 +15,6 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import java.time.Duration
 import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -34,6 +33,17 @@ class GameTimeTest {
 
     private val timeUp = "Today's game time is used up."
 
+    private var offsetMs = 0L
+
+    /** The clock offset that puts Guard's time at the first [at] after [after] (Guard time). */
+    private fun offsetTo(after: Instant, at: LocalTime): Long {
+        val zone = ZoneId.systemDefault()
+        var t = ZonedDateTime.of(after.atZone(zone).toLocalDate(), at, zone)
+        while (t.toInstant().isBefore(after)) t = t.plusDays(1)
+        offsetMs = Duration.between(Instant.now(), t.toInstant()).toMillis()
+        return offsetMs
+    }
+
     private fun openGame() {
         shell("am start -W -n $GAME/.TestGameActivity")
         assertTrue("the test game did not open", E2e.waitPackage(GAME, 10_000))
@@ -41,7 +51,8 @@ class GameTimeTest {
 
     @Test fun gameTimeMoreTimeAndBedtime() {
         E2e.enableGuard(gameMinutes = 1)
-        E2e.clockOffset(0)
+        // Guard's clock at the next 12:00 (outside bedtime: CI runs at any hour).
+        E2e.clockOffset(offsetTo(Instant.now(), LocalTime.NOON))
         openGame()
         shot("game-open")
         // Not closed at once (earlier tests used the test app for a few seconds at most) ...
@@ -59,11 +70,8 @@ class GameTimeTest {
         assertFalse("the game was closed again during its more time", waitText("is closed for now", 8_000))
         shot("more-time")
 
-        // Bedtime: Guard's clock at the next 21:01 that is after the 15 more minutes (band 9-12: 21:00 to 07:00).
-        val zone = ZoneId.systemDefault()
-        var target = ZonedDateTime.of(LocalDate.now(zone), LocalTime.of(21, 1), zone)
-        while (target.toInstant().isBefore(Instant.now().plus(Duration.ofMinutes(20)))) target = target.plusDays(1)
-        E2e.clockOffset(Duration.between(Instant.now(), target.toInstant()).toMillis())
+        // Bedtime: Guard's clock at the next 21:01 after the 15 more minutes (band 9-12: 21:00 to 07:00).
+        E2e.clockOffset(offsetTo(Instant.now().plusMillis(offsetMs).plus(Duration.ofMinutes(20)), LocalTime.of(21, 1)))
         if (!E2e.waitPackage(GAME, 1_000)) openGame()
         assertTrue("the block screen did not come at bedtime", waitText("Bedtime until", 30_000))
         assertTrue("the bedtime does not end at 7:00", device.hasObject(By.textContains("7:00")))

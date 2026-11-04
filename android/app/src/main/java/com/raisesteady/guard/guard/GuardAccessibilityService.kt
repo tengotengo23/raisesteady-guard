@@ -101,6 +101,12 @@ class GuardAccessibilityService : AccessibilityService() {
     override fun onAccessibilityEvent(event: AccessibilityEvent) {
         if (!::app.isInitialized) return
         val type = event.eventType
+        if (type == AccessibilityEvent.TYPE_WINDOW_CONTENT_CHANGED) {
+            // Only in the guarded packages: a list there (Device admin apps, Apps) fills in after the page opens.
+            val pkg = event.packageName?.toString() ?: return
+            if (pkg == front && pkg in SettingsGuard.PACKAGES) contentChanged()
+            return
+        }
         if (type != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED && type != AccessibilityEvent.TYPE_WINDOWS_CHANGED) return
         val pkg = (if (type == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) event.packageName else null)?.toString()
             ?: runCatching { rootInActiveWindow?.packageName?.toString() }.getOrNull()
@@ -119,6 +125,13 @@ class GuardAccessibilityService : AccessibilityService() {
             pkg in SettingsGuard.PACKAGES -> guardSettings(pkg, title)
             else -> enforce(pkg)
         }
+    }
+
+    private val contentCheck = Runnable { front?.takeIf { it in SettingsGuard.PACKAGES }?.let { guardSettings(it, null) } }
+
+    /** At most one look every [CONTENT_MS] while a guarded page changes. */
+    private fun contentChanged() {
+        if (!main.hasCallbacks(contentCheck)) main.postDelayed(contentCheck, CONTENT_MS)
     }
 
     /** Checks the app in front again (timer, screen on, settings or state changed). */
@@ -147,10 +160,12 @@ class GuardAccessibilityService : AccessibilityService() {
 
     private fun enforce(pkg: String) {
         main.removeCallbacks(tick)
-        if (pkg in exempt) return
-        val level = level(pkg)
+        val level = if (pkg in exempt) Level.ALLOWED else level(pkg)
         if (level == Level.ALLOWED) {
-            app.gameLeftMin = null
+            if (app.gameLeftMin != null) {
+                app.gameLeftMin = null
+                Notices.refreshProtection(this)
+            }
             return
         }
         val s = app.repo.settings.value
@@ -235,6 +250,7 @@ class GuardAccessibilityService : AccessibilityService() {
         val until = app.repo.state.value.settingsUnlockedUntil
         val unlocked = until > nowMs
         if (unlocked) {
+            main.removeCallbacks(tick)
             main.postDelayed(tick, (until - nowMs).coerceIn(MIN_DELAY_MS, SettingsGuard.UNLOCK_MS))
             return
         }
@@ -294,6 +310,7 @@ class GuardAccessibilityService : AccessibilityService() {
         if (!running) return
         running = false
         main.removeCallbacks(tick)
+        main.removeCallbacks(contentCheck)
         scope.cancel()
         runCatching { unregisterReceiver(screen) }
         runCatching { unregisterReceiver(packages) }
@@ -308,6 +325,7 @@ class GuardAccessibilityService : AccessibilityService() {
         private const val RELAUNCH_MS = 1_500L
         private const val COVER_MS = 1_000L
         private const val REPORT_MS = 60_000L
+        private const val CONTENT_MS = 300L
         private const val ROOT_RETRIES = 5
         private const val ROOT_RETRY_MS = 300L
 
