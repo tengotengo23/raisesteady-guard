@@ -7,7 +7,7 @@ name: android
 on:
   workflow_dispatch:
   push:
-    branches: [main, p2-162-android]
+    branches: [main]
   pull_request:
 
 permissions:
@@ -109,9 +109,11 @@ jobs:
           path: |
             ~/.android/avd/*
             ~/.android/adb*
-          key: avd-${{ matrix.api }}-${{ matrix.target }}-x86_64
+          key: avd-v2-${{ matrix.api }}-${{ matrix.target }}-x86_64
 
-      - name: Create the AVD and its boot snapshot (cache miss only)
+      # The AVD is cached; each test run boots it cold (-no-snapshot): a cached API 29 boot snapshot
+      # came back without system services (run 41925770506: "No service published for: input").
+      - name: Create the AVD (cache miss only)
         if: steps.avd-cache.outputs.cache-hit != 'true'
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
@@ -121,13 +123,14 @@ jobs:
           cores: 4
           ram-size: 4096M
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           disable-animations: false
-          script: echo "AVD and snapshot made for the cache"
+          script: echo "AVD made for the cache"
 
       - name: End-to-end tests
         id: e2e
         continue-on-error: true
+        timeout-minutes: 30
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api }}
@@ -136,7 +139,7 @@ jobs:
           cores: 4
           ram-size: 4096M
           force-avd-creation: false
-          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
           disable-animations: false
           script: bash android/tools/e2e.sh
 
@@ -144,6 +147,7 @@ jobs:
       # When the tests ran and failed, nothing is retried.
       - name: End-to-end tests (the emulator did not boot the first time)
         if: steps.e2e.outcome == 'failure' && hashFiles(format('e2e-out/{0}/started', matrix.api)) == ''
+        timeout-minutes: 16
         uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
         with:
           api-level: ${{ matrix.api }}
