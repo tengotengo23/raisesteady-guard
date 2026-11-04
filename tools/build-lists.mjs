@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// RaiseSteady Guard: builds the category rulesets in ext/rules/ from open lists.
+// RaiseSteady Guard: builds the category rulesets in ext/rules/ from open lists,
+// and shared/doh.json (encrypted DNS servers) for the Android filter.
 // Node 20+, no dependencies (uses the system `tar` and `curl`-free fetch).
 //
 // Usage:  node tools/build-lists.mjs [--refresh]
@@ -12,6 +13,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import net from 'node:net';
 import { execFileSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
@@ -24,6 +26,7 @@ const REFRESH = process.argv.includes('--refresh');
 // ---- pinned sources --------------------------------------------------------------
 const BLP = 'https://raw.githubusercontent.com/blocklistproject/Lists/ee3bdbaddf49c756cf3340bb2e6a9dee5282d1c6/alt-version/';
 const UT1 = 'https://dsi.ut-capitole.fr/blacklists/download/';
+const HAGEZI = 'https://raw.githubusercontent.com/hagezi/dns-blocklists/eb7db8ed27237af2f3c0cb79c9c735e3e076dbad/';
 const SOURCES = {
   'blp-porn':      { url: BLP + 'porn-nl.txt',      file: 'bl-porn.txt' },
   'blp-gambling':  { url: BLP + 'gambling-nl.txt',  file: 'bl-gambling.txt' },
@@ -34,6 +37,9 @@ const SOURCES = {
   'easylist':      { url: 'https://easylist.to/easylist/easylist.txt',       file: 'easylist.txt' },
   'easyprivacy':   { url: 'https://easylist.to/easylist/easyprivacy.txt',    file: 'easyprivacy.txt' },
   'majestic':      { url: 'https://downloads.majestic.com/majestic_million.csv', file: 'majestic.csv' },
+  // encrypted DNS (DoH, DoT, DoQ) servers, for the Android VPN filter (shared/doh.json)
+  'hagezi-doh':    { url: HAGEZI + 'wildcard/doh-onlydomains.txt', file: 'hagezi-doh-onlydomains.txt' },
+  'hagezi-doh-ips':{ url: HAGEZI + 'ips/doh.txt',     file: 'hagezi-doh-ips.txt' },
 };
 
 // ---- budgets (domains kept per category; every category domain is stored twice: redirect + block) ----
@@ -266,6 +272,41 @@ const out = {};
   const kept = dropParented(ok).sort();
   out.ads = adsRules(kept);
   report.ads = { easylist: el.size, easyprivacy: ep.size, protectedDropped: dropped, kept: kept.length };
+}
+
+// encrypted DNS: host names of DoH/DoT servers and DoH server addresses, for the Android filter.
+// Written to shared/doh.json (not a browser ruleset). Our own upstream (AdGuard DNS Family, as
+// agent core.go and iOS Model.swift) and its parents are left out of `domains`, or the suffix match
+// would block it; its addresses stay in `ips` (Guard's own traffic is outside the VPN).
+// Helplines (shared/topics.json) and protected domains or their parents are never listed.
+const UPSTREAM_HOSTS = ['family.adguard-dns.com'];
+const CANARY = 'use-application-dns.net'; // Firefox turns its own DoH off when this name does not resolve
+{
+  const helplines = JSON.parse(fs.readFileSync(path.join(SHARED, 'topics.json'), 'utf8')).helplines.map(norm).filter(Boolean);
+  const never = new Set(UPSTREAM_HOSTS.flatMap((h) => [h, ...suffixes(h)]));
+  for (const h of helplines) for (const x of [h, ...suffixes(h)]) never.add(x);
+  const src = domainList('hagezi-doh');
+  const kept = new Set([CANARY]);
+  const dropped = [];
+  for (const d of src) {
+    if (never.has(d) || PROT_SET.has(d) || PROT_PARENTS.has(d) || suffixes(d).some((x) => helplines.includes(x))) { dropped.push(d); continue; }
+    kept.add(d);
+  }
+  const ips = new Set();
+  for (const l of readLines('hagezi-doh-ips')) {
+    const t = l.trim();
+    if (t && t[0] !== '#' && net.isIP(t)) ips.add(t);
+  }
+  const lt = (x, y) => (x < y ? -1 : x > y ? 1 : 0);
+  const doh = {
+    version: 1,
+    note: 'Encrypted DNS servers, for the Android filter: names get no answer, DoH addresses are routed into the VPN and only DNS on port 53 passes. Built by tools/build-lists.mjs from HaGeZi DNS blocklists (GPL-3.0), see SOURCES.md. Do not edit by hand.',
+    source: { url: HAGEZI, files: ['wildcard/doh-onlydomains.txt', 'ips/doh.txt'], sha256: { domains: manifest['hagezi-doh'].sha256, ips: manifest['hagezi-doh-ips'].sha256 } },
+    domains: [...kept].sort(lt),
+    ips: [...ips].sort(lt),
+  };
+  fs.writeFileSync(path.join(SHARED, 'doh.json'), JSON.stringify(doh, null, 1) + '\n');
+  report.doh = { source: src.size, kept: doh.domains.length, dropped: dropped.sort(lt), ips: doh.ips.length };
 }
 
 // ---- write + validate -----------------------------------------------------------------

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- From kidguard/ext/ui/tokens.css (light). Add no colours that tokens.css does not have. -->
+<resources>
+    <color name="guard_bg">#FFF7F6F1</color>
+    <color name="guard_launcher_bg">#FF282858</color>
+    <color name="guard_launcher_fg">#FFFEDB71</color>
+</resources>

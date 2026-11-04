@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">RaiseSteady Guard</string>
+    <string name="welcome_title">Make this device safer for your child</string>
+    <string name="welcome_free">Free. Nothing is sent to us.</string>
+    <string name="honest">No filter is perfect: stay close and talk with your child about what they see online.</string>
+    <string name="about">Made with AI and provided without any guarantee. Support is voluntary, and it may not get updates.</string>
+    <string name="channel_protection">Protection</string>
+    <string name="channel_notices">Notices</string>
+    <string name="notif_on_title">RaiseSteady Guard is on</string>
+    <string name="notif_on_text">Sites are filtered.</string>
+    <string name="notif_filter_off">The site filter is off. Ask a parent to open RaiseSteady Guard.</string>
+</resources>

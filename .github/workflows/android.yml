@@ -1,0 +1,172 @@
+# RaiseSteady Guard for Android: unit tests, lint, debug and release builds, then the
+# end-to-end tests on emulators with API 36 (Google Play image, Chrome) and API 29
+# (Android 10, the oldest we support). The tests: android/tools/e2e.sh.
+# Every action is pinned by commit SHA. Only the emulator boot is retried, never a test.
+name: android
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: A throwaway release key for this run ("CI test key", never used for a release)
+        working-directory: ${{ runner.temp }}
+        run: |
+          pw="$(openssl rand -hex 24)"
+          echo "::add-mask::$pw"
+          keytool -genkeypair -keystore ci-test.p12 -storetype PKCS12 -alias ci -keyalg RSA -keysize 2048 -validity 2 \
+            -dname "CN=CI test key, O=RaiseSteady Guard" -storepass "$pw" -keypass "$pw" >/dev/null 2>&1
+          {
+            echo "GUARD_KEYSTORE=$RUNNER_TEMP/ci-test.p12"
+            echo "GUARD_KEYSTORE_PASSWORD=$pw"
+            echo "GUARD_KEY_ALIAS=ci"
+            echo "GUARD_KEY_PASSWORD=$pw"
+          } >> "$GITHUB_ENV"
+
+      - name: Unit tests, lint, debug, test and release builds
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleDebug :e2e:assembleDebug :e2e:assembleDebugAndroidTest :app:assembleRelease
+
+      - name: The release APK is signed (CI test key) and the scripts pass shellcheck
+        run: |
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          "$bt/apksigner" verify --print-certs app/build/outputs/apk/release/raisesteady-guard-android-*.apk | grep -q "CN=CI test key"
+          shellcheck tools/e2e.sh
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-apks
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/e2e/build/outputs/apk/debug/e2e-debug.apk
+            android/e2e/build/outputs/apk/androidTest/debug/e2e-debug-androidTest.apk
+          if-no-files-found: error
+          retention-days: 7
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: android-reports
+          path: |
+            android/app/build/reports/
+            android/app/build/test-results/
+            android/app/build/outputs/apk/release/
+            android/app/build/outputs/mapping/release/mapping.txt
+          retention-days: 7
+
+  emulator:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 50
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - api: 36
+            target: google_apis_playstore
+          - api: 29
+            target: google_apis
+    env:
+      E2E_OUT: ${{ github.workspace }}/e2e-out
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: android-apks
+          path: android
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: AVD cache
+        id: avd-cache
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api }}-${{ matrix.target }}-x86_64
+
+      - name: Create the AVD and its boot snapshot (cache miss only)
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          cores: 4
+          ram-size: 4096M
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "AVD and snapshot made for the cache"
+
+      - name: End-to-end tests
+        id: e2e
+        continue-on-error: true
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          cores: 4
+          ram-size: 4096M
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot-save
+          disable-animations: false
+          script: bash android/tools/e2e.sh
+
+      # Boot retry only: when the emulator never booted, e2e.sh did not start (no "started" file).
+      # When the tests ran and failed, nothing is retried.
+      - name: End-to-end tests (the emulator did not boot the first time)
+        if: steps.e2e.outcome == 'failure' && hashFiles(format('e2e-out/{0}/started', matrix.api)) == ''
+        uses: ReactiveCircus/android-emulator-runner@a421e43855164a8197daf9d8d40fe71c6996bb0d # v2.38.0
+        with:
+          api-level: ${{ matrix.api }}
+          target: ${{ matrix.target }}
+          arch: x86_64
+          cores: 4
+          ram-size: 4096M
+          force-avd-creation: true
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none -no-snapshot
+          disable-animations: false
+          emulator-boot-timeout: 900
+          script: bash android/tools/e2e.sh
+
+      - name: Results
+        if: always()
+        run: |
+          d="e2e-out/${{ matrix.api }}"
+          { echo "### API ${{ matrix.api }} (${{ matrix.target }})"; echo '```'; cat "$d/results.txt" 2>/dev/null || echo "no results"; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+          test -f "$d/passed"
+
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: e2e-api${{ matrix.api }}
+          path: e2e-out/
+          retention-days: 7
