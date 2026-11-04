@@ -12,7 +12,7 @@
 set -uo pipefail
 
 AND="$(cd "$(dirname "$0")/.." && pwd)"
-CLASSES="${E2E_CLASSES:-FilterTest GameTimeTest GuardTest}"
+CLASSES="${E2E_CLASSES:-FilterTest GameTimeTest GuardTest}"  # in this order: FilterTest runs before the guard is on
 PKG=com.raisesteady.guard
 E2E=com.raisesteady.guard.e2e
 RUNNER="$E2E.test/androidx.test.runner.AndroidJUnitRunner"

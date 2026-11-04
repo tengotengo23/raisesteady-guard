@@ -81,7 +81,7 @@ object Notices {
     fun fiveMinutes(context: Context) = notify(context, ID_FIVE_MINUTES, notice(context, R.string.notif_five_minutes))
 
     /** "Settings are unlocked until {time}." with "Lock now". */
-    fun settingsUnlocked(context: Context, until: String) {
+    fun settingsUnlocked(context: Context, until: String, timeoutMs: Long) {
         val lock = PendingIntent.getBroadcast(
             context, 1,
             Intent(context, com.raisesteady.guard.guard.LockNowReceiver::class.java),
@@ -95,6 +95,7 @@ object Notices {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setOngoing(true)
             .setSilent(true)
+            .setTimeoutAfter(timeoutMs)
             .addAction(0, context.getString(R.string.lock_now), lock)
             .build()
         notify(context, ID_UNLOCKED, n)

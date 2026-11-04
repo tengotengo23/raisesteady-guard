@@ -19,11 +19,13 @@ import com.raisesteady.guard.dns.DnsDecider
 import com.raisesteady.guard.dns.DohUpstream
 import com.raisesteady.guard.dns.GuardResolver
 import com.raisesteady.guard.dns.UdpUpstream
+import com.raisesteady.guard.guard.Health
 import com.raisesteady.guard.vpn.adaway.DnsServerMapper
 import com.raisesteady.guard.vpn.adaway.VpnBuilder
 import com.raisesteady.guard.vpn.adaway.VpnWorker
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.launch
 
 /**
  * The site filter: a local VPN that only carries DNS (and packets to known DoH servers). Runs as a
@@ -39,6 +41,14 @@ class GuardVpnService : VpnService(), VpnWorker.Listener {
     private var worker: VpnWorker? = null
     private var doh: DohUpstream? = null
     private var networkCallback: ConnectivityManager.NetworkCallback? = null
+
+    /** Each minute: are the other parts still there? Keeps the notification honest (design 3.7). */
+    private val healthTick = object : Runnable {
+        override fun run() {
+            checkHealth()
+            main.postDelayed(this, HEALTH_MS)
+        }
+    }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         if (intent?.action == ACTION_STOP) {
@@ -89,9 +99,28 @@ class GuardVpnService : VpnService(), VpnWorker.Listener {
         w.start()
         watchNetwork()
         Notices.clearFilterOff(this)
+        main.removeCallbacks(healthTick)
+        main.postDelayed(healthTick, FIRST_HEALTH_MS)
+    }
+
+    private fun checkHealth() {
+        val app = application as GuardApp
+        val h = Health.read(this)
+        val setupDone = app.repo.settings.value.setupDone
+        if (setupDone && !h.accessibility) Notices.limitsOff(this) else if (h.accessibility) Notices.clearLimitsOff(this)
+        val incomplete = setupDone && !h.complete
+        if (incomplete != app.incomplete) {
+            app.incomplete = incomplete
+            Notices.refreshProtection(this)
+        }
+        val st = app.repo.state.value
+        if (st.alwaysOnVpn != h.alwaysOn || st.lockdownVpn != h.lockdown) {
+            app.scope.launch { app.repo.updateState { it.copy(alwaysOnVpn = isAlwaysOn, lockdownVpn = isLockdownEnabled) } }
+        }
     }
 
     private fun stopFilter() {
+        main.removeCallbacks(healthTick)
         networkCallback?.let { runCatching { getSystemService(ConnectivityManager::class.java).unregisterNetworkCallback(it) } }
         networkCallback = null
         worker?.stop()
@@ -140,6 +169,8 @@ class GuardVpnService : VpnService(), VpnWorker.Listener {
 
     companion object {
         private const val TAG = "GuardVpn"
+        private const val HEALTH_MS = 60_000L
+        private const val FIRST_HEALTH_MS = 5_000L
         const val ACTION_START = "com.raisesteady.guard.vpn.START"
         const val ACTION_STOP = "com.raisesteady.guard.vpn.STOP"
 

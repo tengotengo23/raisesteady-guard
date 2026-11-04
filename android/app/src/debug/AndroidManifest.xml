@@ -1,11 +1,16 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug builds only: a test hook that starts the filter with given settings (e2e tests). -->
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<!-- Debug builds only: test hooks for the e2e tests (settings and filter start, clock offset). -->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
     <application>
         <activity
             android:name=".debug.DebugFilterActivity"
             android:excludeFromRecents="true"
             android:exported="true"
             android:theme="@android:style/Theme.NoDisplay" />
+        <receiver
+            android:name=".debug.DebugClockReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver" />
     </application>
 </manifest>
