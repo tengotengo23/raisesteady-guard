@@ -7,7 +7,7 @@
 # Needs the APKs built first (./gradlew :app:assembleDebug :e2e:assembleDebug
 # :e2e:assembleDebugAndroidTest). Writes to $E2E_OUT/<api>/: started (the emulator booted),
 # instrument-<Class>.txt (raw results), results.txt (one line per test), screens/ (from the
-# tests), logcat.txt, and passed when every test passed and logcat shows no crash.
+# tests), logcat.txt (streamed during the run), and passed when every test passed and logcat shows no crash.
 # Tests are never retried: a failure is a failure.
 set -uo pipefail
 
@@ -26,7 +26,7 @@ rm -rf "$OUT"; mkdir -p "$OUT/screens"
 date -u +%FT%TZ > "$OUT/started"
 echo "API $API, $(adb shell getprop ro.product.model | tr -d '\r'), $(adb shell getprop ro.build.fingerprint | tr -d '\r')"
 
-fail() { echo "e2e: $*"; adb logcat -d > "$OUT/logcat.txt" 2>/dev/null; exit 1; }
+fail() { echo "e2e: $*"; [ -n "${LOGCAT_PID:-}" ] && kill "$LOGCAT_PID" 2>/dev/null; exit 1; }
 
 # Wait for the package manager and the settings provider (boot_completed comes a little early).
 for _ in $(seq 1 60); do
@@ -37,6 +37,10 @@ adb shell input keyevent 82 >/dev/null 2>&1 || true   # unlock the screen
 adb shell svc power stayon true >/dev/null 2>&1 || true
 adb shell settings put system screen_off_timeout 1800000 >/dev/null 2>&1 || true
 adb logcat -c || true
+# The whole log of the run, streamed to a file (the device's ring buffer drops old lines).
+adb logcat -G 16M >/dev/null 2>&1 || true
+adb logcat -v threadtime > "$OUT/logcat.txt" 2>&1 &
+LOGCAT_PID=$!
 
 APP_APK="$AND/app/build/outputs/apk/debug/app-debug.apk"
 E2E_APK="$AND/e2e/build/outputs/apk/debug/e2e-debug.apk"
@@ -105,7 +109,7 @@ done
 
 adb pull "$DEV_DIR/." "$OUT/screens/" >/dev/null 2>&1 || true
 adb pull "/sdcard/Android/data/$E2E/files/screens/." "$OUT/screens/" >/dev/null 2>&1 || true
-adb logcat -d > "$OUT/logcat.txt" 2>&1 || true
+sleep 2; kill "$LOGCAT_PID" 2>/dev/null || true; wait "$LOGCAT_PID" 2>/dev/null || true
 # No crash and no ANR in Guard or the test app (design 6.2 step 7).
 if grep -E "FATAL EXCEPTION|ANR in" -A3 "$OUT/logcat.txt" | grep -qE "Process: ($PKG|$E2E)[ ,]|ANR in ($PKG|$E2E)"; then
   echo "e2e: a crash or ANR in logcat:"; grep -E "FATAL EXCEPTION|ANR in" -A8 "$OUT/logcat.txt" | head -40
