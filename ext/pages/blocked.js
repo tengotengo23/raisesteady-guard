@@ -3,8 +3,8 @@ import { APP_NAME } from '../ui/brand.js';
 import { loadI18n, applyI18n } from '../ui/i18n.js';
 import { ask, getStatus, bandBookmarks, bookmarkTiles, el } from '../ui/page.js';
 
-const REASONS = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent', 'time', 'video', 'bedtime', 'shorts', 'curated'];
-const ALLOWABLE = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent'];
+const REASONS = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent', 'time', 'video', 'bedtime', 'shorts', 'curated', 'paused', 'homework'];
+const ALLOWABLE = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent', 'homework'];
 const TIMED = ['time', 'video'];
 
 const ART = {
@@ -21,25 +21,26 @@ const $ = (id) => document.getElementById(id);
 async function main() {
   const t = await loadI18n('core');
   applyI18n(t);
-  document.title = `${t(`r_${reason}_t`)} · ${APP_NAME}`;
-  const svg = reason === 'bedtime' ? ART.moon : reason === 'time' ? ART.sun : reason === 'video' || reason === 'shorts' || reason === 'curated' ? ART.play : ART.leaf;
+  const svg = reason === 'bedtime' ? ART.moon : reason === 'time' || reason === 'paused' ? ART.sun : reason === 'video' || reason === 'shorts' || reason === 'curated' ? ART.play : ART.leaf;
   const doc = new DOMParser().parseFromString(svg.replace('<svg ', '<svg xmlns="http://www.w3.org/2000/svg" '), 'image/svg+xml');
   $('art').replaceChildren(document.importNode(doc.documentElement, true));
 
   const [status, att] = await Promise.all([getStatus(), ask('attempted')]);
   const site = (att && att.host) || sanitizeHost(params.get('site'));
   const targetUrl = att && att.url;
-  const end = status && status.bedtime ? status.bedtime.end : '';
+  const end = reason === 'homework' ? (status && status.homeworkEnd) || '' : status && status.bedtime ? status.bedtime.end : '';
+  const until = (status && status.pausedUntil) || '';
 
-  $('title').textContent = t(`r_${reason}_t`);
-  $('body').textContent = t(`r_${reason}_b`, { end });
+  $('title').textContent = t(`r_${reason}_t`, { end, until });
+  document.title = `${$('title').textContent} · ${APP_NAME}`;
+  $('body').textContent = t(`r_${reason}_b`, { end, until });
   if (site) { $('site').hidden = false; $('site').replaceChildren(el('span', { class: 'bp-site', text: t('triedSite', { site }) })); }
 
   if (reason === 'bedtime') {
     $('bedTip').hidden = false;
   } else if (status) {
     // When time is up only learning sites open, so show only those.
-    const list = await bandBookmarks(status.config.ageBand, t.lang, 4, { learningOnly: reason === 'time' });
+    const list = reason === 'paused' ? [] : await bandBookmarks(status.config.ageBand, t.lang, 4, { learningOnly: reason === 'time' || reason === 'homework' });
     if (list.length) { $('tiles').replaceChildren(bookmarkTiles(list, t)); $('next').hidden = false; }
   }
 
@@ -54,9 +55,11 @@ function sanitizeHost(h) {
 
 function setupAsk(t, status, site, targetUrl) {
   if (reason === 'bedtime') { $('ask').hidden = false; $('askBtn').hidden = true; $('bedAsk').hidden = false; return; }
+  const paused = reason === 'paused' && !!(status && !status.standalone);
   const canAllow = ALLOWABLE.includes(reason) && !!site;
-  if (!canAllow && !TIMED.includes(reason)) return;
+  if (!canAllow && !TIMED.includes(reason) && !paused) return;
   $('ask').hidden = false;
+  if (!paused && status && status.canRequest) setupRequest(t, canAllow ? { kind: 'site', domain: site } : { kind: 'time' });
   const btn = $('askBtn'), panel = $('askPanel');
   if (status && status.standalone && !status.hasPin) {
     btn.addEventListener('click', () => { showMsg('pinMsg', t('noPinYet')); btn.setAttribute('aria-expanded', 'true'); panel.hidden = false; $('pinForm').hidden = true; });
@@ -80,6 +83,7 @@ function setupAsk(t, status, site, targetUrl) {
     $('pinForm').hidden = true;
     const box = $('grants');
     box.replaceChildren();
+    if (paused) box.append(el('button', { class: 'kg-btn', type: 'button', text: t('endPause'), onclick: () => doGrant({ kind: 'resume' }) }));
     if (canAllow) box.append(el('button', { class: 'kg-btn', type: 'button', text: t('allowSite', { site }), onclick: () => doGrant({ kind: 'allow', domain: site }) }));
     if (TIMED.includes(reason)) for (const n of [15, 30, 60]) box.append(el('button', { class: 'kg-btn kg-sun', type: 'button', text: t('addMin', { n }), onclick: () => doGrant({ kind: 'extra', minutes: n }) }));
     $('grantBox').hidden = false;
@@ -94,16 +98,34 @@ function setupAsk(t, status, site, targetUrl) {
       for (const b of $('grants').querySelectorAll('button')) b.disabled = false;
       return showMsg('grantMsg', t(r && r.offline ? 'pinOffline' : r && r.locked ? 'pinLocked' : 'pinWrong'), true);
     }
-    showMsg('grantMsg', g.kind === 'extra' ? t('grantedTime', { n: g.minutes }) : t('granted'));
+    showMsg('grantMsg', g.kind === 'extra' ? t('grantedTime', { n: g.minutes }) : g.kind === 'resume' ? t('pauseEnded') : t('granted'));
     if (targetUrl) setTimeout(() => { location.href = targetUrl; }, 900);
   }
+}
+
+// "Ask a parent" (P2-160): records a request for the parent page; no PIN. The answer shows under the button.
+function setupRequest(t, what) {
+  const form = $('req'), btn = $('reqBtn');
+  form.hidden = false;
+  form.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    btn.disabled = true;
+    const r = await ask('request', { ...what, note: $('reqNote').value.slice(0, 140) });
+    if (r && r.ok) {
+      showMsg('reqMsg', t('reqAsked'));
+      $('reqNote').disabled = true;
+      return;
+    }
+    btn.disabled = false;
+    showMsg('reqMsg', t('reqFailed'), true);
+  });
 }
 
 function showMsg(id, text, bad) {
   const p = $(id);
   p.textContent = text;
   p.hidden = false;
-  if (id === 'grantMsg') { p.classList.toggle('kg-bad', !!bad); p.classList.toggle('kg-good', !bad); }
+  if (id === 'grantMsg' || id === 'reqMsg') { p.classList.toggle('kg-bad', !!bad); p.classList.toggle('kg-good', !bad); }
 }
 function hide(id) { $(id).hidden = true; }
 

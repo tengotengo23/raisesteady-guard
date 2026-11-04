@@ -76,6 +76,12 @@ export function createAgent({ api, getConfig, fetchImpl = (...a) => fetch(...a) 
       if (!r.ok) return { ok: false, locked: r.status === 429 || !!(r.data && r.data.locked) };
       return { ok: true, state: r.data };
     },
+    /** A request from the child (P2-160): {ok, dup} | {ok:false, offline:true} | {ok:false} */
+    async request(body) {
+      const r = await call('POST', '/v1/request', body);
+      if (!r) return { ok: false, offline: true };
+      return { ok: !!(r.ok && r.data && r.data.ok), dup: !!(r.data && r.data.dup) };
+    },
     async event(ev) {
       const r = await call('POST', '/v1/event', ev);
       if (!r) {

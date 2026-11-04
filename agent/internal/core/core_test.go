@@ -120,7 +120,7 @@ func TestLoadDataMissingAndPlaceholders(t *testing.T) {
 	if !d.ExtIDs.Placeholder || d.ExtIDs.ChromiumDevID != PlaceholderChromiumID || d.ExtIDs.FirefoxID != PlaceholderFirefoxID {
 		t.Fatalf("placeholders: %+v", d.ExtIDs)
 	}
-	if strings.Join(d.Missing, ",") != "bookmarks.json,unsupported-browsers.json" {
+	if strings.Join(d.Missing, ",") != "bookmarks.json,unsupported-browsers.json,pc-apps.json" {
 		t.Fatalf("missing = %v", d.Missing)
 	}
 	if _, err := loadData(fstest.MapFS{}); err == nil {

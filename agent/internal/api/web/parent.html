@@ -39,6 +39,42 @@
   </div>
   {{if .Tabs}}<nav class="tabs" aria-label="{{t .Lang "account"}}">{{range .Tabs}}<a href="/parent?a={{.Index}}&amp;lang={{$.Lang}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
 
+  {{if or .Requests (eq .MsgSec "requests")}}
+  <section class="card" aria-labelledby="requests-h">
+    <h2 id="requests-h">{{t .Lang "sec_requests"}}</h2>
+    {{if .Requests}}<ul class="list reqs">{{range .Requests}}<li>
+      <div class="stack">
+        <span>{{.Text}}</span>
+        {{if .Note}}<span>{{.Note}}</span>{{end}}
+        <span class="muted">{{tf $.Lang "req_at" .When}}</span>
+      </div>
+      <form method="post" action="/parent/request" class="row">
+        <input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="lang" value="{{$.Lang}}"><input type="hidden" name="a" value="{{.Account}}"><input type="hidden" name="id" value="{{.ID}}">
+        {{if eq .Kind "site"}}<button type="submit" class="btn" name="answer" value="allow">{{t $.Lang "req_allow"}}</button>{{else}}<button type="submit" class="btn" name="answer" value="15">{{tf $.Lang "n_min" 15}}</button><button type="submit" class="btn" name="answer" value="30">{{tf $.Lang "n_min" 30}}</button>{{end}}
+        <button type="submit" class="btn ghost" name="answer" value="no">{{t $.Lang "req_no"}}</button>
+      </form>
+    </li>{{end}}</ul>
+    <p class="hint">{{t .Lang "req_hint"}}</p>{{else}}<p class="muted">{{t .Lang "no_data"}}</p>{{end}}
+    {{if eq .MsgSec "requests"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
+  </section>
+  {{end}}
+
+  <section class="card" aria-labelledby="pause-h">
+    <h2 id="pause-h">{{t .Lang "sec_pause"}}</h2>
+    <p><strong>{{if .Paused}}{{.PausedText}}{{else}}{{t .Lang "pause_off"}}{{end}}</strong></p>
+    <form method="post" action="/parent/pause" class="row">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}"><input type="hidden" name="a" value="{{.Account}}">
+      <button type="submit" class="btn" name="dur" value="30">{{tf .Lang "n_min" 30}}</button>
+      <button type="submit" class="btn" name="dur" value="60">{{tf .Lang "n_hours" 1}}</button>
+      <button type="submit" class="btn" name="dur" value="120">{{tf .Lang "n_hours" 2}}</button>
+      <button type="submit" class="btn" name="dur" value="tomorrow">{{t .Lang "pause_tomorrow"}}</button>
+      {{if .Paused}}<button type="submit" class="btn ghost" name="dur" value="resume">{{t .Lang "resume"}}</button>{{end}}
+    </form>
+    <p class="hint">{{t .Lang "pause_note"}}</p>
+    {{if or .Everyone .WholeComputer}}<p class="hint">{{t .Lang "all_accounts_apps"}}</p>{{end}}
+    {{if eq .MsgSec "pause"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
+  </section>
+
   <section class="card" aria-labelledby="limits-h">
     <h2 id="limits-h">{{t .Lang "sec_limits"}}</h2>
     <form method="post" action="/parent/save" class="stack">
@@ -59,6 +95,30 @@
           <div class="stack"><label for="bedEnd">{{t .Lang "ends"}}</label><input id="bedEnd" name="bedEnd" type="time" value="{{.Settings.Bedtime.End}}" required></div>
         </div>
       </fieldset>
+      <fieldset>
+        <legend>{{t .Lang "weekend"}}</legend>
+        <label class="check"><input type="checkbox" name="weekendOn" aria-describedby="weekend-hint"{{if .Weekend.On}} checked{{end}}> <span>{{t .Lang "weekend_on"}}</span></label>
+        <p class="hint" id="weekend-hint">{{t .Lang "weekend_note"}}</p>
+        <div class="pair">
+          <div class="stack"><label for="wBrowseMin">{{t .Lang "browse_min"}}</label>
+          <input id="wBrowseMin" name="wBrowseMin" type="number" inputmode="numeric" min="5" max="720" step="5" value="{{.Weekend.BrowseMin}}"></div>
+          <div class="stack"><label for="wVideoMin">{{t .Lang "video_min"}}</label>
+          <input id="wVideoMin" name="wVideoMin" type="number" inputmode="numeric" min="5" max="720" step="5" value="{{.Weekend.VideoMin}}"></div>
+        </div>
+        <div class="pair">
+          <div class="stack"><label for="wBedStart">{{t .Lang "bedtime"}} · {{t .Lang "starts"}}</label><input id="wBedStart" name="wBedStart" type="time" value="{{.Weekend.Start}}"></div>
+          <div class="stack"><label for="wBedEnd">{{t .Lang "bedtime"}} · {{t .Lang "ends"}}</label><input id="wBedEnd" name="wBedEnd" type="time" value="{{.Weekend.End}}"></div>
+        </div>
+      </fieldset>
+      <fieldset>
+        <legend>{{t .Lang "homework"}}</legend>
+        <label class="check"><input type="checkbox" name="homeworkOn" aria-describedby="homework-hint"{{if .Homework.On}} checked{{end}}> <span>{{t .Lang "homework_on"}}</span></label>
+        <p class="hint" id="homework-hint">{{t .Lang "homework_note"}}</p>
+        <div class="pair">
+          <div class="stack"><label for="hwStart">{{t .Lang "starts"}}</label><input id="hwStart" name="hwStart" type="time" value="{{.Homework.Start}}"></div>
+          <div class="stack"><label for="hwEnd">{{t .Lang "ends"}}</label><input id="hwEnd" name="hwEnd" type="time" value="{{.Homework.End}}"></div>
+        </div>
+      </fieldset>
       <label for="tz">{{t .Lang "tz"}}</label>
       <select id="tz" name="tz">{{range .TZ}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select>
       <p class="hint">{{t .Lang "tz_note"}}</p>
@@ -67,6 +127,8 @@
       <label class="check"><input type="checkbox" name="adblock"{{if .Settings.Adblock}} checked{{end}}> <span>{{t .Lang "adblock"}}</span></label>
       <label class="check"><input type="checkbox" name="familyDns" aria-describedby="familyDns-hint"{{if not .Settings.FamilyDNSOff}} checked{{end}}> <span>{{t .Lang "family_dns"}}</span></label>
       <p class="hint" id="familyDns-hint">{{t .Lang "family_dns_note"}}</p>
+      <label class="check"><input type="checkbox" name="searches" aria-describedby="searches-hint"{{if .SearchesOn}} checked{{end}}> <span>{{t .Lang "searches"}}</span></label>
+      <p class="hint" id="searches-hint">{{t .Lang "searches_note"}}</p>
       <label for="allow">{{t .Lang "allow"}}</label>
       <textarea id="allow" name="allow" rows="4" spellcheck="false" autocapitalize="off">{{.AllowText}}</textarea>
       <label for="block">{{t .Lang "block"}}</label>
@@ -80,14 +142,37 @@
     </form>
   </section>
 
+  <section class="card" aria-labelledby="apps-h">
+    <h2 id="apps-h">{{t .Lang "sec_apps"}}</h2>
+    <form method="post" action="/parent/apps" class="stack">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}"><input type="hidden" name="a" value="{{.Account}}">
+      <label for="gameMin">{{t .Lang "game_min"}}</label>
+      <input id="gameMin" name="gameMin" type="number" inputmode="numeric" min="0" max="720" step="5" value="{{.GameMin}}" required>
+      <p class="hint">{{t .Lang "game_extra_note"}}</p>
+      <p class="hint">{{t .Lang "apps_note"}}</p>
+      {{if or .Everyone .WholeComputer}}<p class="hint">{{t .Lang "all_accounts_apps"}}</p>{{end}}
+      <div class="apps">
+      {{range .Apps}}<div class="stack app"><label for="app_{{.ID}}">{{.Name}}</label>{{if .AgeNote}}<span class="hint">{{.AgeNote}}</span>{{end}}
+        <select id="app_{{.ID}}" name="app_{{.ID}}">{{range .Opts}}<option value="{{.Value}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}</select></div>{{end}}
+      </div>
+      <button type="submit" class="btn">{{t .Lang "save"}}</button>
+      {{if eq .MsgSec "apps"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
+    </form>
+  </section>
+
   <section class="card" aria-labelledby="report-h">
     <h2 id="report-h">{{t .Lang "sec_report"}}</h2>
     <div class="table-wrap">
     <table>
-      <thead><tr><th scope="col">{{t .Lang "col_day"}}</th><th scope="col">{{t .Lang "col_browse"}}</th><th scope="col">{{t .Lang "col_video"}}</th><th scope="col">{{t .Lang "col_learn"}}</th><th scope="col">{{t .Lang "col_blocked"}}</th></tr></thead>
-      <tbody>{{range .Report}}<tr><th scope="row">{{.Day}}</th><td>{{.BrowseMin}} {{t $.Lang "min"}}</td><td>{{.VideoMin}} {{t $.Lang "min"}}</td><td>{{.LearningMin}} {{t $.Lang "min"}}</td><td>{{.Blocked}}</td></tr>{{end}}</tbody>
+      <thead><tr><th scope="col">{{t .Lang "col_day"}}</th><th scope="col">{{t .Lang "col_browse"}}</th><th scope="col">{{t .Lang "col_video"}}</th><th scope="col">{{t .Lang "col_learn"}}</th><th scope="col">{{t .Lang "col_games"}}</th><th scope="col">{{t .Lang "col_blocked"}}</th></tr></thead>
+      <tbody>{{range .Report}}<tr><th scope="row"><a href="/parent?a={{$.Account}}&amp;day={{.Day}}&amp;lang={{$.Lang}}#day-h"{{if .Picked}} aria-current="date"{{end}}>{{.Day}}</a></th><td>{{.BrowseMin}} {{t $.Lang "min"}}</td><td>{{.VideoMin}} {{t $.Lang "min"}}</td><td>{{.LearningMin}} {{t $.Lang "min"}}</td><td>{{.GameMin}} {{t $.Lang "min"}}</td><td>{{.Blocked}}</td></tr>{{end}}</tbody>
     </table>
     </div>
+    <p class="hint">{{t .Lang "day_pick"}}</p>
+    <h3 id="day-h">{{.SearchesDay}}</h3>
+    {{if .DaySearches}}<ul class="list">{{range .DaySearches}}<li><span>{{.Key}}</span> <span class="muted">{{.Count}}</span></li>{{end}}</ul>{{else if not .SearchesOn}}<p class="muted">{{t .Lang "searches_off"}}</p>{{else}}<p class="muted">{{t .Lang "no_data"}}</p>{{end}}
+    <h3>{{.AppsClosedDay}}</h3>
+    {{if .DayApps}}<ul class="list">{{range .DayApps}}<li><span>{{.Name}}</span> <span class="muted">{{.Count}}</span></li>{{end}}</ul>{{else}}<p class="muted">{{t .Lang "no_data"}}</p>{{end}}
     <h3>{{t .Lang "by_reason"}}</h3>
     {{if .ByReason}}<ul class="list">{{range .ByReason}}<li><span>{{t $.Lang .Key}}</span> <span class="muted">{{.Count}}</span></li>{{end}}</ul>{{else}}<p class="muted">{{t .Lang "no_data"}}</p>{{end}}
     <h3>{{t .Lang "top_sites"}}</h3>

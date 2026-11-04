@@ -26,6 +26,11 @@ async function main() {
     el('li', {}, el('span', { text: s.bedtime ? t('f_bedtime', s.bedtime) : t('f_bedtimeOff') })),
   );
   $('setup').hidden = !(s.standalone && !s.setupDone);
+  // Pause and homework time (P2-160), and the honest line about searches while they are recorded.
+  const now = s.paused ? t('r_paused_t', { until: s.pausedUntil || '' }) : s.homework ? t('r_homework_t', { end: s.homeworkEnd || '' }) : '';
+  $('now').textContent = now;
+  $('now').hidden = !now;
+  $('honestSearches').hidden = !s.searchesOn;
   const link = $('parent');
   link.href = s.parentUrl;
   if (s.standalone) {

@@ -65,6 +65,7 @@ export function parseOffsetMin(iso) {
 /** A clock answers day(ms), minuteOfDay(ms) and secondsSinceMidnight(ms). */
 export const LOCAL_CLOCK = {
   kind: 'local',
+  weekday: (ms) => new Date(ms).getDay(),
   day: (ms) => localDay(new Date(ms)),
   minuteOfDay: (ms) => minuteOfDay(new Date(ms)),
   secondsSinceMidnight: (ms) => secondsSinceMidnight(new Date(ms)),
@@ -75,6 +76,7 @@ export function fixedClock(offsetMin) {
   const p = (n) => String(n).padStart(2, '0');
   return {
     kind: 'fixed', offsetMin,
+    weekday: (ms) => shifted(ms).getUTCDay(),
     day: (ms) => { const d = shifted(ms); return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}`; },
     minuteOfDay: (ms) => { const d = shifted(ms); return d.getUTCHours() * 60 + d.getUTCMinutes() + d.getUTCSeconds() / 60; },
     secondsSinceMidnight: (ms) => { const d = shifted(ms); return d.getUTCHours() * 3600 + d.getUTCMinutes() * 60 + d.getUTCSeconds() + d.getUTCMilliseconds() / 1000; },
@@ -94,4 +96,62 @@ export function minutesUntilBedtimeAt(ms, bt, clock = LOCAL_CLOCK) {
   if (!b) return Infinity;
   if (isBedtimeAt(ms, b, clock)) return 0;
   return (parseHM(b.start) - clock.minuteOfDay(ms) + 1440) % 1440;
+}
+
+// ---- weekend, homework time and pause (P2-160) ----
+// `sched` is the agent's /v1/state "schedule": { school: {browseMin, videoMin, bedtime}, weekend?: {...}, homework?: {start, end} }.
+// The agent decides while it answers; these let the extension decide the same way when it has not answered lately.
+// Weekday numbers: 0 = Sunday ... 6 = Saturday.
+
+const DAY_MS = 86400000;
+export const isWeekendDay = (wd) => wd === 0 || wd === 6;   // Saturday and Sunday minutes
+export const isWeekendNight = (wd) => wd === 5 || wd === 6; // Friday and Saturday nights: a night belongs to the day it starts
+
+const rule = (sched, weekend) => (weekend && sched && sched.weekend) || (sched && sched.school) || {};
+
+/** Today's { browseMin, videoMin } under the schedule. */
+export function limitsOn(ms, sched, clock = LOCAL_CLOCK) {
+  const r = rule(sched, isWeekendDay(clock.weekday(ms)));
+  return { browseMin: r.browseMin ?? null, videoMin: r.videoMin ?? null };
+}
+
+/** The bedtime of the night that starts on weekday wd. */
+export function nightBedtime(wd, sched) {
+  return normBedtime(rule(sched, isWeekendNight(wd)).bedtime);
+}
+
+const crossesMidnight = (b) => !!b && parseHM(b.start) > parseHM(b.end);
+
+/** The bedtime that matters now: last night's while its morning part runs, else tonight's. */
+export function bedtimeNow(ms, sched, clock = LOCAL_CLOCK) {
+  const last = nightBedtime(clock.weekday(ms - DAY_MS), sched);
+  if (crossesMidnight(last) && clock.minuteOfDay(ms) < parseHM(last.end)) return last;
+  return nightBedtime(clock.weekday(ms), sched);
+}
+
+/** Bedtime under the schedule: last night's morning part, or tonight's window. */
+export function isBedtimeSched(ms, sched, clock = LOCAL_CLOCK) {
+  const m = clock.minuteOfDay(ms);
+  const last = nightBedtime(clock.weekday(ms - DAY_MS), sched);
+  if (crossesMidnight(last) && m < parseHM(last.end)) return true;
+  const b = nightBedtime(clock.weekday(ms), sched);
+  if (!b) return false;
+  const s = parseHM(b.start), e = parseHM(b.end);
+  return s < e ? (m >= s && m < e) : m >= s;
+}
+
+/** Homework time: inside the window on Monday to Friday. */
+export function isHomeworkAt(ms, sched, clock = LOCAL_CLOCK) {
+  const h = sched && sched.homework;
+  if (!h) return false;
+  const wd = clock.weekday(ms);
+  if (wd === 0 || wd === 6) return false;
+  const s = parseHM(h.start), e = parseHM(h.end), m = clock.minuteOfDay(ms);
+  return s != null && e != null && s < e && m >= s && m < e;
+}
+
+/** Paused while now is before the pause's end (an RFC 3339 time from the agent). */
+export function isPausedAt(ms, untilIso) {
+  const end = Date.parse(String(untilIso || ''));
+  return Number.isFinite(end) && ms < end;
 }

@@ -15,8 +15,8 @@ tools/build-installer.sh                 # also runs build-agent.sh; writes dist
 tools/build-installer.sh --skip-agent    # reuse the built agents
 ```
 
-- `KG_VERSION=0.2.2` sets the version (default 0.2.2). With `KG_WINRES=1` the agent build adds the Windows file details (product name, version, icon) through go-winres v0.3.3; the release build on GitHub sets it.
-- `build-agent.sh` copies `shared/age-bands.json`, `bookmarks.json`, `ext-ids.json`, `unsupported-browsers.json` and `ext/ui/tokens.css` into the Go module for `go:embed` (git-ignored copies; never edit them there). Age bands are required; a missing optional file is built empty and the build says so (`raisesteady-guard-agent status` lists it under `missingData`).
+- `KG_VERSION=0.3.0` sets the version (default 0.3.0). With `KG_WINRES=1` the agent build adds the Windows file details (product name, version, icon) through go-winres v0.3.3; the release build on GitHub sets it.
+- `build-agent.sh` copies `shared/age-bands.json`, `bookmarks.json`, `ext-ids.json`, `unsupported-browsers.json`, `pc-apps.json` and `ext/ui/tokens.css` into the Go module for `go:embed` (git-ignored copies; never edit them there). Age bands are required; a missing optional file is built empty and the build says so (`raisesteady-guard-agent status` lists it under `missingData`).
 - The installer ships `THIRD-PARTY-NOTICES.txt` and `agent/NOTICE-go.txt` (Go, x/sys, x/crypto, NSIS licences) into the install folder; the build stops with a message if the first is missing.
 - Go module `agent/`, dependencies only `golang.org/x/sys` and `golang.org/x/crypto` (pinned in `go.mod`/`go.sum`).
 - Put a Mozilla-signed `dist/raisesteady-guard.xpi` before building the installer and it ships next to the agent; Firefox then force-installs it from `file:///C:/Program%20Files/RaiseSteadyGuard/raisesteady-guard.xpi`. Release Firefox installs only signed add-ons. Another location: `install --firefox-xpi <url>` (for example an addons.mozilla.org download URL).
@@ -41,6 +41,8 @@ Uninstall: Settings, Apps, or `"C:\Program Files\RaiseSteadyGuard\uninstall.exe"
 - Parent page browser list: "Active" only when that browser's extension reported in the last 15 minutes; otherwise "Settings set · extension not active yet" (or "Settings follow at the child's next sign-in").
 - Update or reinstall (needs the PIN): accounts that stay keep their settings, lists, switches and token; the installer ticks the accounts already protected; the age chosen applies only to new accounts.
 - Process guard: every 3 seconds, matched by exe name, version-info product name or path (a Tor Browser `firefox.exe` is matched by its path).
+- PC games and chat apps (0.3.0): `shared/pc-apps.json` lists them (Windows exe, product and path; Linux program name, Flatpak id, snap name; chat apps carry `minAge` and their `terms` URL). Per account `apps` keeps only the parent's changes from the defaults (games: game time; chat apps: blocked under `minAge`), `gameMin` the daily game time (absent: the band's video minutes). The guard loop adds the seconds since its last tick (at most 10) while a game-time app runs in the account, closes game-time apps when the game time (plus granted extra minutes) is used up, at bedtime, in homework time and while paused, and blocked apps always, with the usual message at most once a minute per app and session, and one warning 5 minutes before game time ends. Game minutes and closed apps go to `usage.json`.
+- Weekend, homework time and pause (0.3.0): `weekend` (`on`, minutes, bedtime of Friday and Saturday nights), `homework` (`on`, `start` before `end`, Monday to Friday) and `pauseUntil` (RFC 3339) per account. `/v1/state` sends today's limits and bedtime, `paused`, `pausedUntil`, `homework`, `homeworkEnd`, `searches` and a `schedule` the extension uses when the agent has not answered for 3 minutes. Old config files load with all of these off.
 - Files in `C:\ProgramData\RaiseSteadyGuard\` (SYSTEM and Administrators only): `config.json` (settings, argon2id PIN hash, one random 64-hex token per account), `state.json` (every value the agent wrote, for a clean uninstall), `usage.json` (30 days), `lockout.json`, `agent.log` (no PIN, no tokens).
 
 ### Commands (`raisesteady-guard-agent.exe`)
@@ -49,13 +51,15 @@ Uninstall: Settings, Apps, or `"C:\Program Files\RaiseSteadyGuard\uninstall.exe"
 
 ### Localhost API (127.0.0.1 only)
 
-Endpoints: `/v1/state`, `/v1/usage`, `/v1/event`, `/v1/grant`, `/v1/pin` for the extension (JSON, header `X-KG-Token`), and `/parent` for the parent page. Code: `agent/internal/api/`.
+Endpoints: `/v1/state`, `/v1/usage`, `/v1/event`, `/v1/grant`, `/v1/pin`, `/v1/request` for the extension (JSON, header `X-KG-Token`), and `/parent` for the parent page. Code: `agent/internal/api/`.
 - Every response: `X-Content-Type-Options: nosniff`, `Cache-Control: no-store`. Hosts other than `127.0.0.1:<port>` and `localhost:<port>` get 421 (DNS rebinding).
 - `Origin` absent, `chrome-extension://<our id>` or `moz-extension://<uuid>`: allowed, the origin is echoed in `Access-Control-Allow-Origin` (never `*`). Any other origin, and any preflight from one: 403.
 - Token missing or unknown: 401. More than 300 calls a minute per token: 429. POST bodies must be `application/json`, at most 16 KB.
 - `/v1/usage`: each field capped to the seconds since that browser's last report, at most 120 (a browser's first report: 60).
 - `/v1/pin`: right PIN `200 {"ok":true}`; wrong `200 {"ok":false,"error":"pin","triesLeft":n}`; locked `429 {"ok":false,"locked":true,"retryAfterSec":n}`. `/v1/grant` answers a wrong PIN with 403 and the same body. The lock is shared by the API, the parent page and the uninstaller.
-- `/v1/grant` extra: 1 to 120 minutes, at most 240 a day. `/v1/event` reasons: adult, gambling, bypass, social, content, video, time, bedtime, parent (at most 5000 a day).
+- `/v1/grant` extra: 1 to 120 minutes, at most 240 a day; `resume` ends a pause. `/v1/event` reasons: adult, gambling, bypass, social, content, video, time, bedtime, homework, paused, parent (at most 5000 a day).
+- `/v1/usage` `searches`: search words with a count (at most 20 a call, 50 different a day, 100 characters); dropped while the parent has searches off.
+- `/v1/request` (no PIN): `{"kind":"site","domain":...,"note":...}` or `{"kind":"time","note":...}`; note at most 140 characters; up to 20 open per account, dropped after 7 days, the same request as the newest one is not added twice (`"dup":true`). The parent page answers it (`/parent/request`).
 - PIN tries are counted per source (parent page, each extension token, the installer); the parent page shows today's wrong tries.
 - Parent page `/parent`: PIN login, session cookie `HttpOnly; SameSite=Strict; Path=/parent` without Max-Age (10 minutes absolute), PIN inputs `autocomplete="off"`, a CSRF token in every form, same-origin checks (Origin and Sec-Fetch-Site), CSP `default-src 'none'`, no JavaScript. Saving applies the policies at once.
 
@@ -91,10 +95,11 @@ Tests:
 npm install                       # puppeteer, for the Chrome tests
 node --test tests/unit/
 node tools/build-ext.mjs --dev && node tests/e2e/a-e2e.mjs && node tests/e2e/b-e2e.mjs
+node tests/e2e/c-managed.mjs      # managed mode against the Go test server (needs Go)
 npx -y web-ext@10.8.0 lint -s dist/firefox
 ```
 
-The Chrome tests map every host to a local server, so no real site is contacted (`b-e2e.mjs` also opens live YouTube when it can).
+The Chrome tests map every host to a local server, so no real site is contacted (`b-e2e.mjs` also opens live YouTube when it can). `c-managed.mjs` starts `TestServeForE2E` (the real API and parent page on 127.0.0.1:47616, PIN 2468, a clock moved to a Wednesday), puts the dev build in managed mode through the dev-only test hook, and checks "Ask a parent", the paused page, the homework page, the searches in the report and the popup lines.
 
 Permissions and why (for store review):
 

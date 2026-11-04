@@ -8,8 +8,9 @@ import { BUILD } from './build-info.js';
 import { APP_NAME } from '../ui/brand.js';
 import { loadI18n, uiLang } from '../ui/i18n.js';
 import { resolveConfig, publicConfig, readManaged, readLocalSettings, loadJSON, SETTINGS_KEY, bandById } from './config.js';
-import { emptyUsage, observe, effectiveUsed, limitStatus, dueNotices, takeReport, settleReport, reconcileDay } from './usage.js';
-import { LOCAL_CLOCK, fixedClock, parseOffsetMin, isBedtimeAt, minutesUntilBedtimeAt, normBedtime } from './schedule.js';
+import { emptyUsage, observe, effectiveUsed, limitStatus, dueNotices, takeReport, settleReport, reconcileDay, addSearch } from './usage.js';
+import { LOCAL_CLOCK, fixedClock, parseOffsetMin, isBedtimeAt, minutesUntilBedtimeAt, normBedtime, limitsOn, isBedtimeSched, isHomeworkAt, isPausedAt, bedtimeNow } from './schedule.js';
+import { searchQuery } from './searches.js';
 import { applyRules, sweepTabs, blockedUrl, contentScope } from './guard.js';
 import { applyRulesets } from './safesearch.js';
 import { createAgent } from './agent.js';
@@ -23,7 +24,7 @@ const TICK = 'kg-tick';
 const VIDEO_FRESH_MS = 40000;
 const SYNC_MS = 55000;
 const AGENT_FRESH_MS = 3 * 60 * 1000; // agent answers older than this are not trusted for bedtime
-const K = { usage: 'kg.usage', content: 'kg.contentDay', grants: 'kg.grants', agentState: 'kg.agentState', report: 'kg.report', pinLock: 'kg.pinLock' };
+const K = { usage: 'kg.usage', content: 'kg.contentDay', grants: 'kg.grants', agentState: 'kg.agentState', report: 'kg.report', pinLock: 'kg.pinLock', devManaged: 'kg.devManaged' };
 
 // ---- state ----
 let bands = [], learn = { hosts: [], paths: [] }, cfg = null, agentState = null, usage = null, t = (k) => k;
@@ -32,6 +33,9 @@ let focused = true, idleState = 'active', lastSync = 0;
 const videoTabs = new Map(); // 'tabId:frameId' -> { playing, at, host }
 const attempted = new Map(); // tabId -> last http(s) URL the tab tried to open
 const shownRecently = new Map();
+const lastSearch = new Map(); // tabId -> the last search counted in that tab
+const lastRequest = new Map(); // 'kind|domain' -> ms (a request at most every 10 s)
+let devManaged = null; // dev builds only: a managed policy set by the e2e test hook
 const dropTabVideos = (tabId) => { for (const k of [...videoTabs.keys()]) if (k.startsWith(`${tabId}:`)) videoTabs.delete(k); };
 const cfgListeners = [];
 
@@ -65,7 +69,7 @@ for (const [name, init] of [['videos', initVideos], ['adblock', initAdblock]]) {
 
 // ---- config ----
 async function reloadConfig() {
-  const managed = await readManaged(api);
+  const managed = (BUILD.dev && devManaged) || await readManaged(api);
   const local = await readLocalSettings(api);
   const extra = grants.day === today() ? grants.extraMin : 0;
   const next = resolveConfig({ bands, managed, local, agent: agentState, uiLang: uiLang(), localExtraMin: extra });
@@ -108,14 +112,23 @@ async function currentObs() {
   };
 }
 
+// The agent's schedule (weekend, homework time), used while it has not answered lately (P2-160).
+const agentSched = () => (cfg && !cfg.standalone && agentState && agentState.schedule && agentState.schedule.school ? agentState.schedule : null);
+
 function guardState(nowMs = Date.now()) {
   const used = effectiveUsed(usage, agentState);
   const day = today();
-  const lim = limitStatus(used, { ...cfg.limits, extraMin: cfg.extraMin });
+  const fresh = agentFresh();
+  const sched = agentSched();
+  const limits = !fresh && sched ? limitsOn(nowMs, sched, clock()) : cfg.limits;
+  const lim = limitStatus(used, { ...limits, extraMin: cfg.extraMin });
+  const managed = !cfg.standalone && !!agentState;
   return {
-    used, ...lim,
+    used, ...lim, limits,
     // managed and the agent answered lately: its bedtimeActive; else our clock (the agent's offset when known)
-    bedtime: agentFresh() && typeof agentState.bedtimeActive === 'boolean' ? agentState.bedtimeActive : isBedtimeAt(nowMs, cfg.bedtime, clock()),
+    bedtime: fresh && typeof agentState.bedtimeActive === 'boolean' ? agentState.bedtimeActive : sched ? isBedtimeSched(nowMs, sched, clock()) : isBedtimeAt(nowMs, cfg.bedtime, clock()),
+    paused: managed && (fresh && typeof agentState.paused === 'boolean' ? agentState.paused : isPausedAt(nowMs, agentState.pausedUntil)),
+    homework: managed && (fresh && typeof agentState.homework === 'boolean' ? agentState.homework : !!sched && isHomeworkAt(nowMs, sched, clock())),
     allow: cfg.allow, block: cfg.block, learning: learn.hosts, learningPaths: learn.paths,
     content: contentDay.day === day ? contentDay.domains : [],
     contentUrls: contentDay.day === day ? contentDay.urls || [] : [],
@@ -172,7 +185,9 @@ async function tick() {
   if (!cfg.standalone && nowMs - lastSync >= SYNC_MS) await syncAgent();
   if (usage.day !== before) await newDay();
   const s = guardState(nowMs);
-  for (const kind of dueNotices(usage, s, { breakEveryMin: cfg.band.breakEveryMin, minutesToBed: minutesUntilBedtimeAt(nowMs, cfg.bedtime, clock()) })) notify(kind);
+  const sched = agentSched();
+  const bedNow = !agentFresh() && sched ? bedtimeNow(nowMs, sched, clock()) : cfg.bedtime;
+  for (const kind of dueNotices(usage, s, { breakEveryMin: cfg.band.breakEveryMin, minutesToBed: minutesUntilBedtimeAt(nowMs, bedNow, clock()) })) notify(kind);
   await applyGuard(s);
   await api.storage.local.set({ [K.usage]: usage });
   return s;
@@ -247,9 +262,11 @@ async function grant(msg) {
   const domain = cleanDomain(msg.domain);
   if (kind === 'extra' && ![15, 30, 60].includes(minutes)) return { ok: false, error: 'minutes' };
   if (kind === 'allow' && !domain) return { ok: false, error: 'domain' };
-  if (kind !== 'extra' && kind !== 'allow') return { ok: false, error: 'kind' };
+  if (kind === 'resume' && cfg.standalone) return { ok: false, error: 'kind' };
+  if (kind !== 'extra' && kind !== 'allow' && kind !== 'resume') return { ok: false, error: 'kind' };
   if (!cfg.standalone) {
-    const r = await agent.grant(kind === 'extra' ? { pin: String(msg.pin), kind, minutes } : { pin: String(msg.pin), kind, domain });
+    const body = kind === 'extra' ? { pin: String(msg.pin), kind, minutes } : kind === 'allow' ? { pin: String(msg.pin), kind, domain } : { pin: String(msg.pin), kind };
+    const r = await agent.grant(body);
     if (r.ok && r.state) await setAgentState(r.state);
     if (r.ok) { await reloadConfig(); await serial(tick); }
     return { ok: r.ok, offline: r.offline, locked: r.locked };
@@ -269,6 +286,29 @@ async function grant(msg) {
   await reloadConfig();
   await serial(tick);
   return { ok: true };
+}
+
+// A request from the child at the block page (P2-160): sent like usage, with the account token; no PIN.
+async function childRequest(msg) {
+  if (cfg.standalone) return { ok: false, error: 'standalone' };
+  const kind = msg.kind === 'site' ? 'site' : msg.kind === 'time' ? 'time' : null;
+  const domain = kind === 'site' ? cleanDomain(msg.domain) : '';
+  if (!kind || (kind === 'site' && !domain)) return { ok: false, error: 'kind' };
+  const note = [...String(msg.note ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim()].slice(0, 140).join('');
+  const key = `${kind}|${domain}`, now = Date.now();
+  if (now - (lastRequest.get(key) || 0) < 10000) return { ok: true, dup: true };
+  const r = await agent.request(kind === 'site' ? { kind, domain, note } : { kind, note });
+  if (r.ok) lastRequest.set(key, now);
+  return r;
+}
+
+/** Count a search shown in a tab (managed mode, while the parent has searches on). */
+function noteSearch(tabId, url) {
+  if (!cfg || cfg.standalone || !agentState || agentState.searches !== true) return;
+  const q = searchQuery(url);
+  if (!q || lastSearch.get(tabId) === q) return;
+  lastSearch.set(tabId, q);
+  serial(async () => { usage = addSearch(usage, q); await api.storage.local.set({ [K.usage]: usage }); }).catch(() => {});
 }
 
 function settingsView(local) {
@@ -315,6 +355,13 @@ async function saveSettings(msg) {
 }
 
 function finite(n) { return Number.isFinite(n) ? Math.max(0, Math.round(n)) : null; }
+/** "HH:MM" of an RFC 3339 time on our clock. */
+function hm(iso) {
+  const ms = Date.parse(String(iso || ''));
+  if (!Number.isFinite(ms)) return null;
+  const m = Math.floor(clock().minuteOfDay(ms));
+  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`;
+}
 
 async function statusView() {
   const s = guardState();
@@ -323,7 +370,11 @@ async function statusView() {
     used: s.used,
     browseLeftSec: finite(s.browseLeftSec), videoLeftSec: finite(s.videoLeftSec),
     timeOver: s.timeOver, videoOver: s.videoOver, bedtimeActive: s.bedtime,
-    bedtime: cfg.bedtime, limits: cfg.limits, extraMin: cfg.extraMin,
+    bedtime: cfg.bedtime, limits: s.limits, extraMin: cfg.extraMin,
+    paused: s.paused, pausedUntil: s.paused && agentState ? agentState.pausedUntilHM || hm(agentState.pausedUntil) : null,
+    homework: s.homework, homeworkEnd: s.homework ? (agentState && (agentState.homeworkEnd || (agentState.schedule && agentState.schedule.homework && agentState.schedule.homework.end))) || null : null,
+    searchesOn: !cfg.standalone && !!agentState && agentState.searches === true,
+    canRequest: !cfg.standalone,
     standalone: cfg.standalone, setupDone: cfg.setupDone, hasPin: cfg.hasPin,
     parentUrl: cfg.standalone ? api.runtime.getURL('pages/options.html') : `http://127.0.0.1:${cfg.agentPort}/parent`,
     agentOnline: agent.isOnline(),
@@ -369,6 +420,7 @@ async function handle(msg, sender) {
     case 'blocked-shown': return blockedShown(msg, sender);
     case 'pin': return verifyPin(msg.pin);
     case 'grant': return grant(msg);
+    case 'request': return childRequest(msg);
     case 'settings-get': {
       if (!cfg.standalone) return { ok: true, managed: true };
       const local = await readLocalSettings(api);
@@ -391,8 +443,15 @@ async function testHook(msg) {
     });
   }
   if (msg.op === 'set-settings') { await api.storage.local.set({ [SETTINGS_KEY]: msg.settings || {} }); await reloadConfig(); }
+  if (msg.op === 'set-managed') {
+    devManaged = msg.managed || null;
+    await api.storage.local.set({ [K.devManaged]: devManaged });
+    if (!devManaged) { agentState = null; await api.storage.local.remove(K.agentState); }
+    await reloadConfig();
+  }
+  if (msg.op === 'sync') { lastSync = 0; }
   const s = await serial(tick);
-  return { ok: true, usage, timeOver: s.timeOver, videoOver: s.videoOver, bedtime: s.bedtime, cfg: publicConfig(cfg) };
+  return { ok: true, usage, timeOver: s.timeOver, videoOver: s.videoOver, bedtime: s.bedtime, paused: s.paused, homework: s.homework, agentOnline: agent.isOnline(), cfg: publicConfig(cfg) };
 }
 
 api.runtime.onMessage.addListener((msg, sender, sendResponse) => {
@@ -407,8 +466,11 @@ api.alarms.onAlarm.addListener((a) => { if (a.name === TICK) kick(); });
 api.windows.onFocusChanged.addListener((id) => { focused = id !== api.windows.WINDOW_ID_NONE; kick(); });
 api.idle.onStateChanged.addListener((st) => { idleState = st; kick(); });
 api.tabs.onActivated.addListener(kick);
-api.tabs.onUpdated.addListener((id, info) => { if (info.url || info.status === 'complete') kick(); });
-api.tabs.onRemoved.addListener((id) => { dropTabVideos(id); attempted.delete(id); kick(); });
+api.tabs.onUpdated.addListener((id, info) => {
+  if (info.url) ready.then(() => noteSearch(id, info.url)).catch(() => {});
+  if (info.url || info.status === 'complete') kick();
+});
+api.tabs.onRemoved.addListener((id) => { dropTabVideos(id); attempted.delete(id); lastSearch.delete(id); kick(); });
 api.webNavigation.onBeforeNavigate.addListener((d) => {
   if (d.frameId === 0 && /^https?:/.test(d.url)) rememberAttempt(d.tabId, d.url);
 });
@@ -429,6 +491,7 @@ const ready = (async () => {
   grants = st[K.grants] || grants;
   report = st[K.report] || report;
   agentState = st[K.agentState] || null;
+  if (BUILD.dev) devManaged = st[K.devManaged] || null;
   if (api.storage.session) {
     try { const s = (await api.storage.session.get('kg.attempted'))['kg.attempted'] || {}; for (const [k, v] of Object.entries(s)) attempted.set(Number(k), v); } catch { /* none */ }
   }

@@ -18,7 +18,7 @@ mkdir -p "$DATA" "$DIST"
 
 # Shared data: age bands are required; the rest may be missing (built empty, said so).
 [ -f "$ROOT/shared/age-bands.json" ] || { echo "missing shared/age-bands.json"; exit 1; }
-for f in age-bands.json bookmarks.json ext-ids.json unsupported-browsers.json; do
+for f in age-bands.json bookmarks.json ext-ids.json unsupported-browsers.json pc-apps.json; do
   if [ -f "$ROOT/shared/$f" ]; then
     cp "$ROOT/shared/$f" "$DATA/$f"
   else
@@ -34,7 +34,7 @@ done
 [ -f "$ROOT/ext/ui/tokens.css" ] || { echo "missing ext/ui/tokens.css"; exit 1; }
 cp "$ROOT/ext/ui/tokens.css" "$WEB/tokens.css"
 
-VERSION="${KG_VERSION:-0.2.2}"
+VERSION="${KG_VERSION:-0.3.0}"
 if git -C "$ROOT" rev-parse --short HEAD >/dev/null 2>&1; then
   VERSION="$VERSION+$(git -C "$ROOT" rev-parse --short HEAD)"
 fi

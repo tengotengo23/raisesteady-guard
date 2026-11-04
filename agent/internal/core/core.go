@@ -58,7 +58,48 @@ type Settings struct {
 	// FamilyDNSOff turns off the AdGuard DNS Family resolver for this account
 	// (zero value = on, so older config files keep it on).
 	FamilyDNSOff bool `json:"familyDnsOff,omitempty"`
+
+	// 0.3.0 (P2-160). Every zero value is the old behaviour, so older config
+	// files load with these off (searches: on, as the brief sets).
+
+	// Weekend: Saturday and Sunday minutes, and the bedtime of Friday and
+	// Saturday nights (a night belongs to the day it starts).
+	Weekend DayRule `json:"weekend"`
+	// Homework: a window on school days (Monday to Friday) when only learning
+	// sites and the parent's allowed sites open.
+	Homework Window `json:"homework"`
+	// PauseUntil is the end of "Pause the internet" (RFC 3339), "" when not paused.
+	PauseUntil string `json:"pauseUntil,omitempty"`
+	// SearchesOff stops recording search words for the report.
+	SearchesOff bool `json:"searchesOff,omitempty"`
+	// GameMin is the daily game time; nil = the age band's video minutes.
+	GameMin *int `json:"gameMin,omitempty"`
+	// Apps are the parent's choices for the PC apps (id -> AppAllowed,
+	// AppGame or AppBlocked); an app not named here takes its default.
+	Apps map[string]string `json:"apps,omitempty"`
 }
+
+// DayRule is an optional set of daily minutes and a bedtime.
+type DayRule struct {
+	On        bool    `json:"on"`
+	BrowseMin int     `json:"browseMin,omitempty"`
+	VideoMin  int     `json:"videoMin,omitempty"`
+	Bedtime   Bedtime `json:"bedtime"`
+}
+
+// Window is an optional same-day window in local time, "HH:MM" to "HH:MM".
+type Window struct {
+	On    bool   `json:"on"`
+	Start string `json:"start,omitempty"`
+	End   string `json:"end,omitempty"`
+}
+
+// What a PC app may do in an account.
+const (
+	AppAllowed = "allowed"
+	AppGame    = "game"
+	AppBlocked = "blocked"
+)
 
 // Account is one protected Windows account (or AllSID in ModeAll).
 type Account struct {
@@ -140,6 +181,7 @@ var (
 	tokenRe  = regexp.MustCompile(`^[0-9a-f]{64}$`)
 	domainRe = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$`)
 	chromeID = regexp.MustCompile(`^[a-p]{32}$`)
+	appIDRe  = regexp.MustCompile(`^[a-z0-9-]{1,40}$`)
 	geckoID  = regexp.MustCompile(`^([A-Za-z0-9._+-]{1,80}@[A-Za-z0-9.-]{1,80}|\{[0-9a-fA-F-]{36}\})$`)
 )
 
@@ -254,6 +296,37 @@ func (s *Settings) Validate(bands *Bands) error {
 	for _, d := range append(append([]string{}, s.Allow...), s.Block...) {
 		if NormalizeDomain(d) != d {
 			return fmt.Errorf("bad domain %q", d)
+		}
+	}
+	if s.Weekend.On {
+		w := s.Weekend
+		if w.BrowseMin < 0 || w.BrowseMin > 1440 || w.VideoMin < 0 || w.VideoMin > 1440 {
+			return errors.New("weekend limit out of range")
+		}
+		if !ValidHHMM(w.Bedtime.Start) || !ValidHHMM(w.Bedtime.End) {
+			return errors.New("weekend bedtime must be HH:MM")
+		}
+	}
+	if s.Homework.On {
+		h := s.Homework
+		if !ValidHHMM(h.Start) || !ValidHHMM(h.End) || h.Start >= h.End {
+			return errors.New("homework time must be HH:MM to a later HH:MM")
+		}
+	}
+	if s.PauseUntil != "" {
+		if _, err := time.Parse(time.RFC3339, s.PauseUntil); err != nil {
+			return errors.New("bad pause time")
+		}
+	}
+	if s.GameMin != nil && (*s.GameMin < 0 || *s.GameMin > 1440) {
+		return errors.New("game time out of range")
+	}
+	if len(s.Apps) > 200 {
+		return errors.New("too many apps")
+	}
+	for id, m := range s.Apps {
+		if !appIDRe.MatchString(id) || (m != AppAllowed && m != AppGame && m != AppBlocked) {
+			return fmt.Errorf("bad app choice %q", id)
 		}
 	}
 	return nil

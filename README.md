@@ -4,7 +4,7 @@ Free, open-source child-safe browsing for Windows and Linux computers: one insta
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
-Status: early (version 0.2.2). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. In Firefox the extension installs by itself (signed by Mozilla, from version 0.2.2). It is not in the Chrome, Edge and Brave stores yet, so in those browsers only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Status: early (version 0.3.0). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. In Firefox the extension installs by itself (signed by Mozilla). It is not in the Chrome, Edge and Brave stores yet, so in those browsers only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 
@@ -15,16 +15,22 @@ Status: early (version 0.2.2). Tested in automated runs on Windows, Ubuntu and F
 - in Chrome, Edge and Brave the child also cannot delete browsing history or add browser profiles, and dangerous downloads are blocked
 - learning and play bookmarks (Khan Academy, TypingClub, TED-Ed and others)
 - other browsers (Opera, Tor Browser, Yandex, Vivaldi and more) are closed in the child's account
+- PC games and chat apps: Roblox, Minecraft, the Epic Games Launcher with Fortnite, Steam, Battle.net, Riot Client (League of Legends, Valorant), EA app, Ubisoft Connect, Discord, Telegram Desktop and WhatsApp. The parent sets each to Allowed, Game time or Blocked. Game time is a daily limit (at first the video time of the age; extra minutes a parent gives count for games too); apps on game time are closed when it is used up, at bedtime, in homework time and while the internet is paused, and blocked apps are always closed, with a short message to the child and one warning 5 minutes before game time ends. Chat apps start blocked under the minimum age in their own terms (Discord and WhatsApp 13, Telegram 18) and allowed from it
 
 **The browser extension:**
 - blocks adult, gambling and filter-bypass sites from open block lists (about 170,000 sites), and checks each page as it opens
 - daily browsing time and video time for the child's age, a bedtime, and a break reminder every 20 to 45 minutes
+- weekend times (optional): other minutes on Saturday and Sunday, and another bedtime on Friday and Saturday nights
+- homework time (optional): a window on school days (Monday to Friday) when only learning sites and the parent's allowed sites open
+- "Pause the internet" for 30 minutes, 1 or 2 hours, or until 06:00 the next morning: every site shows a calm "paused" page
+- "Ask a parent" on the block page and the time-is-up page: the child can send a request (this site, or more time) with a short note; the parent answers on the parent page, or with the PIN on the spot
+- the words the child searches for on Google, Bing, DuckDuckGo, Yahoo, Ecosia, Yandex and YouTube, for the parent's report (on unless the parent switches it off; the extension's window tells the child)
 - YouTube with a search box and videos from chosen learning channels instead of the feed, and no Shorts; for ages 3 to 5, search also shows only the chosen channels
 - social networks (TikTok, Instagram, Facebook, X, Snapchat, Reddit, Discord and others) are blocked under 13, the minimum age in their own terms; from 13 they open without the feed
 - an ad blocker
 - learning sites do not count towards the daily time
 
-**For the parent:** a settings page on the PC, behind a PIN, with a 7-day report. Nothing is sent to us.
+**For the parent:** a settings page on the PC, behind a PIN, with the child's open requests first, "Pause the internet", and a 7-day report (time per day, game minutes, and for a picked day the searches and the apps that were closed). Nothing is sent to us.
 
 Default daily times (a parent can change them):
 
@@ -40,7 +46,13 @@ Video time is part of browsing time, not added to it. The defaults are based on 
 
 ## What it does not do
 
-- It protects web browsers only. Games, chat apps and other programs are not covered.
+- It covers web browsers and the PC games and chat apps listed above. Other programs are not covered.
+- On Windows a listed app is found by its file name and by the product name inside the file, so renaming it does not get round it; a changed copy is not covered. On Linux it is found by its program name, Flatpak id or snap name, so a renamed copy in a home folder is not caught. Of the listed apps only Steam, Minecraft, Discord and Telegram Desktop have Linux versions from their makers.
+- Closing Steam does not always close a game started from it, and games bought on Steam are not listed one by one. Game time counts while a listed game or launcher is open, also minimized.
+- Pause, homework time, searches and "Ask a parent" are in the browser extension, so they work only where it is installed (see below). PC apps are closed by the service in any case.
+- Requests stay on the PC: a parent sees them on the parent page of the same computer, not on a phone.
+- With "Everyone on this PC" on Windows, and always on Linux, the PC apps, the pause and the searches apply to every account, the parent's too.
+- Roblox is covered from roblox.com and from the Microsoft Store (by its install folder); Minecraft only through Mojang's own launcher, not through other launchers.
 - The child needs a standard account, not an administrator one (on Linux: no sudo). An administrator can remove it.
 - It does not follow clock changes. The day and bedtime use the clock offset set at install, so changing the time zone gives a child no extra time. When summer or winter time starts, change the offset on the parent page.
 - No filter is perfect. Stay close and talk with your child.
@@ -92,7 +104,7 @@ This program does not send information to other networked systems unless the per
 - **Family DNS filter** (on unless the parent switches it off): the child's browsers look up site names through [AdGuard DNS](https://adguard-dns.io/en/privacy.html), a free public service. AdGuard sees the site names and your internet address, as any DNS service does. If AdGuard DNS cannot be reached (an outage, or a network that blocks it), sites do not open until it is back or a parent switches the filter off.
 - **Chosen YouTube videos** (with Focus mode on): the new tab page and the YouTube start page show videos from the chosen learning channels. To list them, the child's browser fetches each channel's public feed from youtube.com (kept for 6 hours) and the thumbnails from YouTube's image server. YouTube sees your internet address, as when the child opens youtube.com. No account or key is used.
 
-Everything else stays on the PC: minutes used per day, the names of sites visited (not full addresses) and blocked pages, kept for 30 days and readable by administrators only. The block lists are built into the extension, and pages are checked on the PC, never sent anywhere.
+Everything else stays on the PC: minutes used per day, the names of sites visited (not full addresses), blocked pages, search words, game minutes and the apps that were closed, kept for 30 days, and the child's requests, kept for 7 days, all readable by administrators only. Search words are read from the address of a search result page only (never from the page), cut to 100 characters, at most 50 different ones a day; a parent can switch this off on the parent page, and then nothing is recorded. The child is told in the extension's window. The block lists are built into the extension, and pages are checked on the PC, never sent anywhere.
 
 ## Code signing policy
 

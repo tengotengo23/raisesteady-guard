@@ -10,6 +10,8 @@
 .bp-pin { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); max-width: 22rem; }
 .bp-pin .kg-input { letter-spacing: 0.2em; font-variant-numeric: tabular-nums; }
 .bp-grants { display: flex; flex-wrap: wrap; gap: 10px; }
+.bp-req { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); max-width: 30rem; margin-top: var(--kg-gap); }
+.bp-req .kg-btn { justify-self: start; }
 
 /* New tab */
 .nt-head { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: 12px; margin: 8px 0 var(--kg-gap); }

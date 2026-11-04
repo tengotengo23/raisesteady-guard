@@ -56,6 +56,7 @@ func newRig(t *testing.T) *rig {
 	st, _ := store.Open("", now)
 	r.s = &Server{
 		Port: 47615, Bands: &d.Bands, Store: st, Lock: &core.Lockout{Now: now}, Now: now,
+		Apps:   d.Apps.Apps,
 		Config: func() core.Config { r.mu.Lock(); defer r.mu.Unlock(); return r.cfg.Clone() },
 		Save: func(c core.Config) error {
 			r.mu.Lock()
@@ -423,9 +424,9 @@ func TestParentLoginAndCookie(t *testing.T) {
 	}
 	en := b.send("GET", "/parent?lang=en", nil, "").Body.String()
 	for _, want := range []string{"Active · extension seen 3 min ago", "Settings set · extension not active yet", "Closed · not supported", "Log out",
-		"What stays on this PC: minutes per day, the names of sites visited (no full addresses) and blocked pages, for 30 days. Nothing is sent to RaiseSteady.",
+		"What stays on this PC: minutes per day, the names of sites visited (no full addresses), blocked pages, search words (unless you switch them off), game minutes and closed apps, for 30 days, and your child&#39;s requests, for 7 days. Nothing is sent to RaiseSteady.",
 		"What leaves this PC: while the family DNS filter is on, your child&#39;s browsers look up site names through AdGuard DNS Family (a public filter); while focus mode is on, the chosen videos are loaded from YouTube.",
-		"It protects web browsers only", "Summer time is not followed", `name="familyDns" aria-describedby="familyDns-hint" checked`, "Family DNS filter (AdGuard DNS Family)", `<option value="0" selected>`, "1 wrong PIN tries today"} {
+		"It protects web browsers (Chrome, Edge, Brave, Firefox) and the PC games and chat apps in the list above.", "Other programs are not covered.", "Summer time is not followed", `name="familyDns" aria-describedby="familyDns-hint" checked`, "Family DNS filter (AdGuard DNS Family)", `<option value="0" selected>`, "1 wrong PIN tries today"} {
 		if !strings.Contains(en, want) {
 			t.Errorf("English page lacks %q", want)
 		}

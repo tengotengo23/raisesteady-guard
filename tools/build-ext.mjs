@@ -27,7 +27,7 @@ const writeJSON = (p, v) => writeFileSync(p, JSON.stringify(v, null, 2) + '\n');
 
 // ---- 1. shared data ----
 mkdirSync(join(EXT, 'data'), { recursive: true });
-const SKIP_SHARED = new Set(['ext-ids.json', 'unsupported-browsers.json']);
+const SKIP_SHARED = new Set(['ext-ids.json', 'unsupported-browsers.json', 'pc-apps.json']);
 for (const f of readdirSync(SHARED)) {
   if (!f.endsWith('.json') || SKIP_SHARED.has(f) || / \d+\.json$/.test(f)) continue;
   const src = readFileSync(join(SHARED, f), 'utf8');

@@ -55,9 +55,17 @@ func (s *Server) parentRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/parent/defaults", s.post(true, s.handleDefaults))
 	mux.HandleFunc("/parent/accounts", s.post(true, s.handleAccounts))
 	mux.HandleFunc("/parent/pin", s.post(true, s.handleChangePin))
+	mux.HandleFunc("/parent/pause", s.post(true, s.handlePause))
+	mux.HandleFunc("/parent/request", s.post(true, s.handleRequestAnswer))
+	mux.HandleFunc("/parent/apps", s.post(true, s.handleApps))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path == "/" {
 			http.Redirect(w, r, "/parent", http.StatusSeeOther)
+			return
+		}
+		if r.URL.Path == "/favicon.ico" {
+			// No icon: an empty answer, so the browser logs no error on the parent page.
+			w.WriteHeader(http.StatusNoContent)
 			return
 		}
 		http.NotFound(w, r)
@@ -239,6 +247,29 @@ func (s *Server) handleSave(w http.ResponseWriter, r *http.Request, lang string,
 		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "limits")
 		return
 	}
+	// Weekend and homework time (P2-160): checked only when switched on; when
+	// off, good values are kept for next time.
+	old := cfg.Accounts[i].Settings
+	wk := old.Weekend
+	wk.On = f.Get("weekendOn") == "on"
+	wb, okb := atoiRange(f.Get("wBrowseMin"), 5, 720)
+	wv, okv := atoiRange(f.Get("wVideoMin"), 5, 720)
+	wbs, wbe := f.Get("wBedStart"), f.Get("wBedEnd")
+	wOK := okb && okv && core.ValidHHMM(wbs) && core.ValidHHMM(wbe)
+	if wOK {
+		wk.BrowseMin, wk.VideoMin, wk.Bedtime = wb, wv, core.Bedtime{Start: wbs, End: wbe}
+	}
+	hw := old.Homework
+	hw.On = f.Get("homeworkOn") == "on"
+	hs, he := f.Get("hwStart"), f.Get("hwEnd")
+	hOK := core.ValidHHMM(hs) && core.ValidHHMM(he) && hs < he
+	if hOK {
+		hw.Start, hw.End = hs, he
+	}
+	if (wk.On && !wOK) || (hw.On && !hOK) {
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "limits")
+		return
+	}
 	sid := cfg.Accounts[i].SID
 	err := s.update(func(c *core.Config) error {
 		j := indexOfSID(c, sid)
@@ -256,6 +287,8 @@ func (s *Server) handleSave(w http.ResponseWriter, r *http.Request, lang string,
 		st.FocusMode = f.Get("focusMode") == "on"
 		st.Adblock = f.Get("adblock") == "on"
 		st.FamilyDNSOff = f.Get("familyDns") != "on"
+		st.Weekend, st.Homework = wk, hw
+		st.SearchesOff = f.Get("searches") != "on"
 		return nil
 	})
 	if err != nil {
@@ -381,6 +414,165 @@ func (s *Server) handleChangePin(w http.ResponseWriter, r *http.Request, lang st
 	s.redirect(w, r, lang, "ok", "pin_changed", "sec", "pin")
 }
 
+// handlePause starts or ends "Pause the internet" (P2-160, F2).
+func (s *Server) handlePause(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
+	cfg := s.Config()
+	i := formAccount(r, cfg)
+	if i < 0 {
+		s.redirect(w, r, lang, "err", "bad_input")
+		return
+	}
+	a := strconv.Itoa(i)
+	now := s.now()
+	until := ""
+	switch d := r.PostForm.Get("dur"); d {
+	case "30", "60", "120":
+		n, _ := strconv.Atoi(d)
+		until = now.Add(time.Duration(n) * time.Minute).Format(time.RFC3339)
+	case "tomorrow":
+		until = core.NextMorning(now).Format(time.RFC3339)
+	case "resume":
+	default:
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "pause")
+		return
+	}
+	sid := cfg.Accounts[i].SID
+	err := s.update(func(c *core.Config) error {
+		j := indexOfSID(c, sid)
+		if j < 0 {
+			return errors.New("account gone")
+		}
+		c.Accounts[j].PauseUntil = until
+		return nil
+	})
+	if err != nil {
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "pause")
+		return
+	}
+	s.redirect(w, r, lang, "ok", "pause_saved", "a", a, "sec", "pause")
+}
+
+// handleRequestAnswer answers one of the child's requests (P2-160, F6).
+func (s *Server) handleRequestAnswer(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
+	f := r.PostForm
+	cfg := s.Config()
+	i := formAccount(r, cfg)
+	if i < 0 {
+		s.redirect(w, r, lang, "err", "bad_input")
+		return
+	}
+	a := strconv.Itoa(i)
+	sid := cfg.Accounts[i].SID
+	var req *store.Request
+	for _, q := range s.Store.Requests(sid) {
+		if q.ID == f.Get("id") {
+			q := q
+			req = &q
+		}
+	}
+	ans := f.Get("answer")
+	if req == nil {
+		s.redirect(w, r, lang, "err", "req_gone", "a", a, "sec", "requests")
+		return
+	}
+	switch {
+	case ans == "no":
+	case req.Kind == "site" && ans == "allow":
+	case req.Kind == "time" && (ans == "15" || ans == "30"):
+	default:
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "requests")
+		return
+	}
+	if _, ok := s.Store.TakeRequest(sid, req.ID); !ok {
+		s.redirect(w, r, lang, "err", "req_gone", "a", a, "sec", "requests")
+		return
+	}
+	switch ans {
+	case "allow":
+		err := s.update(func(c *core.Config) error {
+			j := indexOfSID(c, sid)
+			if j < 0 {
+				return errors.New("account gone")
+			}
+			st := &c.Accounts[j]
+			st.Block = removeStr(st.Block, req.Domain)
+			if !containsStr(st.Allow, req.Domain) {
+				st.Allow = append(st.Allow, req.Domain)
+			}
+			return nil
+		})
+		if err != nil {
+			s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "requests")
+			return
+		}
+	case "15", "30":
+		n, _ := strconv.Atoi(ans)
+		s.Store.AddExtra(sid, n)
+	}
+	_ = s.Store.Save()
+	s.redirect(w, r, lang, "ok", "req_done", "a", a, "sec", "requests")
+}
+
+// handleApps saves the game time and each PC app's choice (P2-160, F5). Only
+// choices that differ from the default are kept, so a new age band still
+// moves the defaults.
+func (s *Server) handleApps(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
+	f := r.PostForm
+	cfg := s.Config()
+	i := formAccount(r, cfg)
+	if i < 0 {
+		s.redirect(w, r, lang, "err", "bad_input")
+		return
+	}
+	a := strconv.Itoa(i)
+	gm, ok := atoiRange(f.Get("gameMin"), 0, 720)
+	if !ok {
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "apps")
+		return
+	}
+	acct := cfg.Accounts[i]
+	choices := map[string]string{}
+	for _, app := range s.Apps {
+		v := f.Get("app_" + app.ID)
+		switch v {
+		case core.AppAllowed, core.AppGame, core.AppBlocked:
+		case "":
+			v = acct.AppMode(app, s.Bands)
+		default:
+			s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "apps")
+			return
+		}
+		if v != core.DefaultAppMode(app, acct.Band, s.Bands) {
+			choices[app.ID] = v
+		}
+	}
+	sid := acct.SID
+	if gm > acct.GameMinutes(s.Bands) {
+		s.Store.ResetGameWarned(sid)
+	}
+	err := s.update(func(c *core.Config) error {
+		j := indexOfSID(c, sid)
+		if j < 0 {
+			return errors.New("account gone")
+		}
+		st := &c.Accounts[j].Settings
+		st.GameMin = nil
+		if b, ok := s.Bands.Get(st.Band); !ok || b.VideoMin != gm {
+			st.GameMin = &gm
+		}
+		st.Apps = nil
+		if len(choices) > 0 {
+			st.Apps = choices
+		}
+		return nil
+	})
+	if err != nil {
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "apps")
+		return
+	}
+	s.redirect(w, r, lang, "ok", "saved", "a", a, "sec", "apps")
+}
+
 // view types for the template
 
 type bandOpt struct {
@@ -414,6 +606,38 @@ type browserView struct {
 	Name, Account, State, Text string
 }
 
+type reqView struct {
+	Account          int
+	ID, Kind, Domain string
+	Text, Note, When string
+}
+
+type appOpt struct {
+	Value, Label string
+	Selected     bool
+}
+
+type appView struct {
+	ID, Name, AgeNote string
+	Opts              []appOpt
+}
+
+type dayRow struct {
+	store.DayReport
+	Picked bool
+}
+
+type countView struct {
+	Name  string
+	Count int
+}
+
+type dayRuleView struct {
+	On                  bool
+	BrowseMin, VideoMin int
+	Start, End          string
+}
+
 // tzOffsets are the UTC offsets in use (minutes).
 var tzOffsets = []int{-720, -660, -600, -570, -540, -480, -420, -360, -300, -240, -210, -180, -120, -60, 0, 60, 120, 180, 210, 240, 270, 300, 330, 345, 360, 390, 420, 480, 525, 540, 570, 600, 630, 660, 720, 765, 780, 840}
 
@@ -429,7 +653,7 @@ type pageData struct {
 	Settings             core.Settings
 	Bands                []bandOpt
 	AllowText, BlockText string
-	Report               []store.DayReport
+	Report               []dayRow
 	TopSites             []store.DomainTime
 	ByReason             []reasonCount
 	Browsers             []browserView
@@ -438,6 +662,21 @@ type pageData struct {
 	LocalAccounts        []acctOpt
 	Everyone             bool
 	WholeComputer        bool
+	// 0.3.0 (P2-160)
+	Requests      []reqView
+	MultiAccounts bool
+	Paused        bool
+	PausedText    string
+	Weekend       dayRuleView
+	Homework      dayRuleView
+	SearchesOn    bool
+	GameMin       int
+	Apps          []appView
+	Day           string
+	DaySearches   []store.Count
+	DayApps       []countView
+	SearchesDay   string
+	AppsClosedDay string
 }
 
 func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
@@ -462,16 +701,16 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 		case "locked":
 			n, _ := atoiRange(q.Get("wait"), 0, 60)
 			d.Msg = fmt.Sprintf(T(lang, "locked"), n)
-		case "stale", "bad_input", "no_accounts", "pin_mismatch":
+		case "stale", "bad_input", "no_accounts", "pin_mismatch", "req_gone":
 			d.Msg = T(lang, k)
 		default:
 			d.MsgKind = ""
 		}
-	} else if k := q.Get("ok"); k == "saved" || k == "pin_changed" {
+	} else if k := q.Get("ok"); k == "saved" || k == "pin_changed" || k == "req_done" || k == "pause_saved" {
 		d.MsgKind, d.Msg = "ok", T(lang, k)
 	}
 	switch sec := q.Get("sec"); sec {
-	case "limits", "accounts", "pin":
+	case "limits", "accounts", "pin", "pause", "requests", "apps":
 		d.MsgSec = sec
 	}
 	_, sess := s.session(r)
@@ -509,13 +748,22 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 	}
 	d.AllowText = strings.Join(acct.Allow, "\n")
 	d.BlockText = strings.Join(acct.Block, "\n")
-	d.Report, d.TopSites = s.Store.Report(acct.SID, 7)
+	rep, top := s.Store.Report(acct.SID, 7)
+	d.TopSites = top
+	d.Day = rep[len(rep)-1].Day
+	for _, day := range rep {
+		if day.Day == q.Get("day") {
+			d.Day = day.Day
+		}
+	}
 	tot := map[string]int{}
-	for _, day := range d.Report {
+	for _, day := range rep {
+		d.Report = append(d.Report, dayRow{DayReport: day, Picked: day.Day == d.Day})
 		for r, c := range day.ByReason {
 			tot[r] += c
 		}
 	}
+	s.fillExtras(&d, cfg, i, lang)
 	for _, r := range Reasons {
 		if tot[r] > 0 {
 			d.ByReason = append(d.ByReason, reasonCount{Key: "reason_" + r, Count: tot[r]})
@@ -563,4 +811,74 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	_ = pageTmpl.Execute(w, d)
+}
+
+// fillExtras adds the 0.3.0 parts of the page (P2-160): requests, pause,
+// weekend, homework, searches, PC apps and the picked day's detail.
+func (s *Server) fillExtras(d *pageData, cfg core.Config, i int, lang string) {
+	now := s.now()
+	acct := cfg.Accounts[i]
+	d.MultiAccounts = len(cfg.Accounts) > 1
+	for j, a := range cfg.Accounts {
+		name := a.Name
+		if a.SID == core.AllSID || name == "" {
+			name = T(lang, "your_child")
+		}
+		for _, q := range s.Store.Requests(a.SID) {
+			v := reqView{Account: j, ID: q.ID, Kind: q.Kind, Domain: q.Domain, When: q.At.In(now.Location()).Format("2006-01-02 15:04")}
+			if q.Kind == "site" {
+				v.Text = fmt.Sprintf(T(lang, "req_site"), name, q.Domain)
+			} else {
+				v.Text = fmt.Sprintf(T(lang, "req_time"), name)
+			}
+			if q.Note != "" {
+				v.Note = fmt.Sprintf(T(lang, "req_note"), q.Note)
+			}
+			d.Requests = append(d.Requests, v)
+		}
+	}
+	st := acct.Settings
+	if p, until := st.PausedAt(now); p {
+		d.Paused = true
+		when := until.Format("15:04")
+		if store.DayKey(until) != store.DayKey(now) {
+			when = until.Format("2006-01-02 15:04")
+		}
+		d.PausedText = fmt.Sprintf(T(lang, "pause_on"), when)
+	}
+	d.Weekend = dayRuleView{On: st.Weekend.On, BrowseMin: st.Weekend.BrowseMin, VideoMin: st.Weekend.VideoMin, Start: st.Weekend.Bedtime.Start, End: st.Weekend.Bedtime.End}
+	if d.Weekend.BrowseMin == 0 || !core.ValidHHMM(d.Weekend.Start) || !core.ValidHHMM(d.Weekend.End) {
+		// Not set yet: start from the school-day values.
+		d.Weekend = dayRuleView{On: st.Weekend.On, BrowseMin: st.BrowseMin, VideoMin: st.VideoMin, Start: st.Bedtime.Start, End: st.Bedtime.End}
+	}
+	d.Homework = dayRuleView{On: st.Homework.On, Start: st.Homework.Start, End: st.Homework.End}
+	if !core.ValidHHMM(d.Homework.Start) || !core.ValidHHMM(d.Homework.End) {
+		d.Homework.Start, d.Homework.End = "16:00", "18:00"
+	}
+	d.SearchesOn = !st.SearchesOff
+	d.GameMin = st.GameMinutes(s.Bands)
+	for _, app := range s.Apps {
+		mode := st.AppMode(app, s.Bands)
+		v := appView{ID: app.ID, Name: app.Name}
+		if app.Kind == "chat" && app.MinAge > 0 {
+			v.AgeNote = fmt.Sprintf(T(lang, "app_min_age"), app.MinAge)
+		}
+		for _, m := range []string{core.AppAllowed, core.AppGame, core.AppBlocked} {
+			v.Opts = append(v.Opts, appOpt{Value: m, Label: T(lang, "app_"+m), Selected: m == mode})
+		}
+		d.Apps = append(d.Apps, v)
+	}
+	det := s.Store.Detail(acct.SID, d.Day)
+	d.DaySearches = det.Searches
+	for _, c := range det.AppsClosed {
+		name := c.Key
+		for _, app := range s.Apps {
+			if app.ID == c.Key {
+				name = app.Name
+			}
+		}
+		d.DayApps = append(d.DayApps, countView{Name: name, Count: c.Count})
+	}
+	d.SearchesDay = fmt.Sprintf(T(lang, "searches_day"), d.Day)
+	d.AppsClosedDay = fmt.Sprintf(T(lang, "apps_closed_day"), d.Day)
 }

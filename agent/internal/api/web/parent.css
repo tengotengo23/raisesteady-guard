@@ -50,5 +50,11 @@ thead th { font-size: var(--kg-size-s); color: var(--kg-text-2); }
 .state.active { color: var(--kg-ok); font-weight: 600; }
 .state.set, .state.waiting { color: var(--kg-text-2); font-weight: 600; }
 .state.closed { color: var(--kg-warn); font-weight: 600; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.reqs li { align-items: center; }
+.apps { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 16rem), 1fr)); gap: var(--kg-gap); }
+.app label { font-weight: 600; }
+td a, th a { color: var(--kg-text); }
+th a[aria-current="date"] { font-weight: 700; text-decoration-thickness: 3px; }
 .honest { color: var(--kg-text-2); font-size: var(--kg-size-s); margin: var(--kg-gap-l) 0; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: opacity var(--kg-time) linear; } }

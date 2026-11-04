@@ -24,13 +24,13 @@ done
 
 command -v go >/dev/null || { echo "Go is not installed"; exit 1; }
 mkdir -p "$DATA" "$OUT"
-for f in age-bands.json bookmarks.json ext-ids.json unsupported-browsers.json; do
+for f in age-bands.json bookmarks.json ext-ids.json unsupported-browsers.json pc-apps.json; do
   cp "$ROOT/shared/$f" "$DATA/$f"
 done
 for l in en ka ru; do cp "$ROOT/installer/terms-$l.txt" "$DATA/terms-$l.txt"; done
 cp "$ROOT/ext/ui/tokens.css" "$WEB/tokens.css"
 
-VERSION="${KG_VERSION:-0.2.2}"   # package version: digits and dots only
+VERSION="${KG_VERSION:-0.3.0}"   # package version: digits and dots only
 PV="$VERSION"                     # program version: with the commit
 if git -C "$ROOT" rev-parse --short HEAD >/dev/null 2>&1; then
   PV="$VERSION+$(git -C "$ROOT" rev-parse --short HEAD)"

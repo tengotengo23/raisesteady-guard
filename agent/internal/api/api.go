@@ -54,6 +54,8 @@ type Server struct {
 	// WholeComputer (Linux): browser settings are for every account, so the
 	// page has no account choice and refuses one.
 	WholeComputer bool
+	// Apps are the PC games and chat apps the guard knows (P2-160).
+	Apps []core.PCApp
 
 	mu       sync.Mutex // serializes configuration changes
 	sessMu   sync.Mutex
@@ -82,6 +84,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("/v1/pin", s.api(http.MethodPost, s.handlePin))
 	mux.HandleFunc("/v1/grant", s.api(http.MethodPost, s.handleGrant))
 	mux.HandleFunc("/v1/event", s.api(http.MethodPost, s.handleEvent))
+	mux.HandleFunc("/v1/request", s.api(http.MethodPost, s.handleRequest))
 	s.parentRoutes(mux)
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		h := w.Header()
@@ -147,7 +150,10 @@ type bucket struct {
 	n     int
 }
 
-func (s *Server) allow(key string) bool {
+func (s *Server) allow(key string) bool { return s.allowMax(key, ratePerMinute) }
+
+// allowMax counts one call for key and reports whether it is within max a minute.
+func (s *Server) allowMax(key string, max int) bool {
 	s.rateMu.Lock()
 	defer s.rateMu.Unlock()
 	if s.rate == nil || len(s.rate) > 1000 {
@@ -160,8 +166,11 @@ func (s *Server) allow(key string) bool {
 		s.rate[key] = b
 	}
 	b.n++
-	return b.n <= ratePerMinute
+	return b.n <= max
 }
+
+// requestsPerMinute caps the child's requests per account token.
+const requestsPerMinute = 10
 
 type apiFunc func(w http.ResponseWriter, r *http.Request, cfg core.Config, acct int)
 
@@ -264,6 +273,36 @@ type State struct {
 	Adblock         bool         `json:"adblock"`
 	SettingsVersion int          `json:"settingsVersion"`
 	Now             string       `json:"now"`
+	// 0.3.0 (P2-160). Limits and Bedtime above are today's (weekend aware);
+	// Bedtime is the night that matters now (last night's in its morning part).
+	Paused        bool     `json:"paused"`
+	PausedUntil   string   `json:"pausedUntil,omitempty"`   // RFC 3339
+	PausedUntilHM string   `json:"pausedUntilHM,omitempty"` // "HH:MM" on the agent's clock
+	Homework      bool     `json:"homework"`
+	HomeworkEnd   string   `json:"homeworkEnd,omitempty"`
+	Searches      bool     `json:"searches"` // search words are recorded
+	Schedule      Schedule `json:"schedule"`
+}
+
+// Schedule lets the extension work out the day and bedtime itself when the
+// agent has not answered for a while.
+type Schedule struct {
+	School   DayLimits  `json:"school"`
+	Weekend  *DayLimits `json:"weekend,omitempty"`
+	Homework *HomeWin   `json:"homework,omitempty"`
+}
+
+// DayLimits are one kind of day's minutes and bedtime.
+type DayLimits struct {
+	BrowseMin int          `json:"browseMin"`
+	VideoMin  int          `json:"videoMin"`
+	Bedtime   core.Bedtime `json:"bedtime"`
+}
+
+// HomeWin is the homework window on school days.
+type HomeWin struct {
+	Start string `json:"start"`
+	End   string `json:"end"`
 }
 
 // Limits are the daily limits in minutes.
@@ -289,18 +328,35 @@ func (s *Server) state(cfg core.Config, acct int) State {
 		}
 		return l
 	}
-	return State{
+	browse, video := a.LimitsOn(now)
+	st := State{
 		Day: store.DayKey(now), Band: a.Band,
-		Limits:        Limits{BrowseMin: a.BrowseMin, VideoMin: a.VideoMin},
+		Limits:        Limits{BrowseMin: browse, VideoMin: video},
 		Used:          Used{BrowseSec: d.BrowseSec, VideoSec: d.VideoSec, LearningSec: d.LearningSec},
 		ExtraMin:      d.ExtraMin,
-		Bedtime:       a.Bedtime,
-		BedtimeActive: BedtimeActive(now, a.Bedtime),
+		Bedtime:       a.BedtimeNow(now),
+		BedtimeActive: a.BedtimeActiveAt(now),
 		Allow:         nz(a.Allow), Block: nz(a.Block),
 		FocusMode: a.FocusMode, Adblock: a.Adblock,
 		SettingsVersion: cfg.SettingsVersion,
 		Now:             now.Format(time.RFC3339),
+		Homework:        a.HomeworkActive(now),
+		Searches:        !a.SearchesOff,
+		Schedule:        Schedule{School: DayLimits{BrowseMin: a.BrowseMin, VideoMin: a.VideoMin, Bedtime: a.Bedtime}},
 	}
+	if p, until := a.PausedAt(now); p {
+		st.Paused, st.PausedUntil, st.PausedUntilHM = true, until.Format(time.RFC3339), until.Format("15:04")
+	}
+	if st.Homework {
+		st.HomeworkEnd = a.Homework.End
+	}
+	if a.Weekend.On {
+		st.Schedule.Weekend = &DayLimits{BrowseMin: a.Weekend.BrowseMin, VideoMin: a.Weekend.VideoMin, Bedtime: a.Weekend.Bedtime}
+	}
+	if a.Homework.On {
+		st.Schedule.Homework = &HomeWin{Start: a.Homework.Start, End: a.Homework.End}
+	}
+	return st
 }
 
 func (s *Server) handleState(w http.ResponseWriter, r *http.Request, cfg core.Config, acct int) {
@@ -316,13 +372,18 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request, cfg core.Co
 		VideoSec    int            `json:"videoSec"`
 		LearningSec int            `json:"learningSec"`
 		Domains     map[string]int `json:"domains"`
+		Searches    map[string]int `json:"searches"`
 	}
 	if err := decode(r, &in); err != nil || !browserRe.MatchString(in.Browser) {
 		jsonErr(w, http.StatusBadRequest, "body")
 		return
 	}
+	searches := in.Searches
+	if cfg.Accounts[acct].SearchesOff {
+		searches = nil // switched off: nothing is recorded
+	}
 	s.Store.AddUsage(cfg.Accounts[acct].SID, store.Usage{
-		Browser: in.Browser, BrowseSec: in.BrowseSec, VideoSec: in.VideoSec, LearningSec: in.LearningSec, Domains: in.Domains,
+		Browser: in.Browser, BrowseSec: in.BrowseSec, VideoSec: in.VideoSec, LearningSec: in.LearningSec, Domains: in.Domains, Searches: searches,
 	})
 	writeJSON(w, http.StatusOK, s.state(cfg, acct))
 }
@@ -374,6 +435,7 @@ func (s *Server) handleGrant(w http.ResponseWriter, r *http.Request, cfg core.Co
 	switch {
 	case in.Kind == "extra" && in.Minutes >= 1 && in.Minutes <= 120:
 	case in.Kind == "allow" && dom != "":
+	case in.Kind == "resume":
 	default:
 		jsonErr(w, http.StatusBadRequest, "grant")
 		return
@@ -385,6 +447,19 @@ func (s *Server) handleGrant(w http.ResponseWriter, r *http.Request, cfg core.Co
 	if in.Kind == "extra" {
 		s.Store.AddExtra(sid, in.Minutes)
 		_ = s.Store.Save()
+	} else if in.Kind == "resume" {
+		err := s.update(func(c *core.Config) error {
+			i := indexOfSID(c, sid)
+			if i < 0 {
+				return errors.New("account gone")
+			}
+			c.Accounts[i].PauseUntil = ""
+			return nil
+		})
+		if err != nil {
+			jsonErr(w, http.StatusInternalServerError, "save")
+			return
+		}
 	} else {
 		err := s.update(func(c *core.Config) error {
 			i := indexOfSID(c, sid)
@@ -413,7 +488,7 @@ func (s *Server) handleGrant(w http.ResponseWriter, r *http.Request, cfg core.Co
 }
 
 // Reasons are the blocked-page reasons the extension reports, in report order.
-var Reasons = []string{"adult", "gambling", "bypass", "social", "content", "video", "time", "bedtime", "parent"}
+var Reasons = []string{"adult", "gambling", "bypass", "social", "content", "video", "time", "bedtime", "homework", "paused", "parent"}
 
 var reasons = func() map[string]bool {
 	m := map[string]bool{}
@@ -435,6 +510,37 @@ func (s *Server) handleEvent(w http.ResponseWriter, r *http.Request, cfg core.Co
 	}
 	s.Store.AddEvent(cfg.Accounts[acct].SID, in.Reason, core.NormalizeDomain(in.Domain))
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// handleRequest records a request from the child (P2-160, F6): a site to
+// allow, or more time. It needs only the account token, never the PIN.
+func (s *Server) handleRequest(w http.ResponseWriter, r *http.Request, cfg core.Config, acct int) {
+	var in struct {
+		Kind   string `json:"kind"`
+		Domain string `json:"domain"`
+		Note   string `json:"note"`
+	}
+	if err := decode(r, &in); err != nil || len(in.Note) > 4*store.MaxNoteLen {
+		jsonErr(w, http.StatusBadRequest, "body")
+		return
+	}
+	dom := core.NormalizeDomain(in.Domain)
+	switch {
+	case in.Kind == "site" && dom != "":
+	case in.Kind == "time":
+		dom = ""
+	default:
+		jsonErr(w, http.StatusBadRequest, "request")
+		return
+	}
+	if !s.allowMax("req:"+cfg.Accounts[acct].Token, requestsPerMinute) {
+		jsonErr(w, http.StatusTooManyRequests, "rate")
+		return
+	}
+	// Kept in memory (the parent page sees it at once) and written by the
+	// agent's one-minute save, as usage is.
+	dup := s.Store.AddRequest(cfg.Accounts[acct].SID, in.Kind, dom, in.Note)
+	writeJSON(w, http.StatusOK, map[string]any{"ok": true, "dup": dup})
 }
 
 // update changes the configuration under the lock, bumps the settings

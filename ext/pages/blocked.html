@@ -24,7 +24,7 @@
     <p id="bedTip" hidden data-i18n="bedTip"></p>
 
     <section id="ask" class="bp-ask" hidden>
-      <button id="askBtn" class="kg-btn kg-ghost" type="button" aria-expanded="false" aria-controls="askPanel" data-i18n="askParent"></button>
+      <button id="askBtn" class="kg-btn kg-ghost" type="button" aria-expanded="false" aria-controls="askPanel" data-i18n="parentHere"></button>
       <div id="askPanel" hidden>
         <form id="pinForm" class="bp-pin" autocomplete="off" novalidate>
           <label class="kg-label" for="pin" data-i18n="pinLabel"></label>
@@ -39,6 +39,12 @@
         <p id="grantMsg" class="kg-note kg-good" role="status" hidden></p>
       </div>
       <p id="bedAsk" class="kg-muted" hidden data-i18n="bedAsk"></p>
+      <form id="req" class="bp-req" autocomplete="off" novalidate hidden>
+        <label class="kg-label" for="reqNote" data-i18n="reqNoteLabel"></label>
+        <input id="reqNote" class="kg-input" type="text" maxlength="140" autocomplete="off" spellcheck="true">
+        <button id="reqBtn" class="kg-btn" type="submit" data-i18n="askParent"></button>
+        <p id="reqMsg" class="kg-note kg-good" role="status" hidden></p>
+      </form>
     </section>
 
     <p class="bp-next"><a id="home" class="kg-link" href="newtab.html" data-i18n="backHome"></a></p>

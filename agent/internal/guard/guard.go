@@ -118,11 +118,17 @@ type Guard struct {
 	Now       func() time.Time
 	// Classify replaces the Windows rules (Linux sets ClassifyLinux).
 	Classify func(list core.UnsupportedList, path, product string) Match
+	// Apps and Rules (P2-160): PC games and chat apps, counted and closed by
+	// each account's rules. Linux matches apps by Linux names.
+	Apps  []core.PCApp
+	Rules AppRules
+	Linux bool
 
 	mu       sync.Mutex
 	products map[string]string // path -> product name
 	lastMsg  map[string]time.Time
 	closed   map[string]*Closed
+	lastTick time.Time
 }
 
 // MessageEvery is the shortest time between two messages for the same browser
@@ -149,7 +155,8 @@ func (g *Guard) product(path string) string {
 }
 
 // Tick checks every process once and closes unsupported browsers in protected
-// sessions. It returns how many processes it closed.
+// sessions; with Rules set it also counts game time and closes apps the
+// account may not use now. It returns how many processes it closed.
 func (g *Guard) Tick() (int, error) {
 	procs, err := g.Sys.Processes()
 	if err != nil {
@@ -162,6 +169,21 @@ func (g *Guard) Tick() (int, error) {
 		g.lastMsg = map[string]time.Time{}
 		g.closed = map[string]*Closed{}
 	}
+	now := g.now()
+	step := 0
+	if !g.lastTick.IsZero() {
+		if el := now.Sub(g.lastTick); el > 0 && el <= 10*time.Second {
+			step = int(el.Seconds() + 0.5)
+		}
+	}
+	g.lastTick = now
+	states := map[string]*AppState{}
+	counted := map[string]bool{} // account|app: one closing counted per tick, however many processes
+	type gamer struct {
+		st       *AppState
+		sessions map[uint32]string // session -> owner SID (for the language)
+	}
+	gaming := map[string]*gamer{}
 	n := 0
 	for _, p := range procs {
 		if p.Session == 0 || p.Path == "" || p.SID == "" || !g.Protected(p.SID) {
@@ -173,6 +195,56 @@ func (g *Guard) Tick() (int, error) {
 		}
 		m := classify(g.List, p.Path, g.product(p.Path))
 		if m.Unsupported == nil {
+			if g.Rules == nil || m.SupportedID != "" || len(g.Apps) == 0 {
+				continue
+			}
+			app := ClassifyApp(g.Apps, p.Path, g.product(p.Path), g.Linux)
+			if app == nil {
+				continue
+			}
+			st, ok := states[p.SID]
+			if !ok {
+				if s, found := g.Rules.State(p.SID); found {
+					st = &s
+				}
+				states[p.SID] = st
+			}
+			if st == nil {
+				continue
+			}
+			why := ""
+			switch st.Modes[app.ID] {
+			case core.AppBlocked:
+				why = StopBlocked
+			case core.AppGame:
+				if st.Stop != "" {
+					why = st.Stop
+				} else {
+					gm := gaming[st.Key]
+					if gm == nil {
+						gm = &gamer{st: st, sessions: map[uint32]string{}}
+						gaming[st.Key] = gm
+					}
+					gm.sessions[p.Session] = p.SID
+				}
+			}
+			if why == "" {
+				continue
+			}
+			if err := g.Sys.Kill(p.PID); err != nil {
+				continue
+			}
+			n++
+			if ck := st.Key + "|" + app.ID; !counted[ck] {
+				counted[ck] = true
+				g.Rules.Closed(st.Key, app.ID)
+			}
+			key := "app:" + app.ID + "|" + strconv.FormatUint(uint64(p.Session), 10)
+			if t, ok := g.lastMsg[key]; ok && now.Sub(t) < MessageEvery {
+				continue
+			}
+			g.lastMsg[key] = now
+			_ = g.Sys.Message(p.Session, core.AppName, AppMessage(g.Sys.UserLang(p.SID), why, app.Name))
 			continue
 		}
 		if err := g.Sys.Kill(p.PID); err != nil {
@@ -194,6 +266,16 @@ func (g *Guard) Tick() (int, error) {
 		g.lastMsg[key] = g.now()
 		lang := g.Sys.UserLang(p.SID)
 		_ = g.Sys.Message(p.Session, core.AppName, ClosedMessage(lang, m.Unsupported.Name))
+	}
+	for key, gm := range gaming {
+		if step > 0 {
+			g.Rules.AddGame(key, step)
+		}
+		if left := gm.st.LeftSec - step; left > 0 && left <= WarnBeforeSec && g.Rules.Warn(key) {
+			for sess, sid := range gm.sessions {
+				_ = g.Sys.Message(sess, core.AppName, GameWarnMessage(g.Sys.UserLang(sid)))
+			}
+		}
 	}
 	return n, nil
 }
@@ -270,6 +352,10 @@ func (g *Guard) Report(all bool) ([]string, error) {
 			out = append(out, strconv.FormatUint(uint64(p.PID), 10)+"\t"+p.SID+"\tclose ("+m.Unsupported.Name+")\t"+p.Path)
 		case m.SupportedID != "":
 			out = append(out, strconv.FormatUint(uint64(p.PID), 10)+"\t"+p.SID+"\tprotected ("+m.SupportedID+")\t"+p.Path)
+		default:
+			if app := ClassifyApp(g.Apps, p.Path, g.Sys.ProductName(p.Path), g.Linux); app != nil {
+				out = append(out, strconv.FormatUint(uint64(p.PID), 10)+"\t"+p.SID+"\tapp ("+app.Name+")\t"+p.Path)
+			}
 		}
 	}
 	return out, nil

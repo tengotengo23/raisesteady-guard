@@ -6,8 +6,11 @@ import (
 	"errors"
 	"os"
 	"sort"
+	"strings"
 	"sync"
 	"time"
+	"unicode"
+	"unicode/utf8"
 
 	"raisesteady-guard/agent/internal/core"
 )
@@ -27,6 +30,18 @@ const (
 	maxBlockedDomains = 100
 	maxExtraMinPerDay = 240
 	maxEventsPerDay   = 5000
+	// MaxSearchesPerDay is how many different searches a day keeps.
+	MaxSearchesPerDay  = 50
+	maxSearchesPerCall = 20
+	// MaxSearchLen is the longest search kept, in characters.
+	MaxSearchLen = 100
+	// MaxGamePerCall caps one game-time step (the guard runs every 3 seconds).
+	MaxGamePerCall = 10
+	// MaxRequests is how many open requests an account keeps; RequestDays how long.
+	MaxRequests = 20
+	RequestDays = 7
+	// MaxNoteLen is the longest note on a request, in characters.
+	MaxNoteLen = 140
 )
 
 // Day is one account's record for one local date.
@@ -38,10 +53,17 @@ type Day struct {
 	Domains        map[string]int `json:"domains,omitempty"`
 	Blocked        map[string]int `json:"blocked,omitempty"`        // reason -> count
 	BlockedDomains map[string]int `json:"blockedDomains,omitempty"` // domain -> count
+	// 0.3.0 (P2-160)
+	Searches   map[string]int `json:"searches,omitempty"`   // search words -> count
+	GameSec    int            `json:"gameSec,omitempty"`    // PC game time
+	GameWarned bool           `json:"gameWarned,omitempty"` // the 5-minute warning was shown
+	AppsClosed map[string]int `json:"appsClosed,omitempty"` // app id -> times closed
 }
 
 type file struct {
 	Accounts map[string]map[string]*Day `json:"accounts"` // SID -> "2026-11-03" -> day
+	// Requests are the child's open requests per account (P2-160).
+	Requests map[string][]Request `json:"requests,omitempty"`
 }
 
 // Store is safe for concurrent use.
@@ -116,6 +138,8 @@ type Usage struct {
 	VideoSec    int
 	LearningSec int
 	Domains     map[string]int
+	// Searches are search words with a count; nil when the parent switched them off.
+	Searches map[string]int
 }
 
 // AddUsage adds a report, capping each field to the real seconds since this
@@ -159,7 +183,44 @@ func (s *Store) AddUsage(sid string, u Usage) {
 		}
 		d.Domains[dom] += clamp(sec, 0, limit)
 	}
+	n = 0
+	for q, c := range u.Searches {
+		if n >= maxSearchesPerCall {
+			break
+		}
+		q = CleanSearch(q)
+		if q == "" {
+			continue
+		}
+		n++
+		if d.Searches == nil {
+			d.Searches = map[string]int{}
+		}
+		if _, ok := d.Searches[q]; !ok && len(d.Searches) >= MaxSearchesPerDay {
+			continue
+		}
+		d.Searches[q] += clamp(c, 1, 20)
+	}
 	s.dirty = true
+}
+
+// CleanSearch trims, lower-cases and folds the spaces of a search, cuts it to
+// MaxSearchLen characters, and returns "" for an empty one or one with
+// control characters.
+func CleanSearch(q string) string {
+	q = strings.Join(strings.Fields(strings.ToLower(q)), " ")
+	if !utf8.ValidString(q) {
+		return ""
+	}
+	for _, r := range q {
+		if unicode.IsControl(r) {
+			return ""
+		}
+	}
+	if utf8.RuneCountInString(q) > MaxSearchLen {
+		q = strings.TrimSpace(string([]rune(q)[:MaxSearchLen]))
+	}
+	return q
 }
 
 // LastSeen returns when a browser's extension last reported usage for an
@@ -177,6 +238,9 @@ func (s *Store) AddExtra(sid string, minutes int) int {
 	defer s.mu.Unlock()
 	d := s.day(sid, s.Now())
 	d.ExtraMin = clamp(d.ExtraMin+minutes, 0, maxExtraMinPerDay)
+	if minutes > 0 {
+		d.GameWarned = false // more time: the game-time warning may show again
+	}
 	s.dirty = true
 	return d.ExtraMin
 }
@@ -214,6 +278,7 @@ type DayReport struct {
 	BrowseMin   int
 	VideoMin    int
 	LearningMin int
+	GameMin     int
 	Blocked     int
 	ByReason    map[string]int
 }
@@ -233,6 +298,7 @@ func (s *Store) Report(sid string, n int) ([]DayReport, []DomainTime) {
 			r.BrowseMin = d.BrowseSec / 60
 			r.VideoMin = d.VideoSec / 60
 			r.LearningMin = d.LearningSec / 60
+			r.GameMin = d.GameSec / 60
 			for reason, c := range d.Blocked {
 				r.Blocked += c
 				r.ByReason[reason] = c
@@ -265,11 +331,19 @@ type DomainTime struct {
 	Min    int
 }
 
-// Prune drops days older than KeepDays and accounts not in keep.
+// Prune drops days older than KeepDays, requests older than RequestDays and
+// accounts not in keep.
 func (s *Store) Prune(keep map[string]bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	cut := DayKey(s.Now().AddDate(0, 0, -KeepDays))
+	s.pruneRequests()
+	for sid := range s.data.Requests {
+		if keep != nil && !keep[sid] {
+			delete(s.data.Requests, sid)
+			s.dirty = true
+		}
+	}
 	for sid, days := range s.data.Accounts {
 		if keep != nil && !keep[sid] {
 			delete(s.data.Accounts, sid)

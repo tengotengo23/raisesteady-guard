@@ -1,0 +1,109 @@
+{
+  "version": 1,
+  "note": "PC games and chat apps the agent can count and close (P2-160). Each protected account sets every app to allowed, game (counts towards the daily game time) or blocked. Defaults: games on game time; chat apps blocked under minAge, allowed from it. minAge comes from the app's own terms (checked 4 Nov 2026, URL in terms). Matching works like unsupported-browsers.json: on Windows by exe name, by the ProductName in the file's version info, or by a part of the path (lower case, backslashes); on Linux by program name (linuxExe), Flatpak app id or snap name. Only processes in a protected account's own session are touched. Launchers count as game time while they are open, also minimized. Closing Steam does not always close a game started from it; games bought on Steam are not listed one by one. Apps with no Linux version from their maker have no Linux entries.",
+  "apps": [
+    {
+      "id": "roblox",
+      "name": "Roblox",
+      "kind": "game",
+      "exe": ["RobloxPlayerBeta.exe", "RobloxPlayerLauncher.exe", "RobloxPlayerInstaller.exe"],
+      "product": ["Roblox"],
+      "pathContains": ["\\roblox\\versions\\", "\\robloxcorporation.roblox_"]
+    },
+    {
+      "id": "minecraft",
+      "name": "Minecraft",
+      "kind": "game",
+      "exe": ["MinecraftLauncher.exe", "Minecraft.Windows.exe"],
+      "product": ["Minecraft Launcher"],
+      "pathContains": ["\\.minecraft\\runtime\\", "\\minecraft launcher\\"],
+      "linuxExe": ["minecraft-launcher"],
+      "flatpak": ["com.mojang.Minecraft"]
+    },
+    {
+      "id": "epic-fortnite",
+      "name": "Epic Games Launcher and Fortnite",
+      "kind": "game",
+      "exe": ["EpicGamesLauncher.exe", "FortniteLauncher.exe", "FortniteClient-Win64-Shipping.exe", "FortniteClient-Win64-Shipping_EAC.exe", "FortniteClient-Win64-Shipping_BE.exe"],
+      "product": ["Fortnite"],
+      "pathContains": ["\\epic games\\fortnite\\"]
+    },
+    {
+      "id": "steam",
+      "name": "Steam",
+      "kind": "game",
+      "exe": ["steam.exe", "steamwebhelper.exe"],
+      "product": ["Steam"],
+      "linuxExe": ["steam", "steamwebhelper"],
+      "flatpak": ["com.valvesoftware.Steam"],
+      "snap": ["steam"]
+    },
+    {
+      "id": "battlenet",
+      "name": "Battle.net",
+      "kind": "game",
+      "exe": ["Battle.net.exe", "Battle.net Launcher.exe"],
+      "product": ["Battle.net"]
+    },
+    {
+      "id": "riot",
+      "name": "Riot Client (League of Legends, Valorant)",
+      "kind": "game",
+      "exe": ["RiotClientServices.exe", "RiotClientUx.exe", "Riot Client.exe", "LeagueClient.exe", "LeagueClientUx.exe", "League of Legends.exe", "VALORANT.exe", "VALORANT-Win64-Shipping.exe"],
+      "product": ["League of Legends", "VALORANT"],
+      "pathContains": ["\\riot games\\"]
+    },
+    {
+      "id": "ea",
+      "name": "EA app",
+      "kind": "game",
+      "exe": ["EADesktop.exe", "EALauncher.exe"],
+      "product": ["EA app", "EA Desktop"],
+      "pathContains": ["\\electronic arts\\ea desktop\\"]
+    },
+    {
+      "id": "ubisoft",
+      "name": "Ubisoft Connect",
+      "kind": "game",
+      "exe": ["UbisoftConnect.exe", "upc.exe"],
+      "product": ["Ubisoft Connect"],
+      "pathContains": ["\\ubisoft game launcher\\"]
+    },
+    {
+      "id": "discord",
+      "name": "Discord",
+      "kind": "chat",
+      "minAge": 13,
+      "terms": "https://discord.com/terms",
+      "exe": ["Discord.exe", "DiscordPTB.exe", "DiscordCanary.exe"],
+      "product": ["Discord", "Discord PTB", "Discord Canary"],
+      "linuxExe": ["Discord", "discord", "DiscordPTB", "DiscordCanary"],
+      "flatpak": ["com.discordapp.Discord", "com.discordapp.DiscordCanary"],
+      "snap": ["discord"]
+    },
+    {
+      "id": "telegram",
+      "name": "Telegram Desktop",
+      "kind": "chat",
+      "minAge": 18,
+      "terms": "https://telegram.org/tos",
+      "termsNote": "Telegram's terms say 18 in EU countries, the United Kingdom and Australia and give no age for other countries; the stricter age is used.",
+      "exe": ["Telegram.exe"],
+      "product": ["Telegram Desktop"],
+      "linuxExe": ["telegram-desktop", "Telegram"],
+      "flatpak": ["org.telegram.desktop"],
+      "snap": ["telegram-desktop"]
+    },
+    {
+      "id": "whatsapp",
+      "name": "WhatsApp",
+      "kind": "chat",
+      "minAge": 13,
+      "terms": "https://www.whatsapp.com/legal/terms-of-service",
+      "termsNote": "13, or older where a country's law asks for it.",
+      "exe": ["WhatsApp.exe", "WhatsApp.Root.exe"],
+      "product": ["WhatsApp"],
+      "pathContains": ["\\5319275a.whatsappdesktop_"]
+    }
+  ]
+}

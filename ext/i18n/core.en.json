@@ -114,5 +114,16 @@
   "standaloneHonest": "Without the Windows app, anyone who can open the browser's extension settings can remove this extension. For the strongest protection, use the Windows app with a separate child account.",
   "privacy": "Minutes and site names stay on this computer. Nothing is sent to RaiseSteady.",
   "r_curated_t": "This video isn't on your list yet.",
-  "r_curated_b": "Pick one from your videos, or ask a parent to change the settings."
+  "r_curated_b": "Pick one from your videos, or ask a parent to change the settings.",
+  "r_paused_t": "Paused by your parent until {until}.",
+  "r_paused_b": "Time for something away from the screen. The internet comes back then.",
+  "r_homework_t": "Homework time until {end}.",
+  "r_homework_b": "Only learning sites and the sites your parent allowed open now. Here are some to start with.",
+  "parentHere": "A parent is here: enter the PIN",
+  "reqNoteLabel": "A short note for your parent (you can leave it empty)",
+  "reqAsked": "Asked. Your parent will see it on the parent page.",
+  "endPause": "End the pause",
+  "pauseEnded": "Done. The internet is back.",
+  "honestSearches": "Your parent can see the searches you make.",
+  "reqFailed": "Could not send it. Please try again in a minute."
 }

@@ -95,6 +95,38 @@ type UnsupportedList struct {
 	SupportedProducts []string `json:"supportedProducts"`
 }
 
+// PCApp is one app of shared/pc-apps.json (games and chat apps, P2-160).
+type PCApp struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	// Kind is "game" or "chat".
+	Kind string `json:"kind"`
+	// MinAge (chat apps) is the minimum age in the app's own terms.
+	MinAge       int      `json:"minAge,omitempty"`
+	Terms        string   `json:"terms,omitempty"`
+	Exe          []string `json:"exe"`
+	Product      []string `json:"product"`
+	PathContains []string `json:"pathContains"`
+	LinuxExe     []string `json:"linuxExe,omitempty"`
+	Flatpak      []string `json:"flatpak,omitempty"`
+	Snap         []string `json:"snap,omitempty"`
+}
+
+// PCApps is the parsed pc-apps.json.
+type PCApps struct {
+	Apps []PCApp `json:"apps"`
+}
+
+// Get returns the app with this id.
+func (p *PCApps) Get(id string) (PCApp, bool) {
+	for _, a := range p.Apps {
+		if a.ID == id {
+			return a, true
+		}
+	}
+	return PCApp{}, false
+}
+
 type extIDsFile struct {
 	Chromium struct {
 		DevID         string  `json:"devId"`
@@ -111,6 +143,7 @@ type Data struct {
 	Bands       Bands
 	Bookmarks   Bookmarks
 	Unsupported UnsupportedList
+	Apps        PCApps
 	ExtIDs      ExtIDs
 	// Missing lists embedded files that were absent at build time.
 	Missing []string
@@ -150,6 +183,9 @@ func loadData(fsys fs.FS) (*Data, error) {
 		return nil, err
 	}
 	if err := read("unsupported-browsers.json", &d.Unsupported, false); err != nil {
+		return nil, err
+	}
+	if err := read("pc-apps.json", &d.Apps, false); err != nil {
 		return nil, err
 	}
 	var ids extIDsFile

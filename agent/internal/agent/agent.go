@@ -130,9 +130,65 @@ func Load(sys System, data *core.Data, p Paths, now func() time.Time) (*Agent, e
 		Classify(core.UnsupportedList, string, string) guard.Match
 	}); ok {
 		a.Guard.Classify = c.Classify // Linux
+		a.Guard.Linux = true
 	}
+	a.Guard.Apps = data.Apps.Apps
+	a.Guard.Rules = appRules{a}
 	return a, nil
 }
+
+// appRules gives the guard each account's PC-app rules (P2-160).
+type appRules struct{ a *Agent }
+
+// account finds the protected account of a process owner.
+func (r appRules) account(cfg core.Config, sid string) (core.Account, bool) {
+	if cfg.Mode == core.ModeAll {
+		return cfg.Accounts[0], len(cfg.Accounts) == 1
+	}
+	for _, acct := range cfg.Accounts {
+		if strings.EqualFold(acct.SID, sid) {
+			return acct, true
+		}
+	}
+	return core.Account{}, false
+}
+
+func (r appRules) State(sid string) (guard.AppState, bool) {
+	cfg := r.a.Config()
+	acct, ok := r.account(cfg, sid)
+	if !ok {
+		return guard.AppState{}, false
+	}
+	return AppStateFor(acct, r.a.Data, r.a.Store, r.a.Local()), true
+}
+
+// AppStateFor works out an account's app rules at a moment (also for tests).
+func AppStateFor(acct core.Account, data *core.Data, st *store.Store, now time.Time) guard.AppState {
+	s := acct.Settings
+	out := guard.AppState{Key: acct.SID, Modes: map[string]string{}}
+	for _, app := range data.Apps.Apps {
+		out.Modes[app.ID] = s.AppMode(app, &data.Bands)
+	}
+	used, _ := st.GameToday(acct.SID)
+	limit := (s.GameMinutes(&data.Bands) + st.Today(acct.SID).ExtraMin) * 60
+	out.LeftSec = limit - used
+	paused, _ := s.PausedAt(now)
+	switch {
+	case paused:
+		out.Stop = guard.StopPaused
+	case s.BedtimeActiveAt(now):
+		out.Stop = guard.StopBedtime
+	case s.HomeworkActive(now):
+		out.Stop = guard.StopHomework
+	case out.LeftSec <= 0:
+		out.Stop = guard.StopUsed
+	}
+	return out
+}
+
+func (r appRules) AddGame(key string, sec int) { r.a.Store.AddGame(key, sec) }
+func (r appRules) Warn(key string) bool        { return r.a.Store.MarkGameWarned(key) }
+func (r appRules) Closed(key, appID string)    { r.a.Store.AddAppClosed(key, appID) }
 
 // Config returns a copy of the configuration.
 func (a *Agent) Config() core.Config {
@@ -392,6 +448,7 @@ func (a *Agent) Server() *api.Server {
 	return &api.Server{
 		Port: cfg.Port, Bands: &a.Data.Bands, Store: a.Store, Lock: a.Lock, Now: a.Local,
 		Config: a.Config, Save: a.SaveConfig, Browsers: a.BrowserStatus,
+		Apps:          a.Data.Apps.Apps,
 		WholeComputer: wholeComputer(a.Sys),
 		LocalAccounts: func() []api.LocalAccount {
 			l, err := a.Sys.LocalAccounts()
@@ -445,7 +502,7 @@ func (a *Agent) Run(ctx context.Context, logon <-chan string) {
 			a.Apply(false)
 		case <-guardT.C:
 			if n, err := a.Guard.Tick(); n > 0 {
-				a.logf("closed %d unsupported browser process(es)", n)
+				a.logf("closed %d browser or app process(es)", n)
 			} else if err != nil {
 				a.logf("guard: %v", err)
 			}

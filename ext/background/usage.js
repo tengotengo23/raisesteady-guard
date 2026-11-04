@@ -12,6 +12,7 @@ export const MAX_GAP_SEC = 120;        // a longer gap means sleep or a stopped 
 export const BREAK_RESET_SEC = 5 * 60; // 5 minutes away from the screen resets the break timer
 export const WARN_SEC = 5 * 60;        // warn 5 minutes before a limit
 const MAX_DOMAINS = 400;
+export const MAX_PENDING_SEARCHES = 50;
 
 const zero = () => ({ browseSec: 0, videoSec: 0, learningSec: 0, domains: {} });
 
@@ -129,6 +130,14 @@ export function dueNotices(u, st, { breakEveryMin, minutesToBed = Infinity }) {
   return out;
 }
 
+/** Count one search for the next report (P2-160). The agent keeps them only while the parent has them on. */
+export function addSearch(u, q) {
+  if (!q) return u;
+  const bag = u.pending.searches || (u.pending.searches = {});
+  if (bag[q] != null || Object.keys(bag).length < MAX_PENDING_SEARCHES) bag[q] = (bag[q] || 0) + 1;
+  return u;
+}
+
 /** Take up to `max` seconds per field from pending for one agent report; the rest is dropped (the agent caps it anyway). */
 export function takeReport(u, max = 120) {
   const p = u.pending;
@@ -139,6 +148,8 @@ export function takeReport(u, max = 120) {
     domains: {},
   };
   for (const [d, s] of Object.entries(p.domains)) { const r = Math.round(s); if (r > 0) body.domains[d] = Math.min(max, r); }
+  const searches = Object.entries(p.searches || {}).slice(0, 20);
+  if (searches.length) body.searches = Object.fromEntries(searches);
   return body;
 }
 
