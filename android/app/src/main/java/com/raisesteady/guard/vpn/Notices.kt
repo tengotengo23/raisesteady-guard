@@ -96,6 +96,7 @@ object Notices {
             .setOngoing(true)
             .setSilent(true)
             .setTimeoutAfter(timeoutMs)
+            .setGroup("com.raisesteady.guard.unlocked") // its own group: never folded in with other notices
             .addAction(0, context.getString(R.string.lock_now), lock)
             .build()
         notify(context, ID_UNLOCKED, n)

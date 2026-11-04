@@ -72,7 +72,7 @@ object SettingsGuard {
         return out
     }
 
-    /** The texts in a window (at most [max] nodes, breadth first). */
+    /** The texts and descriptions in a window (at most [max] nodes, breadth first). */
     fun texts(root: AccessibilityNodeInfo?, max: Int = 400): List<String> {
         if (root == null) return emptyList()
         val out = ArrayList<String>()
@@ -83,6 +83,7 @@ object SettingsGuard {
             val n = queue.removeFirst()
             seen++
             n.text?.toString()?.takeIf { it.isNotBlank() }?.let(out::add)
+            n.contentDescription?.toString()?.takeIf { it.isNotBlank() }?.let(out::add)
             for (i in 0 until n.childCount) n.getChild(i)?.let(queue::add)
         }
         return out

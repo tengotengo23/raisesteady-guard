@@ -104,7 +104,14 @@ class FilterTest {
         Thread.sleep(3000)
         skipChromeFirstRun()
         // Chrome writes "This site can't be reached" (typographic or straight apostrophe) and the error code.
-        val shown = E2e.waitText("be reached", 20_000) || E2e.waitText("DNS_PROBE_FINISHED_NXDOMAIN", 5_000)
+        var shown = E2e.waitText("be reached", 20_000) || E2e.waitText("DNS_PROBE_FINISHED_NXDOMAIN", 5_000)
+        // The API 29 emulator's own network changes once after boot (run 41919774019: Chrome showed
+        // ERR_NETWORK_CHANGED, the VPN did not restart). Then Chrome's Reload is what a person taps.
+        if (!shown && device.hasObject(By.textContains("ERR_NETWORK_CHANGED"))) {
+            shot("chrome-network-changed")
+            E2e.tap("Reload")
+            shown = E2e.waitText("be reached", 20_000) || E2e.waitText("DNS_PROBE_FINISHED_NXDOMAIN", 5_000)
+        }
         shot("chrome-blocked")
         assertTrue("Chrome did not show the DNS error page", shown)
         // Google's results page has no SafeSearch label (run 41914882360); its SafeSearch page says
