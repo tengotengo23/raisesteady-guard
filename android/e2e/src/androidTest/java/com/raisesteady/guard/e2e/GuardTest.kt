@@ -87,11 +87,20 @@ class GuardTest {
 
         // "Lock now" on the notice: the page needs the PIN again.
         device.openNotification()
-        val lock = device.wait(androidx.test.uiautomator.Until.findObject(By.text(Pattern.compile("(?i)lock now"))), 5_000)
-            ?: device.findObject(By.textContains("Settings are unlocked"))?.let {
-                it.swipe(androidx.test.uiautomator.Direction.DOWN, 1f)
-                device.wait(androidx.test.uiautomator.Until.findObject(By.text(Pattern.compile("(?i)lock now"))), 5_000)
-            }
+        val lockNow = By.text(Pattern.compile("(?i)lock now"))
+        if (device.wait(androidx.test.uiautomator.Until.hasObject(lockNow), 3_000) != true) {
+            // Collapsed: open our notice with its expand button.
+            val row = device.wait(
+                androidx.test.uiautomator.Until.findObject(
+                    By.res("com.android.systemui", "expandableNotificationRow").hasDescendant(By.textContains("Settings are unlocked")),
+                ),
+                5_000,
+            )
+            val expand = row?.findObject(By.res("android", "expand_button"))
+                ?: row?.findObject(By.desc(Pattern.compile("(?i)expand.*")))
+            expand?.click()
+        }
+        val lock = device.wait(androidx.test.uiautomator.Until.findObject(lockNow), 5_000)
         shot("notice-unlocked")
         assertTrue("no Lock now on the notice", lock != null)
         lock!!.click()

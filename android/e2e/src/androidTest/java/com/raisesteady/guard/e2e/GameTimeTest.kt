@@ -45,7 +45,7 @@ class GameTimeTest {
     }
 
     private fun openGame() {
-        shell("am start -W -n $GAME/.TestGameActivity")
+        shell("am start -n $GAME/.TestGameActivity")
         assertTrue("the test game did not open", E2e.waitPackage(GAME, 10_000))
     }
 

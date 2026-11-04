@@ -9,12 +9,16 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.provider.Settings
 import android.provider.Telephony
 import android.telecom.TelecomManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
+import android.view.accessibility.AccessibilityNodeInfo
+import android.view.accessibility.AccessibilityWindowInfo
 import androidx.core.content.ContextCompat
+import com.raisesteady.guard.BuildConfig
 import com.raisesteady.guard.GuardApp
 import com.raisesteady.guard.data.DayTotals
 import com.raisesteady.guard.data.Level
@@ -127,7 +131,12 @@ class GuardAccessibilityService : AccessibilityService() {
         }
     }
 
-    private val contentCheck = Runnable { front?.takeIf { it in SettingsGuard.PACKAGES }?.let { guardSettings(it, null) } }
+    private val contentCheck = Runnable {
+        front?.takeIf { it in SettingsGuard.PACKAGES }?.let {
+            rootRetries = 0
+            guardSettings(it, null)
+        }
+    }
 
     /** At most one look every [CONTENT_MS] while a guarded page changes. */
     private fun contentChanged() {
@@ -211,7 +220,7 @@ class GuardAccessibilityService : AccessibilityService() {
     }
 
     private fun block(pkg: String, v: Verdict.Closed) {
-        val t = now()
+        val t = SystemClock.elapsedRealtime()
         val last = lastBlock
         if (last != null && last.first == pkg && t - last.second < RELAUNCH_MS) return
         lastBlock = pkg to t
@@ -254,19 +263,39 @@ class GuardAccessibilityService : AccessibilityService() {
             main.postDelayed(tick, (until - nowMs).coerceIn(MIN_DELAY_MS, SettingsGuard.UNLOCK_MS))
             return
         }
-        val root = runCatching { rootInActiveWindow }.getOrNull()
-        if (root == null || root.packageName?.toString() != pkg) {
-            // The window is not ready yet: look again shortly (a few times).
+        val win = topWindowOf(pkg)
+        if (win == null) {
+            // The window is not ready yet: look again shortly (a few times; content changes look again too).
             if (rootRetries++ < ROOT_RETRIES) main.postDelayed(tick, ROOT_RETRY_MS)
             return
         }
         rootRetries = 0
-        val windowTitle = title ?: runCatching { windows.firstOrNull { it.isActive }?.title?.toString() }.getOrNull()
-        if (!SettingsGuard.shouldCover(pkg, windowTitle, SettingsGuard.texts(root), titles, unlocked)) return
-        if (nowMs - lastCoverMs < COVER_MS) return
-        lastCoverMs = nowMs
+        val windowTitle = title ?: win.second
+        val texts = SettingsGuard.texts(win.first)
+        if (!SettingsGuard.shouldCover(pkg, windowTitle, texts, titles, unlocked)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "not covered: $pkg, title $windowTitle, ${texts.size} texts")
+            return
+        }
+        val t = SystemClock.elapsedRealtime()
+        if (t - lastCoverMs < COVER_MS) return
+        lastCoverMs = t
         Log.i(TAG, "covered a page of $pkg")
         startActivity(PinGateActivity.intent(this))
+    }
+
+    /**
+     * The root and title of [pkg]'s topmost application window. The active window can lag behind
+     * while a page opens, so the window list is read first.
+     */
+    private fun topWindowOf(pkg: String): Pair<AccessibilityNodeInfo, String?>? {
+        val list = runCatching { windows }.getOrNull().orEmpty()
+        val w = list.filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+            .sortedByDescending { it.layer }
+            .firstOrNull()
+        val root = runCatching { w?.root }.getOrNull()
+        if (root != null && root.packageName?.toString() == pkg) return root to w?.title?.toString()
+        val active = runCatching { rootInActiveWindow }.getOrNull() ?: return null
+        return if (active.packageName?.toString() == pkg) active to null else null
     }
 
     // --- Packages that are never limited ---

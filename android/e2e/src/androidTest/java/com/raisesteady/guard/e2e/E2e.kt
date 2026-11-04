@@ -48,7 +48,7 @@ object E2e {
      */
     fun enableGuard(gameMinutes: Int? = null) {
         val extra = gameMinutes?.let { " --ei gameMinutes $it" } ?: ""
-        shell("am start -W -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true --es pin $PIN --ez resetState true$extra")
+        shell("am start -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true --es pin $PIN --ez resetState true$extra")
         val want = gameMinutes?.let { "\"gameMinutes\":$it" } ?: "\"pin\":{"
         waitFor("Guard's settings were not written ($want)", 20_000) { guardSettingsJson().contains(want) }
         if (!shell("settings get secure enabled_accessibility_services").contains(A11Y)) {

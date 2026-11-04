@@ -72,7 +72,12 @@ ok=1
 for c in $CLASSES; do
   f="$OUT/instrument-$c.txt"
   echo "== $c"
-  adb shell am instrument -w -r -e class "$E2E.$c" "$RUNNER" > "$f" 2>&1
+  # A class that hangs is stopped after 15 minutes and counts as failed (no result).
+  if command -v timeout >/dev/null; then
+    timeout 900 adb shell am instrument -w -r -e class "$E2E.$c" "$RUNNER" > "$f" 2>&1
+  else
+    adb shell am instrument -w -r -e class "$E2E.$c" "$RUNNER" > "$f" 2>&1
+  fi
   awk -v cls="$c" '
     /^INSTRUMENTATION_STATUS: test=/ { t = substr($0, index($0, "=") + 1) }
     /^INSTRUMENTATION_STATUS_CODE: / {
