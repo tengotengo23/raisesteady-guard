@@ -55,11 +55,12 @@ object E2e {
             shell("settings put secure enabled_accessibility_services $A11Y")
             shell("settings put secure accessibility_enabled 1")
         }
-        waitFor("Guard's accessibility service was not bound", 30_000) {
-            shell("logcat -d -s GuardA11y:I").contains("connected")
-        }
+        waitFor("Guard's accessibility service was not bound", 30_000) { guardStatus().contains("a11y=true") }
         Thread.sleep(1000)
     }
+
+    /** What runs in Guard now (debug builds): "a11y=true vpn=true admin=false". */
+    fun guardStatus(): String = shell("am broadcast -n $GUARD/.debug.DebugStatusReceiver")
 
     /** Moves Guard's clock (debug builds only) by [offsetMs]. */
     fun clockOffset(offsetMs: Long) {

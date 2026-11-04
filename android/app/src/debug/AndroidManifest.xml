@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Debug builds only: test hooks for the e2e tests (settings and filter start, clock offset). -->
+<!-- Debug builds only: test hooks for the e2e tests (settings and filter start, clock offset, status). -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools">
     <application>
@@ -10,6 +10,10 @@
             android:theme="@android:style/Theme.NoDisplay" />
         <receiver
             android:name=".debug.DebugClockReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver" />
+        <receiver
+            android:name=".debug.DebugStatusReceiver"
             android:exported="true"
             tools:ignore="ExportedReceiver" />
     </application>
