@@ -61,10 +61,12 @@ export function resolveConfig({ bands, managed, local, agent, uiLang, localExtra
   const bedtime = btSrc === null || btSrc === false ? null : (normBedtime(btSrc) || normBedtime(bandEntry.bedtime));
   const focusMode = pick(bool(m ? a?.focusMode : s.focusMode), bool(m?.focusMode), true);
   const adblock = pick(bool(m ? a?.adblock : s.adblock), bool(m?.adblock), true);
+  // Topic filter (P2-161): on unless the parent switched it off (old agents and settings: on).
+  const topics = pick(bool(m ? a?.topics : s.topics), bool(m?.topics), true);
   return {
     ageBand: bandEntry.id || ageBand,
     band: { ...bandEntry, browseMin: limits.browseMin, videoMin: limits.videoMin, bedtime },
-    focusMode, adblock,
+    focusMode, adblock, topics,
     standalone: !m,
     lang: pickLang(uiLang),
     limits, bedtime,
@@ -81,7 +83,7 @@ export function resolveConfig({ bands, managed, local, agent, uiLang, localExtra
 
 /** What content scripts and pages may see (never the agent token). Shape fixed by the brief. */
 export function publicConfig(cfg) {
-  return { ageBand: cfg.ageBand, band: cfg.band, focusMode: cfg.focusMode, adblock: cfg.adblock, standalone: cfg.standalone, lang: cfg.lang };
+  return { ageBand: cfg.ageBand, band: cfg.band, focusMode: cfg.focusMode, adblock: cfg.adblock, topics: cfg.topics !== false, standalone: cfg.standalone, lang: cfg.lang };
 }
 
 // ---- runtime loaders (need the browser API) ----

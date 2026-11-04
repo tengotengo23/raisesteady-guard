@@ -33,6 +33,8 @@ const server = createServer((req, res) => {
   seen.push({ host, url: req.url, headers: req.headers });
   const send = (file, type = 'text/html; charset=utf-8') => { res.writeHead(200, { 'content-type': type }); res.end(readFileSync(join(FIX, file))); };
   if (req.url === '/favicon.ico') { res.writeHead(404); return res.end(); }
+  // Thumbnails of the built-in videos (P2-161: the new tab shows them while the feeds do not answer): a 1x1 PNG.
+  if (host === 'i.ytimg.com') { res.writeHead(200, { 'content-type': 'image/png' }); return res.end(Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64')); }
   if (host === 'rta.kgtest.example') return send('rta.html');
   if (host === 'health.kgtest.example') return send('health.html');
   if (req.url.startsWith('/words')) return send('words.html');
@@ -47,7 +49,7 @@ execFileSync('openssl', ['req', '-x509', '-newkey', 'rsa:2048', '-nodes', '-days
 const tls = createHttpsServer({ key: readFileSync(join(certDir, 'k.pem')), cert: readFileSync(join(certDir, 'c.pem')) }, (req, res) => server.emit('request', req, res));
 await new Promise((r) => tls.listen(0, '127.0.0.1', r));
 const TLS_PORT = tls.address().port;
-const HSTS = ['www.bing.com', 'www.youtube.com', 'en.wikipedia.org', 'www.bbc.co.uk'];
+const HSTS = ['www.bing.com', 'www.youtube.com', 'en.wikipedia.org', 'www.bbc.co.uk', 'i.ytimg.com'];
 
 // ---- profile with large font settings (Chrome default 20, fixed 17) and 110 % zoom ----
 const profile = join(tmpdir(), `kg-e2e-a-${process.pid}`);

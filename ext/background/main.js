@@ -2,6 +2,7 @@
 // Owns: config, time accounting, bedtime, dynamic rules, agent sync, messages kg:core:*.
 // The feature modules are started from here with ctx = { getConfig, onConfig(cb), api, ready }.
 
+import '../content/topics.js'; // defines globalThis.KGTopics (topic filter, P2-161)
 import { initVideos } from './videos.js';
 import { initAdblock } from './adblock.js';
 import { BUILD } from './build-info.js';
@@ -12,6 +13,7 @@ import { emptyUsage, observe, effectiveUsed, limitStatus, dueNotices, takeReport
 import { LOCAL_CLOCK, fixedClock, parseOffsetMin, isBedtimeAt, minutesUntilBedtimeAt, normBedtime, limitsOn, isBedtimeSched, isHomeworkAt, isPausedAt, bedtimeNow } from './schedule.js';
 import { searchQuery } from './searches.js';
 import { applyRules, sweepTabs, blockedUrl, contentScope } from './guard.js';
+import { topicSearch, topicsStore, helplineHost } from './topics.js';
 import { applyRulesets } from './safesearch.js';
 import { createAgent } from './agent.js';
 import { hashPin, checkPinHash, guardedCheck, PIN_RE } from './pin.js';
@@ -27,7 +29,7 @@ const AGENT_FRESH_MS = 3 * 60 * 1000; // agent answers older than this are not t
 const K = { usage: 'kg.usage', content: 'kg.contentDay', grants: 'kg.grants', agentState: 'kg.agentState', report: 'kg.report', pinLock: 'kg.pinLock', devManaged: 'kg.devManaged' };
 
 // ---- state ----
-let bands = [], learn = { hosts: [], paths: [] }, cfg = null, agentState = null, usage = null, t = (k) => k;
+let bands = [], learn = { hosts: [], paths: [] }, topicData = null, topics = globalThis.KGTopics.create(null), cfg = null, agentState = null, usage = null, t = (k) => k;
 let contentDay = { day: '', domains: [], urls: [] }, grants = { day: '', extraMin: 0 }, report = { day: '', blocked: 0, byReason: {} };
 let focused = true, idleState = 'active', lastSync = 0;
 const videoTabs = new Map(); // 'tabId:frameId' -> { playing, at, host }
@@ -60,6 +62,8 @@ function serial(fn) {
 const ctx = {
   api,
   getConfig: () => (cfg ? publicConfig(cfg) : null),
+  // The topic matcher while the topic filter is on (videos.js leaves such titles out), else null.
+  topics: () => (cfg && cfg.topics !== false ? topics : null),
   onConfig: (cb) => { if (typeof cb === 'function') cfgListeners.push(cb); },
   ready: null,
 };
@@ -78,6 +82,7 @@ async function reloadConfig() {
   cfg = next;
   if (langChanged) t = await loadI18n('core', cfg.lang);
   try { await applyRulesets(api, cfg, RULESET_IDS); } catch (e) { console.warn('[kg] rulesets', e); }
+  try { await topicsStore(api, cfg, topicData); } catch { /* storage full or gone: page checks keep the last value */ }
   if (pubChanged) broadcast();
 }
 
@@ -131,6 +136,8 @@ function guardState(nowMs = Date.now()) {
     homework: managed && (fresh && typeof agentState.homework === 'boolean' ? agentState.homework : !!sched && isHomeworkAt(nowMs, sched, clock())),
     allow: cfg.allow, block: cfg.block, learning: learn.hosts, learningPaths: learn.paths,
     content: contentDay.day === day ? contentDay.domains : [],
+    helplines: topics.helplines(),
+    topicDomains: cfg.topics !== false ? topics.domains() : [],
     contentUrls: contentDay.day === day ? contentDay.urls || [] : [],
   };
 }
@@ -207,7 +214,7 @@ function rememberAttempt(tabId, url) {
 async function flagContent(sender, why) {
   const tab = sender.tab;
   const host = hostOf(tab && tab.url);
-  if (!host || sender.frameId !== 0 || inDomains(host, cfg.allow)) return { ok: false };
+  if (!host || sender.frameId !== 0 || inDomains(host, cfg.allow) || helplineHost(host, topics)) return { ok: false };
   if (contentDay.day !== today()) contentDay = { day: today(), domains: [], urls: [] };
   contentDay.urls = contentDay.urls || [];
   if (contentScope(host, why, learn) === 'host') {
@@ -223,6 +230,26 @@ async function flagContent(sender, why) {
   await applyGuard();
   try { await api.tabs.update(tab.id, { url: blockedUrl(api, 'content', host) }); } catch { /* closed */ }
   return { ok: true };
+}
+
+// The page check found the topic (P2-161): nothing is remembered (the check runs again on every load);
+// the tab goes to the topic page. Helplines and the parent's allowed sites never get here.
+async function flagTopic(sender) {
+  const tab = sender.tab;
+  const host = hostOf(tab && tab.url);
+  if (!host || sender.frameId !== 0 || cfg.topics === false || inDomains(host, cfg.allow) || helplineHost(host, topics)) return { ok: false };
+  rememberAttempt(tab.id, tab.url);
+  try { await api.tabs.update(tab.id, { url: blockedUrl(api, 'topic', host) }); } catch { /* closed */ }
+  return { ok: true };
+}
+
+/** A search on the topic (any of the 7 engines): the tab goes to the topic page before the results show. */
+function checkTopicSearch(tabId, url) {
+  if (!cfg || tabId < 0) return;
+  const host = hostOf(url);
+  if (!topicSearch(url, cfg, topics, host)) return;
+  rememberAttempt(tabId, url);
+  api.tabs.update(tabId, { url: blockedUrl(api, 'topic', host) }).catch(() => {});
 }
 
 async function blockedShown(msg, sender) {
@@ -327,6 +354,7 @@ function validSettings(inp) {
   else if (inp.bedtime) { const b = normBedtime(inp.bedtime); if (!b) throw new Error('bedtime'); out.bedtime = b; }
   out.focusMode = inp.focusMode !== false;
   out.adblock = inp.adblock !== false;
+  out.topics = inp.topics !== false;
   out.allow = cleanDomains(inp.allow).slice(0, 500);
   out.block = cleanDomains(inp.block).slice(0, 500);
   return out;
@@ -399,7 +427,7 @@ async function handle(msg, sender) {
       if (msg.playing) videoTabs.set(key, { playing: true, at: Date.now(), host, url: sender.tab.url });
       else videoTabs.delete(key);
       const s = await serial(tick);
-      const over = s.videoOver && !isLearningUrl(sender.tab.url, learn);
+      const over = s.videoOver && !isLearningUrl(sender.tab.url, learn) && !helplineHost(host, topics);
       if (over && msg.playing) {
         dropTabVideos(tabId);
         rememberAttempt(tabId, sender.tab.url);
@@ -408,6 +436,7 @@ async function handle(msg, sender) {
       return { videoOver: over };
     }
     if (type === 'page-flag' && msg.reason === 'content') return serial(() => flagContent(sender, String(msg.why || 'words')));
+    if (type === 'page-flag' && msg.reason === 'topic') return serial(() => flagTopic(sender));
     return { error: 'unknown' };
   }
   if (!isExtPage(sender)) return { error: 'forbidden' };
@@ -467,12 +496,16 @@ api.windows.onFocusChanged.addListener((id) => { focused = id !== api.windows.WI
 api.idle.onStateChanged.addListener((st) => { idleState = st; kick(); });
 api.tabs.onActivated.addListener(kick);
 api.tabs.onUpdated.addListener((id, info) => {
-  if (info.url) ready.then(() => noteSearch(id, info.url)).catch(() => {});
+  if (info.url) {
+    ready.then(() => { checkTopicSearch(id, info.url); noteSearch(id, info.url); }).catch(() => {});
+    // Pages that change their address without a reload (single-page sites): the page check looks again.
+    if (/^https?:/.test(info.url)) api.tabs.sendMessage(id, { type: 'kg:core:recheck' }, { frameId: 0 }).catch(() => {});
+  }
   if (info.url || info.status === 'complete') kick();
 });
 api.tabs.onRemoved.addListener((id) => { dropTabVideos(id); attempted.delete(id); lastSearch.delete(id); kick(); });
 api.webNavigation.onBeforeNavigate.addListener((d) => {
-  if (d.frameId === 0 && /^https?:/.test(d.url)) rememberAttempt(d.tabId, d.url);
+  if (d.frameId === 0 && /^https?:/.test(d.url)) { rememberAttempt(d.tabId, d.url); ready.then(() => checkTopicSearch(d.tabId, d.url)).catch(() => {}); }
 });
 api.storage.onChanged.addListener((changes, area) => {
   if (area === 'managed' || (area === 'local' && changes[SETTINGS_KEY])) ready.then(() => serial(async () => { await reloadConfig(); await tick(); })).catch(() => {});
@@ -485,6 +518,8 @@ api.runtime.onInstalled.addListener((d) => {
 const ready = (async () => {
   bands = ((await loadJSON(api, 'data/age-bands.json', { bands: [] })) || {}).bands || [];
   learn = parseLearning(((await loadJSON(api, 'data/learning-domains.json', { domains: [] })) || {}).domains);
+  topicData = await loadJSON(api, 'data/topics.json', null);
+  topics = globalThis.KGTopics.create(topicData);
   const st = await api.storage.local.get(Object.values(K));
   usage = st[K.usage] && st[K.usage].pending ? st[K.usage] : emptyUsage(today());
   contentDay = st[K.content] || contentDay;

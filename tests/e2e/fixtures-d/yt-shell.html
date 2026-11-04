@@ -1,0 +1,51 @@
+<!doctype html>
+<!-- A YouTube-like page for the tests (P2-161): the fixed masthead with YouTube's search box, voice button and
+     suggestions, the fixed chip bar, and the page manager. Our content script treats it like youtube.com.
+     The server fills in the page part: home, a list page, results or watch. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<style>
+  body { margin: 0; font-family: Roboto, Arial, sans-serif; font-size: 14px; background: #fff; }
+  #masthead-container { position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 2000; background: #fff; }
+  ytd-masthead { display: flex; align-items: center; height: 56px; padding: 0 16px; box-sizing: border-box; }
+  ytd-masthead #start, ytd-masthead #end { flex: 0 0 auto; width: 160px; }
+  ytd-masthead #center { flex: 0 1 732px; display: flex; align-items: center; gap: 8px; margin: 0 auto; }
+  yt-searchbox { flex: 1; display: flex; }
+  yt-searchbox input { flex: 1; height: 40px; font-size: 16px; padding: 0 16px; border: 1px solid #ccc; border-radius: 40px 0 0 40px; }
+  #voice-search-button { width: 40px; height: 40px; border-radius: 50%; }
+  .ytSearchboxComponentSuggestionsContainer { position: fixed; top: 52px; left: 30%; width: 40%; height: 200px; background: #fff; border: 1px solid #ccc; z-index: 2100; }
+  #search-button-narrow { display: none; }
+  @media (max-width: 656px) { ytd-masthead #center { display: none; } #search-button-narrow { display: inline-block; } }
+  #frosted-glass { position: fixed; top: 56px; left: 0; right: 0; height: 56px; z-index: 1900; background: rgba(255,255,255,.95); }
+  ytd-page-manager { display: block; margin-top: __MARGIN__px; }
+  ytd-browse, ytd-search, ytd-watch-flexy, ytd-rich-grid-renderer, ytd-video-renderer, ytd-two-column-browse-results-renderer, ytd-section-list-renderer, ytd-item-section-renderer { display: block; }
+  ytd-rich-grid-renderer { padding-top: 56px; }
+  .feed-item { height: 200px; margin: 8px; background: #eee; }
+</style>
+</head>
+<body>
+<ytd-app>
+  <div id="masthead-container"><ytd-masthead>
+    <div id="start">YouTube</div>
+    <div id="center">
+      <yt-searchbox role="search" class="ytSearchboxComponentHost"><input id="yt-own-search" name="search_query" placeholder="Search" aria-label="Search"></yt-searchbox>
+      <button id="voice-search-button" aria-label="Search with your voice">mic</button>
+    </div>
+    <div id="end"><button id="search-button-narrow" aria-label="Search">s</button> Sign in</div>
+  </ytd-masthead></div>
+  <div class="ytSearchboxComponentSuggestionsContainer" role="listbox">suggestion one</div>
+  <div id="frosted-glass" class="with-chipbar"><ytd-feed-filter-chip-bar-renderer>All · Music · Gaming</ytd-feed-filter-chip-bar-renderer></div>
+  <!-- m.youtube's top-bar search, with a Spanish label: hidden by its structure, not its words -->
+  <ytm-mobile-topbar-renderer><div class="mobile-topbar-header-content"><button class="icon-button topbar-button-search-button" aria-label="Buscar en YouTube">b</button></div></ytm-mobile-topbar-renderer>
+  <ytd-page-manager>__PAGE__</ytd-page-manager>
+</ytd-app>
+<script>
+  // YouTube's own shortcut: "/" focuses its search box.
+  window.__ytSlash = 0;
+  document.addEventListener('keydown', (e) => { if (e.key === '/') { window.__ytSlash++; e.preventDefault(); document.getElementById('yt-own-search').focus(); } });
+</script>
+</body>
+</html>

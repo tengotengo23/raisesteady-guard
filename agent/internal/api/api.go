@@ -275,13 +275,15 @@ type State struct {
 	Now             string       `json:"now"`
 	// 0.3.0 (P2-160). Limits and Bedtime above are today's (weekend aware);
 	// Bedtime is the night that matters now (last night's in its morning part).
-	Paused        bool     `json:"paused"`
-	PausedUntil   string   `json:"pausedUntil,omitempty"`   // RFC 3339
-	PausedUntilHM string   `json:"pausedUntilHM,omitempty"` // "HH:MM" on the agent's clock
-	Homework      bool     `json:"homework"`
-	HomeworkEnd   string   `json:"homeworkEnd,omitempty"`
-	Searches      bool     `json:"searches"` // search words are recorded
-	Schedule      Schedule `json:"schedule"`
+	Paused        bool   `json:"paused"`
+	PausedUntil   string `json:"pausedUntil,omitempty"`   // RFC 3339
+	PausedUntilHM string `json:"pausedUntilHM,omitempty"` // "HH:MM" on the agent's clock
+	Homework      bool   `json:"homework"`
+	HomeworkEnd   string `json:"homeworkEnd,omitempty"`
+	Searches      bool   `json:"searches"` // search words are recorded
+	// 0.3.1 (P2-161): the topic filter is on (the parent can switch it off).
+	Topics   bool     `json:"topics"`
+	Schedule Schedule `json:"schedule"`
 }
 
 // Schedule lets the extension work out the day and bedtime itself when the
@@ -342,6 +344,7 @@ func (s *Server) state(cfg core.Config, acct int) State {
 		Now:             now.Format(time.RFC3339),
 		Homework:        a.HomeworkActive(now),
 		Searches:        !a.SearchesOff,
+		Topics:          !a.TopicsOff,
 		Schedule:        Schedule{School: DayLimits{BrowseMin: a.BrowseMin, VideoMin: a.VideoMin, Bedtime: a.Bedtime}},
 	}
 	if p, until := a.PausedAt(now); p {
@@ -488,7 +491,7 @@ func (s *Server) handleGrant(w http.ResponseWriter, r *http.Request, cfg core.Co
 }
 
 // Reasons are the blocked-page reasons the extension reports, in report order.
-var Reasons = []string{"adult", "gambling", "bypass", "social", "content", "video", "time", "bedtime", "homework", "paused", "parent"}
+var Reasons = []string{"adult", "gambling", "bypass", "social", "content", "topic", "video", "time", "bedtime", "homework", "paused", "parent"}
 
 var reasons = func() map[string]bool {
 	m := map[string]bool{}

@@ -3,8 +3,8 @@
 // and sweepTabs() talk to the browser.
 //
 // Priorities (static rulesets use priority 1):
-//   paused 400 > bedtime 300 > homework 250 > time 200 > parent block 160 > video 150 > yt header 120 >
-//   safe search 110 > parent allow 100 > page check (today: pages, labelled hosts) 90 > category lists 1
+//   helplines 450 (allow: never blocked, P2-161) > paused 400 > bedtime 300 > homework 250 > time 200 > parent block 160 > video 150 > yt header 120 >
+//   safe search 110 > parent allow 100 > page check (today: pages, labelled hosts) and topic sites 90 > category lists 1
 //   Learning pages under a path (bbc.co.uk/bitesize) get an allow rule at 260 while time is up or in homework time.
 //   Paused: every site (P2-160). Homework time: only learning sites and the parent's allowed sites.
 
@@ -17,7 +17,7 @@ export const VIDEO_DOMAINS = [
 const LOCAL = ['127.0.0.1', 'localhost'];
 const ALL_TYPES = ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'media', 'websocket', 'other'];
 const NOT_MAIN = ALL_TYPES.filter((t) => t !== 'main_frame');
-export const RULE_ID = { bedtime: 1, time: 2, videoMain: 3, videoFrame: 4, paused: 5, homework: 6, allow: 10, blockMain: 11, blockSub: 12, content: 20, learnPath: 30, contentUrl: 1000 };
+export const RULE_ID = { bedtime: 1, time: 2, videoMain: 3, videoFrame: 4, paused: 5, homework: 6, helpline: 7, allow: 10, blockMain: 11, blockSub: 12, content: 20, topic: 21, learnPath: 30, contentUrl: 1000 };
 const MAX_URL_RULES = 500;
 // urlFilter treats * ^ | as special; such rare URLs are left to the page check, which runs again on load.
 const plainUrl = (k) => !!k && !/[*^|]/.test(k);
@@ -25,12 +25,17 @@ const plainUrl = (k) => !!k && !/[*^|]/.test(k);
 const page = (reason) => ({ type: 'redirect', redirect: { extensionPath: `/pages/blocked.html?reason=${reason}` } });
 
 /**
- * @param s { paused, bedtime, homework, timeOver, videoOver, allow[], block[], content[] (hosts), contentUrls[] (urlKey), learning[] (hosts), learningPaths[] ({host, path}) }
+ * @param s { paused, bedtime, homework, timeOver, videoOver, allow[], block[], content[] (hosts), contentUrls[] (urlKey), learning[] (hosts), learningPaths[] ({host, path}),
+ *            helplines[] (always open), topicDomains[] (topic filter on: sites mainly about the topic) }
  */
 export function buildRules(s) {
   const rules = [];
   const learning = s.learning || [];
   const block = (s.block || []).filter((d) => !LOCAL.includes(d));
+  const helplines = (s.helplines || []).filter((d) => !LOCAL.includes(d));
+  if (helplines.length) {
+    rules.push({ id: RULE_ID.helpline, priority: 450, action: { type: 'allow' }, condition: { resourceTypes: ALL_TYPES, requestDomains: helplines } });
+  }
   if (s.paused) {
     rules.push({ id: RULE_ID.paused, priority: 400, action: page('paused'), condition: { resourceTypes: ['main_frame'], excludedRequestDomains: LOCAL } });
   }
@@ -66,6 +71,10 @@ export function buildRules(s) {
   if (content.length) {
     rules.push({ id: RULE_ID.content, priority: 90, action: page('content'), condition: { resourceTypes: ['main_frame'], requestDomains: content } });
   }
+  const topic = (s.topicDomains || []).filter((d) => !inDomains(d, allow) && !inDomains(d, helplines));
+  if (topic.length) {
+    rules.push({ id: RULE_ID.topic, priority: 90, action: page('topic'), condition: { resourceTypes: ['main_frame'], requestDomains: topic } });
+  }
   const urls = (s.contentUrls || []).filter((k) => plainUrl(k) && !inDomains(hostOfKey(k), allow)).slice(-MAX_URL_RULES);
   urls.forEach((k, i) => {
     rules.push({ id: RULE_ID.contentUrl + i, priority: 90, action: page('content'), condition: { urlFilter: `|${k}^`, resourceTypes: ['main_frame'] } });
@@ -78,6 +87,7 @@ const hostOfKey = (k) => { try { return new URL(k).hostname.replace(/^www\./, ''
 /** The block reason for an open tab under state s, or null (mirrors buildRules for main frames). */
 export function reasonFor(host, s, url) {
   if (!host || isLocalHost(host)) return null;
+  if (inDomains(host, s.helplines || [])) return null;
   if (s.paused) return 'paused';
   if (s.bedtime) return 'bedtime';
   const learn = { hosts: s.learning || [], paths: s.learningPaths || [] };
@@ -89,6 +99,7 @@ export function reasonFor(host, s, url) {
   if (inDomains(host, s.allow)) return null;
   if (inDomains(host, s.content)) return 'content';
   if (url && (s.contentUrls || []).includes(urlKey(url))) return 'content';
+  if (inDomains(host, s.topicDomains || [])) return 'topic';
   return null;
 }
 

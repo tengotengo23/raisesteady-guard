@@ -43,19 +43,62 @@
       metas,
     };
   }
+  // Topic filter (P2-161): the switch and the word list come from storage.local (kg.topics, written by the
+  // background). Only the title, og: tags, description, keywords, h1-h2 and the address path are read.
+  let topics = null, topicsAllow = [], helplines = [];
+  const topicsReady = (async () => {
+    try {
+      const t = (await api.storage.local.get('kg.topics'))['kg.topics'];
+      if (t && Array.isArray(t.helplines)) helplines = t.helplines.map((d) => String(d).toLowerCase());
+      if (t && t.on && t.data && globalThis.KGTopics) { topics = globalThis.KGTopics.create(t.data); topicsAllow = Array.isArray(t.allow) ? t.allow : []; }
+    } catch { /* storage unavailable: no topic check */ }
+  })();
+  // Helplines are never flagged, by the adult-content check either (P2-161).
+  const isHelpline = (host) => helplines.some((d) => host === d || host.endsWith('.' + d));
+  const allowed = (host) => topicsAllow.some((d) => host === d || host.endsWith('.' + d));
+  function topicFields() {
+    const meta = (sel) => { const el = document.querySelector(sel); return el ? el.getAttribute('content') || '' : ''; };
+    return {
+      host: location.hostname.replace(/^www\./, ''), path: location.pathname,
+      title: document.title, ogTitle: meta('meta[property="og:title" i]'),
+      description: meta('meta[name="description" i]'), ogDescription: meta('meta[property="og:description" i]'),
+      keywords: meta('meta[name="keywords" i]'),
+      headings: [...document.querySelectorAll('h1, h2')].slice(0, 20).map((h) => h.textContent || ''),
+    };
+  }
   let flagged = false;
-  function check() {
-    if (flagged || !globalThis.KGClassify) return;
-    let res;
-    try { res = globalThis.KGClassify.classify(collect()); } catch { return; }
-    if (!res.block) return;
+  function hide() {
     flagged = true;
     document.documentElement.style.setProperty('visibility', 'hidden', 'important');
     for (const v of document.querySelectorAll('video, audio')) { try { v.pause(); } catch { /* ignore */ } }
-    send({ type: 'kg:core:page-flag', reason: 'content', why: res.reason, score: res.score });
+  }
+  const unhide = () => { flagged = false; document.documentElement.style.removeProperty('visibility'); };
+  function check() {
+    if (flagged || !globalThis.KGClassify) return;
+    if (isHelpline(location.hostname.toLowerCase().replace(/^www\./, ''))) return;
+    let res;
+    try { res = globalThis.KGClassify.classify(collect()); } catch { return; }
+    if (res.block) {
+      hide();
+      send({ type: 'kg:core:page-flag', reason: 'content', why: res.reason, score: res.score }).then((r) => { if (r && r.ok === false) unhide(); });
+      return;
+    }
+    if (!topics) return;
+    const f = topicFields();
+    if (allowed(f.host)) return;
+    let t;
+    try { t = topics.matchPage(f); } catch { return; }
+    if (!t.hit) return;
+    hide();
+    send({ type: 'kg:core:page-flag', reason: 'topic', why: t.why }).then((r) => { if (r && r.ok === false) unhide(); }); // the background said no
   }
   if (isTop && /^https?:$/.test(location.protocol)) {
-    const start = () => { check(); setTimeout(check, 3000); };
+    const start = () => { topicsReady.then(() => { check(); setTimeout(check, 3000); }); };
+    // Single-page sites change the address and title without a reload: look again (P2-161).
+    let lastHref = location.href;
+    const again = () => { if (flagged || location.href === lastHref) return; lastHref = location.href; setTimeout(check, 800); setTimeout(check, 3000); };
+    window.addEventListener('popstate', again);
+    try { api.runtime.onMessage.addListener((m) => { if (m && m.type === 'kg:core:recheck') again(); return false; }); } catch { /* no runtime */ }
     if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', start, { once: true });
     else start();
   }

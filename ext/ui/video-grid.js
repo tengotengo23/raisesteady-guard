@@ -3,6 +3,7 @@
 // content/focus-youtube.js draws the same cards on youtube.com with its own copy of this markup
 // (content scripts cannot import modules).
 import { loadI18n } from './i18n.js';
+import { gridState } from '../background/videos.js';
 
 const api = globalThis.browser ?? globalThis.chrome;
 const ID_RE = /^[\w-]{11}$/;
@@ -18,6 +19,7 @@ const CSS = `
 .kgv-thumb { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; background: var(--kg-soft); }
 .kgv-title { padding: 0 12px; font-weight: 650; line-height: 1.35; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
 .kgv-ch { padding: 0 12px; font-size: var(--kg-size-s, 0.9375rem); color: var(--kg-text-2); overflow-wrap: anywhere; }
+.kgv-saved { margin: 12px 0 0; color: var(--kg-text-2); font-size: var(--kg-size-s, 0.9375rem); }
 .kgv-state { margin: 0; padding: 14px 16px; border-radius: var(--kg-radius-s, 12px); background: var(--kg-soft); color: var(--kg-text); }
 .kgv-busy { min-height: 6rem; border-radius: var(--kg-radius-s, 12px); background: var(--kg-soft); opacity: .6; }
 @media (prefers-reduced-motion: reduce) {
@@ -70,13 +72,15 @@ export async function renderVideoGrid(container, { ageBand, lang, limit = 8 } = 
   try { res = await api.runtime.sendMessage({ type: 'kg:focus:videos', ageBand, lang: t.lang, limit }); } catch { res = null; }
   container.removeAttribute('aria-busy');
   const videos = (res && Array.isArray(res.videos) ? res.videos : []).filter((v) => v && ID_RE.test(v.id));
+  const state = gridState({ videos, saved: !!(res && res.saved) }, globalThis.navigator ? navigator.onLine : true);
   if (!videos.length) {
-    const offline = (globalThis.navigator && navigator.onLine === false) || (res && res.offline);
-    container.replaceChildren(el('p', 'kgv-state', t(offline ? 'gridOffline' : 'gridEmpty')));
+    container.replaceChildren(el('p', 'kgv-state', t(state === 'offline' ? 'gridOffline' : 'gridEmpty')));
     return;
   }
   const ul = el('ul', 'kgv-grid');
   ul.setAttribute('aria-label', t('gridLabel'));
   for (const v of videos) { const li = el('li'); li.append(videoCard(v, t)); ul.append(li); }
-  container.replaceChildren(ul);
+  // Only the built-in list answered: one plain line under the grid.
+  if (state === 'grid-saved') container.replaceChildren(ul, el('p', 'kgv-saved', t('gridSaved')));
+  else container.replaceChildren(ul);
 }

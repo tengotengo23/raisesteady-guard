@@ -7,6 +7,9 @@
 //  - band youtubeMode "curated" (3-5): search results show only the curated channels, with one plain line saying so.
 // Hiding is CSS first (injected now, before YouTube paints), then our panel. Our notes sit in the page flow,
 // under the thing they belong to; nothing is drawn on top of YouTube's text.
+// P2-161: where our search box shows, YouTube's own search (masthead box, voice button, suggestions, the
+// narrow-window search button) is hidden and "/" focuses ours; our panel never sits under the fixed masthead.
+// The topic filter (content/topics.js, switch in kg.topics) checks our searches, result titles and watch titles.
 // Settings come from storage.local kg.b.focus (written by background/videos.js); strings and videos by message.
 (() => {
   'use strict';
@@ -56,7 +59,7 @@
     ytCuratedNote: 'Search shows videos only from the channels picked for your age.', ytCuratedNone: 'No videos from the picked channels match this search. Try another word.',
     ytVideosTitle: 'Videos for you', ytVideosFrom: 'From channels picked for children of your age.', ytCommentsOff: 'Comments are switched off.',
     gridLabel: 'Videos picked for you', cardLabel: '{title}, from {channel}', gridEmpty: 'New videos are on their way. Please look again a little later.',
-    gridOffline: "The videos need the internet. They'll come back when you're online.",
+    gridOffline: "The videos need the internet. They'll come back when you're online.", gridSaved: 'Showing saved videos.',
   };
 
   // Optimistic until storage answers: focus on, so the feed never flashes.
@@ -65,11 +68,68 @@
   const t = (k, vars = {}) => String((strings && strings[k]) || EN[k] || k).replace(/\{(\w+)\}/g, (m, x) => (vars[x] != null ? String(vars[x]) : m));
   const ask = (msg) => api.runtime.sendMessage(msg).catch(() => null);
 
+  // ---- topic filter (P2-161): switch and words from storage.local kg.topics (written by the background) ----
+  let topics = null, topicsAllowYt = false;
+  const loadTopics = (v) => {
+    try {
+      topics = v && v.on && v.data && globalThis.KGTopics ? globalThis.KGTopics.create(v.data) : null;
+      topicsAllowYt = !!(v && Array.isArray(v.allow) && v.allow.some((d) => d === 'youtube.com' || /\.youtube\.com$/.test(String(d))));
+    } catch { topics = null; }
+  };
+  const topicHit = (text) => !!topics && !topicsAllowYt && !!text && topics.matchTitle(text).hit;
+  const toTopicPage = () => location.replace(api.runtime.getURL('pages/blocked.html?reason=topic&site=youtube.com'));
+  const TOPIC_ITEMS = 'ytd-video-renderer, yt-lockup-view-model, ytd-rich-item-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-renderer, ytd-radio-renderer, ytd-channel-renderer, ytd-reel-item-renderer, ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-rich-item-renderer';
+  const TITLE_SEL = '#video-title, a#video-title-link, h3, #channel-title, .yt-lockup-metadata-view-model__title, .yt-lockup-metadata-view-model-wiz__title, .media-item-headline, .compact-media-item-headline';
+  /** Hide videos, playlists and channels whose title (and channel name) is on the topic list. */
+  function sweepTopics() {
+    if (!topics || topicsAllowYt) { for (const e of document.querySelectorAll('[data-kg-topic]')) e.removeAttribute('data-kg-topic'); return; }
+    for (const item of document.querySelectorAll(TOPIC_ITEMS)) {
+      const ti = item.querySelector(TITLE_SEL);
+      const text = [ti && (ti.getAttribute('title') || ti.textContent), ...[...item.querySelectorAll('ytd-channel-name a, .ytd-channel-name a, a[href^="/@"]')].slice(0, 2).map((a) => a.textContent)].filter(Boolean).join(' ');
+      const key = text.slice(0, 300);
+      if (item.__kgTopicKey === key) continue;
+      item.__kgTopicKey = key;
+      if (topicHit(text)) item.setAttribute('data-kg-topic', ''); else item.removeAttribute('data-kg-topic');
+    }
+  }
+  /** Watch and results pages: the video's title, or the search words, on the topic list: the topic page. */
+  function topicPage() {
+    if (!topics || topicsAllowYt) return;
+    const p = location.pathname;
+    if (/^\/results/.test(p)) {
+      const q = new URLSearchParams(location.search).get('search_query') || '';
+      if (topicHit(q)) toTopicPage();
+      return;
+    }
+    // Hashtag, channel and playlist pages: the page's own title and header (in-page navigation never reloads).
+    if (/^\/(?:hashtag\/|@|channel\/|c\/|user\/|playlist)/.test(p)) {
+      let tag = '';
+      try { tag = /^\/hashtag\/([^/?#]+)/.test(p) ? decodeURIComponent(p.split('/')[2]) : ''; } catch { /* keep '' */ }
+      const head = [...document.querySelectorAll('ytd-hashtag-header-renderer h1, yt-page-header-renderer h1, ytd-c4-tabbed-header-renderer #channel-name, ytd-playlist-header-renderer h1, .page-header-view-model-wiz__page-header-title, ytm-playlist-header-renderer h1')].map((e) => e.textContent).join(' · ');
+      if (topicHit(tag) || topicHit(head) || topicHit(document.title.replace(/ - YouTube$/, ''))) toTopicPage();
+      return;
+    }
+    if (!/^\/(watch|shorts\/|live\/)/.test(p)) return;
+    const vid = new URLSearchParams(location.search).get('v');
+    const flexy = document.querySelector('ytd-watch-flexy');
+    const h1 = flexy && (!vid || flexy.getAttribute('video-id') === vid) ? document.querySelector('ytd-watch-metadata h1, ytd-watch-flexy #title h1') : null;
+    const title = (h1 && h1.textContent.trim()) || (document.querySelector('ytm-slim-video-metadata-section-renderer h2, .slim-video-information-title') || {}).textContent || '';
+    if (topicHit(title) || topicHit(document.title.replace(/ - YouTube$/, ''))) toTopicPage();
+  }
+
   // ---- 1. CSS, now ----
   const SHORTS_LINK = 'a[href^="/shorts/"]';
   const CSS = `
 html.kg-hold body { visibility: hidden !important; }
 html:not(.kg-feed):not(.kg-chome):not(.kg-above) #${HOST_ID} { display: none !important; }
+html.kg-f.kg-ours ytd-masthead #center, html.kg-f.kg-ours ytd-masthead yt-searchbox, html.kg-f.kg-ours ytd-masthead ytd-searchbox,
+html.kg-f.kg-ours ytd-masthead #voice-search-button { visibility: hidden !important; pointer-events: none !important; }
+html.kg-f.kg-ours ytd-masthead #search-button-narrow, html.kg-f.kg-ours ytd-masthead #voice-search-button,
+html.kg-f.kg-ours .ytSearchboxComponentSuggestionsContainer, html.kg-f.kg-ours .sbdd_a, html.kg-f.kg-ours .gstl_50,
+html.kg-f.kg-ours ytm-mobile-topbar-renderer ytm-searchbox, html.kg-f.kg-ours ytm-mobile-topbar-renderer yt-searchbox,
+html.kg-f.kg-ours ytm-mobile-topbar-renderer .topbar-button-search-button, html.kg-f.kg-ours ytm-mobile-topbar-renderer button.topbar-menu-button-search,
+html.kg-f.kg-feed #frosted-glass { display: none !important; }
+[data-kg-topic] { display: none !important; }
 html.kg-f.kg-chome ytd-page-manager > ytd-browse:not([hidden]) > ytd-two-column-browse-results-renderer { display: none !important; }
 #${HOST_ID} { display: block; width: 100%; }
 html.kg-f.kg-feed ytd-page-manager > ytd-browse:not([hidden]) > :not(#${HOST_ID}),
@@ -150,6 +210,7 @@ input:focus { border-color: var(--focus); outline: none; }
 input:focus-visible, button:focus-visible, a:focus-visible { outline: 3px solid var(--focus); outline-offset: 2px; }
 button { min-height: 3.25em; min-width: 44px; padding: .55em 1.4em; font: inherit; font-weight: 650; border: 2px solid transparent; border-radius: 999px;
   background: var(--accent); color: var(--accent-text); cursor: pointer; max-width: 100%; white-space: normal; }
+.saved { margin: 12px 0 0; color: var(--text2); font-size: .9375em; }
 .note { max-width: 46em; margin: 12px auto 0; padding: 10px 14px; border-radius: 12px; background: var(--soft); text-align: center; }
 .from { color: var(--text2); font-size: .9375em; }
 ul { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 13.5em), 1fr)); gap: 16px; list-style: none; margin: 16px 0 0; padding: 0; }
@@ -200,8 +261,9 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     form.addEventListener('submit', (e) => {
       e.preventDefault();
       const q = input.value.trim();
-      if (q) location.assign(`/results?search_query=${encodeURIComponent(q)}`);
-      else input.focus();
+      if (!q) { input.focus(); return; }
+      if (topicHit(q)) { toTopicPage(); return; }
+      location.assign(`/results?search_query=${encodeURIComponent(q)}`);
     });
     if (full) wrap.append(h('h1', { id: 'kgh' }, t('ytHeading')));
     wrap.append(form);
@@ -224,9 +286,10 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     const res = await ask({ type: 'kg:focus:videos', ageBand: st.ageBand || undefined, lang: st.lang, limit: 24 });
     if (!grid.isConnected) return;
     grid.removeAttribute('aria-busy');
-    const vids = (res && Array.isArray(res.videos) ? res.videos : []).filter((v) => v && ID_RE.test(v.id));
+    const vids = (res && Array.isArray(res.videos) ? res.videos : []).filter((v) => v && ID_RE.test(v.id) && !topicHit(`${v.title} ${v.channel || ''}`));
     if (!vids.length) {
-      grid.replaceChildren(h('p', { class: 'state' }, t(navigator.onLine === false || (res && res.offline) ? 'gridOffline' : 'gridEmpty')));
+      // The offline line only when the browser says it is offline (P2-161); feeds that do not answer are not "offline".
+      grid.replaceChildren(h('p', { class: 'state' }, t(navigator.onLine === false ? 'gridOffline' : 'gridEmpty')));
       if (!res) vidsFor = ''; // background not ready: try again on the next pass
       return;
     }
@@ -238,7 +301,29 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
       a.append(img, h('span', { class: 'ti' }, v.title), h('span', { class: 'ch' }, v.channel));
       const li = h('li'); li.append(a); ul.append(li);
     }
-    grid.replaceChildren(ul);
+    if (res && res.saved) grid.replaceChildren(ul, h('p', { class: 'saved' }, t('gridSaved')));
+    else grid.replaceChildren(ul);
+  }
+
+  // Nothing of ours under YouTube's fixed bars (masthead, chip bar): if they reach lower than the top of our
+  // panel (at scroll 0), the panel gets that much room on top.
+  let barsRO = null, barsEl = null;
+  function clearBars() {
+    if (!host || !host.isConnected) return;
+    // YouTube sizes its masthead after our panel may be placed: measure again when it changes size.
+    const mc = document.getElementById('masthead-container');
+    if (mc && mc !== barsEl && typeof ResizeObserver === 'function') { barsEl = mc; (barsRO ||= new ResizeObserver(() => clearBars())).observe(mc); }
+    let bottom = 0;
+    for (const b of document.querySelectorAll('#masthead-container, ytd-app > #frosted-glass, #frosted-glass, ytm-mobile-topbar-renderer, header.mobile-topbar-header')) {
+      const cs = getComputedStyle(b);
+      if (cs.display === 'none' || cs.visibility === 'hidden' || (cs.position !== 'fixed' && cs.position !== 'sticky')) continue;
+      const r = b.getBoundingClientRect();
+      if (r.height > 0 && r.top <= 1) bottom = Math.max(bottom, r.bottom);
+    }
+    // The host's top in page coordinates (its padding is inside it); fixed bars are measured at the top.
+    const want = Math.max(0, Math.ceil(bottom - (host.getBoundingClientRect().top + window.scrollY)));
+    const pad = parseFloat(host.style.paddingTop) || 0;
+    if (Math.abs(want - pad) >= 1) host.style.setProperty('padding-top', `${want}px`, 'important');
   }
 
   function placePanel(kind) {
@@ -256,6 +341,7 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     else if (host.parentElement !== target || target.firstElementChild !== host) target.prepend(host);
     host.classList.toggle('dark', de.hasAttribute('dark') || (MOBILE && matchMedia('(prefers-color-scheme: dark)').matches));
     loadVideos();
+    clearBars();
   }
 
   // ---- 4. curated search (3-5) ----
@@ -344,6 +430,7 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
 
   // ---- 6. routing ----
   function route() {
+    try { topicPage(); sweepTopics(); } catch { /* keep YouTube usable */ }
     const on = st.focusMode !== false;
     setClass('kg-f', on);
     de.setAttribute('data-kg-focus', on ? 'on' : 'off');
@@ -353,6 +440,7 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     setClass('kg-feed', feed);
     setClass('kg-chome', kind === 'chome');
     setClass('kg-above', kind === 'above');
+    setClass('kg-ours', !!kind);
     setClass('kg-watch', /^\/watch/.test(p));
     setClass('kg-nocom', on && st.kids);
     setClass('kg-cur', on && st.youtubeMode === 'curated' && /^\/results/.test(p));
@@ -388,6 +476,19 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     leaveShorts(sh);
   }, true);
 
+  // "/" focuses our search box where it shows (YouTube's own box is hidden there). Capture on window runs
+  // before YouTube's shortcut; keys typed inside our box are left alone.
+  window.addEventListener('keydown', (e) => {
+    if (e.key !== '/' || e.ctrlKey || e.metaKey || e.altKey || st.focusMode === false || !de.classList.contains('kg-ours') || !shadow) return;
+    if (host && e.composedPath().includes(host)) return;
+    const tgt = e.target;
+    if (tgt && (tgt.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(tgt.tagName || ''))) return;
+    const input = shadow.getElementById('kgq');
+    if (!input) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    input.focus();
+  }, true);
+
   for (const ev of ['yt-navigate-start', 'yt-navigate-finish', 'yt-page-data-updated', 'popstate', 'state-navigateend']) {
     (ev === 'popstate' ? window : document).addEventListener(ev, () => { lastUrl = ''; onUrl(); schedule(); }, true);
   }
@@ -417,7 +518,14 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     if (!s) s = await ask({ type: 'kg:focus:state' });
     applyState(s, true);
   }).catch(() => applyState(null, true));
-  api.storage.onChanged.addListener((c, area) => { if (area === 'local' && c['kg.b.focus']) applyState(c['kg.b.focus'].newValue, true); });
+  api.storage.onChanged.addListener((c, area) => {
+    if (area !== 'local') return;
+    if (c['kg.topics']) { loadTopics(c['kg.topics'].newValue); lastUrl = ''; onUrl(); }
+    if (c['kg.b.focus']) applyState(c['kg.b.focus'].newValue, true);
+  });
+  api.storage.local.get('kg.topics').then((r) => { loadTopics(r && r['kg.topics']); lastUrl = ''; onUrl(); }).catch(() => {});
+  window.addEventListener('resize', () => { if (host && host.isConnected) clearBars(); });
+
 
   onUrl();
 })();

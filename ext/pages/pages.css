@@ -5,6 +5,7 @@
 .bp-card { width: 100%; max-width: 44rem; }
 .bp-art { width: 96px; height: 96px; margin: 0 0 12px; display: block; }
 .bp-site { display: inline-block; max-width: 100%; padding: 4px 12px; border-radius: var(--kg-radius-s); background: var(--kg-soft); font-weight: 600; overflow-wrap: anywhere; }
+.bp-help { margin-top: 0; font-size: 1.125em; font-weight: 650; overflow-wrap: anywhere; }
 .bp-next { margin-top: var(--kg-gap-l); }
 .bp-ask { margin-top: var(--kg-gap-l); padding-top: var(--kg-gap); border-top: 1px solid var(--kg-line); }
 .bp-pin { display: grid; gap: 10px; grid-template-columns: minmax(0, 1fr); max-width: 22rem; }

@@ -289,6 +289,7 @@ func (s *Server) handleSave(w http.ResponseWriter, r *http.Request, lang string,
 		st.FamilyDNSOff = f.Get("familyDns") != "on"
 		st.Weekend, st.Homework = wk, hw
 		st.SearchesOff = f.Get("searches") != "on"
+		st.TopicsOff = f.Get("topics") != "on"
 		return nil
 	})
 	if err != nil {

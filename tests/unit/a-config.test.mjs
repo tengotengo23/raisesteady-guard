@@ -73,7 +73,7 @@ test('managed detection, bad port falls back, token never public', () => {
   const c = resolveConfig({ bands, managed: { ...managed, agentPort: 99999 } });
   assert.equal(c.agentPort, 47615);
   const pub = publicConfig(c);
-  assert.deepEqual(Object.keys(pub).sort(), ['adblock', 'ageBand', 'band', 'focusMode', 'lang', 'standalone']);
+  assert.deepEqual(Object.keys(pub).sort(), ['adblock', 'ageBand', 'band', 'focusMode', 'lang', 'standalone', 'topics']);
   assert.equal(JSON.stringify(pub).includes('a'.repeat(64)), false);
 });
 

@@ -80,6 +80,7 @@ function showForm(s) {
   $('bedNone').addEventListener('change', (e) => { $('bedStart').disabled = $('bedEnd').disabled = e.target.checked; });
   $('focusMode').checked = settings.focusMode !== false;
   $('adblock').checked = settings.adblock !== false;
+  $('topics').checked = settings.topics !== false;
   $('allow').value = (settings.allow || []).join('\n');
   $('block').value = (settings.block || []).join('\n');
   $('form').hidden = false;
@@ -102,6 +103,7 @@ async function save(e) {
     bedtime: $('bedNone').checked ? null : { start: $('bedStart').value, end: $('bedEnd').value },
     focusMode: $('focusMode').checked,
     adblock: $('adblock').checked,
+    topics: $('topics').checked,
     allow: $('allow').value.split(/\s+/).filter(Boolean),
     block: $('block').value.split(/\s+/).filter(Boolean),
   };

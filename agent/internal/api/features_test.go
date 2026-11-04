@@ -303,3 +303,53 @@ func TestReportDayPicker(t *testing.T) {
 func storeUsage(searches map[string]int) store.Usage {
 	return store.Usage{Browser: "chrome", Searches: searches}
 }
+
+// P2-161: the topic filter switch. Old config files load with it on; the parent page shows it checked,
+// saving without it turns it off (the state says so), and blocked topic pages count under their own reason.
+func TestTopicFilterSwitch(t *testing.T) {
+	r := newRig(t)
+	var old core.Settings
+	if err := json.Unmarshal([]byte(`{"band":"9-12","focusMode":true}`), &old); err != nil || old.TopicsOff {
+		t.Fatalf("an old config must load with the topic filter on: %+v %v", old, err)
+	}
+	if st := decodeState(t, r.do(req{path: "/v1/state", token: tokA})); !st.Topics {
+		t.Fatal("state: topics should be on by default")
+	}
+	b := &browser{r: r, t: t, cookies: map[string]*http.Cookie{}}
+	b.login("2468")
+	page := b.send("GET", "/parent?lang=en", nil, "").Body.String()
+	for _, want := range []string{`name="topics" aria-describedby="topics-hint" checked`, "Sexuality and gender identity topics", "Helplines stay open."} {
+		if !strings.Contains(page, want) {
+			t.Errorf("page lacks %q", want)
+		}
+	}
+	if ka := b.send("GET", "/parent?lang=ka", nil, "").Body.String(); !strings.Contains(ka, "სექსუალობისა და გენდერული იდენტობის თემები") {
+		t.Error("Georgian label")
+	}
+	if ru := b.send("GET", "/parent?lang=ru", nil, "").Body.String(); !strings.Contains(ru, "Темы сексуальности и гендерной идентичности") {
+		t.Error("Russian label")
+	}
+	form := url.Values{"a": {"0"}, "band": {"6-8"}, "browseMin": {"90"}, "videoMin": {"45"}, "bedStart": {"20:00"}, "bedEnd": {"07:00"}, "focusMode": {"on"}, "familyDns": {"on"}}
+	form.Set("csrf", b.csrf())
+	if loc := b.send("POST", "/parent/save", form, self).Header().Get("Location"); !strings.Contains(loc, "ok=saved") {
+		t.Fatal(loc)
+	}
+	if !r.cfg.Accounts[0].TopicsOff {
+		t.Fatal("unchecked switch should turn the filter off")
+	}
+	if st := decodeState(t, r.do(req{path: "/v1/state", token: tokA})); st.Topics {
+		t.Fatal("state: topics should be off now")
+	}
+	form.Set("topics", "on")
+	form.Set("csrf", b.csrf())
+	b.send("POST", "/parent/save", form, self)
+	if r.cfg.Accounts[0].TopicsOff {
+		t.Fatal("checked switch should turn it on again")
+	}
+	if w := r.do(req{method: "POST", path: "/v1/event", token: tokA, body: `{"type":"blocked","reason":"topic","domain":"google.com"}`}); w.Code != 200 {
+		t.Fatalf("topic event: %d", w.Code)
+	}
+	if rep, _ := r.s.Store.Report(kidA, 1); len(rep) == 0 || rep[0].ByReason["topic"] != 1 {
+		t.Fatalf("topic count: %+v", rep)
+	}
+}

@@ -3,7 +3,7 @@
   "name": "__MSG_extName__",
   "short_name": "__MSG_extShortName__",
   "description": "__MSG_extDesc__",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAtSjxkQ5+7slf7AncwTNTLD4vOm7bGzeYZj17XGfq6v1gLm6y4iypAL7BgYhk+vtiuGqPyL2GLCwGmUO6Se79re1gqW9kRW4ZIWKqL1VfYroOtXdZTopYSpzZHMDMH4CtL8zU30S/dqOehTbzV2/tn5oTQtmg9kNTnwQm+NTXCe9xg+DxGN1SfJdw5U51qUVeD/PTrD5s0jBDO6lVfgIys4El43dz9YACc4+MXTdxJCzhQv6P4aFVTbs/Mr86byLBAmV7Gdw3JL4XSq3bLxWjVo2Lclx0jN5iQBAW3tUF0Voycd4cKWuemh2DpXVq8Luu778wKt1Nsvd4m24fQnzwnwIDAQAB",
   "default_locale": "en",
   "minimum_chrome_version": "120",
@@ -54,6 +54,7 @@
       ],
       "js": [
         "content/classify.js",
+        "content/topics.js",
         "content/page-check.js"
       ],
       "run_at": "document_start",
@@ -79,6 +80,7 @@
         "*://youtube.com/*"
       ],
       "js": [
+        "content/topics.js",
         "content/focus-youtube.js"
       ],
       "run_at": "document_start"

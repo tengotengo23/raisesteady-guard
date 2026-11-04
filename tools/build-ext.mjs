@@ -36,6 +36,13 @@ for (const f of readdirSync(SHARED)) {
   if (!existsSync(dst) || readFileSync(dst, 'utf8') !== src) writeFileSync(dst, src);
 }
 
+// Store builds refuse a built-in video list older than 120 days (P2-161): run tools/update-videos.mjs.
+if (!devOnly && existsSync(join(SHARED, 'videos.json'))) {
+  const built = readJSON(join(SHARED, 'videos.json')).built;
+  const age = /^\d{4}-\d{2}-\d{2}$/.test(built || '') ? Math.floor((Date.now() - Date.parse(`${built}T00:00:00Z`)) / 86400000) : Infinity;
+  if (age > 120) fail(`shared/videos.json is ${age} days old (built ${built}): run tools/update-videos.mjs`);
+}
+
 // ---- 2. placeholders for desks B and D (only if absent) ----
 const PLACEHOLDERS = {
   'background/videos.js': '// Placeholder the build writes when the file is missing.\nexport function initVideos() {}\n',

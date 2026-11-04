@@ -129,6 +129,8 @@
       <p class="hint" id="familyDns-hint">{{t .Lang "family_dns_note"}}</p>
       <label class="check"><input type="checkbox" name="searches" aria-describedby="searches-hint"{{if .SearchesOn}} checked{{end}}> <span>{{t .Lang "searches"}}</span></label>
       <p class="hint" id="searches-hint">{{t .Lang "searches_note"}}</p>
+      <label class="check"><input type="checkbox" name="topics" aria-describedby="topics-hint"{{if not .Settings.TopicsOff}} checked{{end}}> <span>{{t .Lang "topics"}}</span></label>
+      <p class="hint" id="topics-hint">{{t .Lang "topics_note"}}</p>
       <label for="allow">{{t .Lang "allow"}}</label>
       <textarea id="allow" name="allow" rows="4" spellcheck="false" autocapitalize="off">{{.AllowText}}</textarea>
       <label for="block">{{t .Lang "block"}}</label>
