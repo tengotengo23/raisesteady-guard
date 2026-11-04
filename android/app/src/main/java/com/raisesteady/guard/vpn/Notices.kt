@@ -95,7 +95,13 @@ object Notices {
             .setStyle(NotificationCompat.BigTextStyle().bigText(text))
             .setOngoing(true)
             .setSilent(true)
-            .setContentIntent(lock) // tapping the notice locks too: the button can be folded away
+            // Tapping the notice locks too: the button can be folded away in a group.
+            .setContentIntent(
+                PendingIntent.getActivity(
+                    context, 2, Intent(context, com.raisesteady.guard.guard.LockNowActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE,
+                ),
+            )
             .setTimeoutAfter(timeoutMs)
             .setGroup("com.raisesteady.guard.unlocked") // its own group: never folded in with other notices
             .addAction(0, context.getString(R.string.lock_now), lock)

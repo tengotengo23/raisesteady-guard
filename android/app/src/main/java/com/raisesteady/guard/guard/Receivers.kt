@@ -48,17 +48,32 @@ class BootReceiver : BroadcastReceiver() {
 /** "Lock now" on the "Settings are unlocked" notice: the guarded pages need the PIN again. */
 class LockNowReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
-        val app = context.applicationContext as GuardApp
         val pending = goAsync()
-        app.scope.launch {
-            try {
-                app.repo.updateState { it.copy(settingsUnlockedUntil = 0) }
-                Notices.clearUnlocked(context)
-                app.recheck.tryEmit(Unit)
-            } finally {
-                pending.finish()
+        lockNow(context) { pending.finish() }
+    }
+
+    companion object {
+        fun lockNow(context: Context, done: () -> Unit = {}) {
+            val app = context.applicationContext as GuardApp
+            app.scope.launch {
+                try {
+                    app.repo.updateState { it.copy(settingsUnlockedUntil = 0) }
+                    Notices.clearUnlocked(context)
+                    app.recheck.tryEmit(Unit)
+                } finally {
+                    done()
+                }
             }
         }
+    }
+}
+
+/** Tapping the "Settings are unlocked" notice: locks at once and shows nothing. */
+class LockNowActivity : android.app.Activity() {
+    override fun onCreate(savedInstanceState: android.os.Bundle?) {
+        super.onCreate(savedInstanceState)
+        LockNowReceiver.lockNow(this)
+        finish()
     }
 }
 

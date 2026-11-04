@@ -106,6 +106,14 @@
             android:exported="false" />
 
         <activity
+            android:name=".guard.LockNowActivity"
+            android:excludeFromRecents="true"
+            android:exported="false"
+            android:noHistory="true"
+            android:taskAffinity="com.raisesteady.guard.lock"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <activity
             android:name=".guard.BlockActivity"
             android:excludeFromRecents="true"
             android:exported="false"
