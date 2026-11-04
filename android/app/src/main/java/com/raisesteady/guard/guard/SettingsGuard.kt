@@ -9,7 +9,7 @@ import android.view.accessibility.AccessibilityNodeInfo
  * its text shows our label (App info, App battery, the uninstall dialog, Device admin apps, our
  * Accessibility page, VPN settings and its gear dialog), when it is a VPN consent dialog (another
  * app's VPN would replace ours), or when its title is one of the guarded pages (Private DNS, Date
- * and time, Developer options, Multiple users, Private space, Reset options). The parent's PIN
+ * and time, Developer options, Multiple users, Private space, Reset options, Device admin apps). The parent's PIN
  * opens them for 10 minutes.
  */
 object SettingsGuard {
@@ -38,11 +38,15 @@ object SettingsGuard {
         "user_settings_title",
         "private_space_title",
         "reset_dashboard_title",
+        // Android 14+ hides the rows of Device admin apps from accessibility services that are not
+        // accessibility tools (accessibilityDataSensitive), so that page is found by its title (run 41925770506).
+        "manage_device_admin", "device_admin_settings_title",
     )
 
     /** Fallback titles when the Settings app's resources cannot be read (en, ru). */
     val FALLBACK_TITLES = setOf(
         "Private DNS", "Date & time", "Date and time", "Developer options", "Multiple users", "Private space", "Reset options",
+        "Device admin apps", "Device admin app", "Device admin",
         "Персональный DNS-сервер", "Дата и время", "Для разработчиков", "Несколько пользователей", "Сброс настроек",
     )
 

@@ -27,6 +27,9 @@ class SettingsGuardTest {
         assertTrue(cover("com.android.settings", "date and time"))
         assertTrue(cover("com.android.settings", "Developer options"))
         assertTrue(cover("com.android.settings", "Дата и время"))
+        // Android 14+ does not show the Device admin rows to us: the page is found by its title.
+        assertTrue(cover("com.android.settings", "Device admin", listOf("Device admin", "Navigate up")))
+        assertTrue(cover("com.android.settings", "Device admin apps"))
         // A row with that name on another page is not the page itself.
         assertFalse(cover("com.android.settings", "System", listOf("Date & time", "Developer options")))
     }
