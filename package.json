@@ -1,6 +1,6 @@
 {
   "name": "raisesteady-guard",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "private": true,
   "description": "Child-safe browsing for Windows: one installer and one browser extension.",
   "license": "GPL-3.0-only",

@@ -55,7 +55,7 @@
   const HOST_ID = 'kg-yt-home', NOTE_ID = 'kg-yt-note', COM_ID = 'kg-yt-com';
   const ID_RE = /^[\w-]{11}$/;
   const EN = {
-    ytHeading: 'What would you like to watch?', ytSearchLabel: 'Search YouTube', ytSearchPlaceholder: 'Search for a video', ytSearchBtn: 'Search',
+    ytSearchLabel: 'Search YouTube', ytSearchPlaceholder: 'Search for a video', ytSearchBtn: 'Search',
     ytCuratedNote: 'Search shows videos only from the channels picked for your age.', ytCuratedNone: 'No videos from the picked channels match this search. Try another word.',
     ytVideosTitle: 'Videos for you', ytVideosFrom: 'From channels picked for children of your age.', ytCommentsOff: 'Comments are switched off.',
     gridLabel: 'Videos picked for you', cardLabel: '{title}, from {channel}', gridEmpty: 'New videos are on their way. Please look again a little later.',
@@ -254,7 +254,8 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     const full = panelMode === 'feed';
     host.dataset.mode = panelMode;
     const css = h('style'); css.textContent = PANEL_CSS;
-    const wrap = full ? h('section', { class: 'p', 'aria-labelledby': 'kgh' }) : h('section', { class: 'p compact', 'aria-label': t('ytSearchLabel') });
+    // No heading above the search box (the owner, 4 Nov, P2-161 follow-up): just the box.
+    const wrap = h('section', { class: full ? 'p' : 'p compact', 'aria-label': t('ytSearchLabel') });
     const form = h('form', { role: 'search', action: '/results', method: 'get' });
     const input = h('input', { id: 'kgq', name: 'search_query', type: 'search', autocomplete: 'off', placeholder: t('ytSearchPlaceholder'), 'aria-label': t('ytSearchLabel') });
     form.append(h('label', { class: 'sr', for: 'kgq' }, t('ytSearchLabel')), input, h('button', { type: 'submit' }, t('ytSearchBtn')));
@@ -265,7 +266,6 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
       if (topicHit(q)) { toTopicPage(); return; }
       location.assign(`/results?search_query=${encodeURIComponent(q)}`);
     });
-    if (full) wrap.append(h('h1', { id: 'kgh' }, t('ytHeading')));
     wrap.append(form);
     if (st.youtubeMode === 'curated') wrap.append(h('p', { class: 'note' }, t('ytCuratedNote')));
     if (!full) { shadow.replaceChildren(css, wrap); vidsFor = ''; return; }
