@@ -1,6 +1,6 @@
 # RaiseSteady Guard
 
-Free, open-source child-safe browsing for Windows and Linux computers: one installer (or package) and one browser extension. A parent installs it once. It makes the child's browsers safer and keeps browsing within an age-based daily time.
+Free, open-source child-safe browsing for Windows and Linux computers: one installer (or package) and one browser extension. A parent installs it once. It makes the child's browsers safer and keeps browsing within an age-based daily time. There is also an app for Android phones and tablets: see [Android](#android).
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
@@ -96,6 +96,36 @@ Then run `sudo raisesteady-guard setup`: it shows the terms and asks for the chi
 
 On Linux, browsers read these settings for the whole computer, so they apply to every account on it, including the parent's. It works best on a computer the child uses. Protected browsers: Chrome, Chromium, Edge, Brave and Firefox from their deb, rpm or snap packages, and the Firefox Flatpak installed for all users. Other browsers, and copies of these elsewhere, are closed. A browser that cannot see the settings (a trick some advanced users try) is closed too. Setup and the parent page are in English, Georgian or Russian, from the system language.
 
+## Android
+
+RaiseSteady Guard for Android (version 1.0.0, Android 10 or later) is an app the parent installs on the child's phone or tablet. No account, no cloud and no parent phone: the parent uses a PIN on the child's device. Nothing is sent to us. Status: early; tested in automated runs on Android emulators (Android 10 and 16), not yet by families on real phones.
+
+**What it does:**
+- A site filter on the whole device, run as a local VPN that sees only the names of the sites looked up (DNS): adult, gambling and filter-bypass sites are blocked; Google, Bing and DuckDuckGo use safe search; YouTube uses Restricted Mode, in the browser and in the YouTube app; social network sites are blocked under 13 (VK and OK under 14). The family DNS filter (AdGuard DNS Family) is on unless the parent switches it off. Helplines are never blocked. The parent can block or allow single sites.
+- Apps: each app is Allowed, on Game time or Blocked. Games start on Game time, social and chat apps start blocked under the age in their own terms, known filter-bypass apps (Tor, Psiphon, Opera with its built-in VPN) are blocked. Game time is one daily time for all of them, with a bedtime, weekend times and homework time, a warning 5 minutes before it ends, and a calm screen for the child that says why an app is closed. The parent can pause game-time apps or give 15 or 30 more minutes with the PIN.
+- Without the PIN, the app cannot be removed (it is a device admin app) and its own pages in Settings are covered by a PIN screen: App info, its accessibility page, VPN, Private DNS, date and time, developer options and others. The Accessibility list itself stays open, so a child can always turn on TalkBack and other aids.
+- A report on the device for the parent: minutes of game time and the apps used most, today and for the last 7 days. The sites opened are not kept.
+
+**What it cannot do on Android** (without becoming the device's owner app, planned for later):
+- stop a factory reset or safe mode, both of which remove or switch off the app;
+- switch on Always-on VPN or set Private DNS by itself: setup shows the parent where to switch them on;
+- protect guest users, other users or a private space (the filter covers one user);
+- stop someone who uses USB debugging (adb) from switching it off;
+- block installing apps (new games start on Game time; use the Play Store's parental controls so new apps need your OK);
+- filter apps that use their own encrypted DNS or fixed addresses, or see inside apps and pages;
+- keep time limits on in Advanced Protection mode (Android 16), which switches off accessibility services that are not accessibility tools.
+
+No filter is perfect: stay close and talk with your child about what they see online. Made with AI, provided "as is" without any guarantee, support voluntary: see [About this project](#about-this-project).
+
+**Install from GitHub:**
+1. On the child's phone or tablet, open [Releases](../../releases) and download `raisesteady-guard-android-<version>.apk`. The release notes give its certificate SHA-256, to compare if you wish.
+2. Open the file. Android asks to allow **Install unknown apps** for the browser or files app you used: allow it, go back and tap **Install**. (You can switch that permission off again afterwards.)
+3. Open RaiseSteady Guard and follow the setup (about 5 minutes): the child's age, a PIN, the family DNS filter, then each Android permission with one plain sentence on why it is needed.
+4. **Restricted setting:** Android 13 and later protect accessibility access for apps installed from a file. If the switch for RaiseSteady Guard in Accessibility is greyed out or says "Restricted setting", open Settings, Apps, RaiseSteady Guard (App info), tap the menu at the top right, then **Allow restricted settings**, and switch it on again. The setup step has an "Open App info" button for this.
+5. For the strongest filter, switch on **Always-on VPN** and **Block connections without VPN** for RaiseSteady Guard in Settings, Network, VPN (the setup step opens it).
+
+Remove: open the app, For the parent (PIN), Turn protection off; then Settings, Apps, RaiseSteady Guard, Uninstall.
+
 ## Remove
 
 Windows: Settings, Apps, "RaiseSteady Guard", Uninstall. An administrator and the PIN are needed. Everything it set is removed, and settings that were there before are put back.
@@ -103,6 +133,8 @@ Windows: Settings, Apps, "RaiseSteady Guard", Uninstall. An administrator and th
 Linux: `sudo apt remove raisesteady-guard` or `sudo dnf remove raisesteady-guard` (from the .tar.gz: `sudo /opt/raisesteady-guard/uninstall.sh`). An administrator is needed. Everything it set is removed; Firefox policies set by another tool are put back.
 
 ## Privacy
+
+On Android, the same holds: the site filter runs on the device and looks only at site names; with the family DNS filter on, the names go to AdGuard DNS over an encrypted connection; minutes per app are kept on the device for 30 days, without site names.
 
 This program does not send information to other networked systems unless the person installing or operating it chooses it. The two cases below are shown at install, and both can be switched off on the parent page:
 - **Family DNS filter** (on unless the parent switches it off): the child's browsers look up site names through [AdGuard DNS](https://adguard-dns.io/en/privacy.html), a free public service. AdGuard sees the site names and your internet address, as any DNS service does. If AdGuard DNS cannot be reached (an outage, or a network that blocks it), sites do not open until it is back or a parent switches the filter off.

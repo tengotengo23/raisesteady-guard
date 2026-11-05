@@ -52,6 +52,9 @@ for a in "$APP_APK" "$E2E_APK" "$TEST_APK"; do [ -f "$a" ] || fail "missing $a (
 # A fresh install each run (an old device admin would refuse the uninstall: switch it off first).
 adb shell dpm remove-active-admin "$PKG/.guard.GuardAdminReceiver" >/dev/null 2>&1 || true
 adb uninstall "$PKG" >/dev/null 2>&1 || true
+if adb shell pm path "$PKG" 2>/dev/null | grep -q package:; then
+  fail "an older $PKG is still installed (a device admin cannot be removed by shell): wipe the emulator's data (-wipe-data)"
+fi
 for a in "$APP_APK" "$E2E_APK" "$TEST_APK"; do
   adb install -r -g "$a" > "$OUT/install.txt" 2>&1 || { cat "$OUT/install.txt"; fail "install $a"; }
 done
