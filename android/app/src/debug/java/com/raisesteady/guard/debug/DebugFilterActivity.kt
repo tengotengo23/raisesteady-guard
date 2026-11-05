@@ -18,7 +18,7 @@ import kotlinx.coroutines.runBlocking
  * `am start -n com.raisesteady.guard/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true`
  * Optional: `--ei gameMinutes 1` (debug builds allow 1 minute), `--es pin 2468`, `--ez resetState true`
  * (no pause, more time, PIN lock or settings unlock), `--ez setupDone false` (default true: the
- * guard acts only after setup), `--ez fresh true` (everything as after a new install; the filter
+ * guard acts only after setup), `--ez bedtimeOn false` (tests that run at any hour), `--ez fresh true` (everything as after a new install; the filter
  * is not started). VPN consent is pre-approved with `appops set com.raisesteady.guard ACTIVATE_VPN allow`.
  */
 class DebugFilterActivity : Activity() {
@@ -47,6 +47,7 @@ class DebugFilterActivity : Activity() {
                     topicFilter = intent.getBooleanExtra("topicFilter", true),
                     gameMinutes = intent.getIntExtra("gameMinutes", base.gameMinutes),
                     setupDone = intent.getBooleanExtra("setupDone", true),
+                    bedtimeOn = intent.getBooleanExtra("bedtimeOn", base.bedtimeOn),
                 )
             }
         }

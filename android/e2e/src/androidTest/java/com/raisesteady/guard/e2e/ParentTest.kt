@@ -85,7 +85,7 @@ class ParentTest {
         type("pin-current", "1111")
         type("pin-new1", "9753")
         type("pin-new2", "9753")
-        E2e.scrollFind(byTag("pin-save"))!!.click()
+        assertTrue(E2e.tapOn(byTag("pin-save"), scroll = true))
         assertTrue("a wrong current PIN was not refused", device.wait(Until.hasObject(By.text("Wrong PIN.")), 10_000) == true)
         shot("parent/pin-change-refused")
         val after = Regex("\"hash\":\"([^\"]+)\"").find(E2e.guardSettingsJson())?.groupValues?.get(1)

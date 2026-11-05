@@ -26,7 +26,8 @@ class ReportTest {
     @get:Rule val shots = E2e.Shots()
 
     @Test fun todayShowsTheMinutesOfTheTestGame() {
-        E2e.enableGuard(gameMinutes = 240)
+        // No bedtime: CI runs at any hour (21:00 to 07:00 would close the game at once).
+        E2e.enableGuard(gameMinutes = 240, bedtime = false)
         shell("am start -n $GAME/.TestGameActivity")
         assertTrue("the test game did not open", E2e.waitPackage(GAME, 10_000))
         // Open for 110 s: the first report line is written at once, the next one a minute or so later.

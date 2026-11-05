@@ -46,8 +46,8 @@ object E2e {
      * setup done, nothing paused or unlocked, the filter on; then switches the accessibility
      * service on and waits until Android has bound it.
      */
-    fun enableGuard(gameMinutes: Int? = null) {
-        val extra = gameMinutes?.let { " --ei gameMinutes $it" } ?: ""
+    fun enableGuard(gameMinutes: Int? = null, bedtime: Boolean = true) {
+        val extra = (gameMinutes?.let { " --ei gameMinutes $it" } ?: "") + (if (bedtime) "" else " --ez bedtimeOn false")
         shell("am start -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true --es pin $PIN --ez resetState true$extra")
         val want = gameMinutes?.let { "\"gameMinutes\":$it" } ?: "\"pin\":{"
         waitFor("Guard's settings were not written ($want)", 20_000) { guardSettingsJson().let { it.contains(want) && it.contains("\"setupDone\":true") } }
@@ -165,10 +165,23 @@ object E2e {
     fun waitPackage(pkg: String, ms: Long = 10_000): Boolean = device.wait(Until.hasObject(By.pkg(pkg).depth(0)), ms) == true
 
     /** Taps the first object whose text contains [text]; false when none shows within [ms]. */
-    fun tap(text: String, ms: Long = 10_000): Boolean {
-        val o = device.wait(Until.findObject(By.textContains(text)), ms) ?: return false
-        o.click()
-        return true
+    fun tap(text: String, ms: Long = 10_000): Boolean = tapOn(By.textContains(text), ms)
+
+    /**
+     * Taps the first object that [selector] finds (scrolling to it when [scroll]). Compose redraws
+     * a page each second (the status checks), so a found object can go stale: it is found again.
+     */
+    fun tapOn(selector: androidx.test.uiautomator.BySelector, ms: Long = 10_000, scroll: Boolean = false): Boolean {
+        repeat(4) {
+            val o = (if (scroll) scrollFind(selector, ms) else device.wait(Until.findObject(selector), ms)) ?: return false
+            try {
+                o.click()
+                return true
+            } catch (_: androidx.test.uiautomator.StaleObjectException) {
+                Thread.sleep(300)
+            }
+        }
+        return false
     }
 
     /** Saves a screenshot and the window dump of a failing test. */

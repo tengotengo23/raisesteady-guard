@@ -85,10 +85,9 @@ class GuardTest {
         shot("a11y-list-open")
 
         // Another aid (TalkBack where the image has it, or Magnification, in every Android) opens freely.
-        val aid = listOf("TalkBack", "Magnification").firstNotNullOfOrNull { E2e.scrollFind(By.text(it), 6_000) }
-        assertTrue("no TalkBack or Magnification row in Accessibility", aid != null)
-        val aidName = aid!!.text
-        aid.click()
+        val aidName = listOf("TalkBack", "Magnification").firstOrNull { E2e.scrollFind(By.text(it), 6_000) != null }
+        assertTrue("no TalkBack or Magnification row in Accessibility", aidName != null)
+        assertTrue("could not open $aidName", E2e.tapOn(By.text(aidName!!), scroll = true))
         assertTrue("$aidName was covered", E2e.staysAway(gate, 4_000))
         assertTrue("$aidName did not open in Settings", device.hasObject(By.pkg(SETTINGS).depth(0)))
         shot("a11y-aid-open")
@@ -97,9 +96,7 @@ class GuardTest {
         shell("am force-stop $SETTINGS")
         shell("am start -a android.settings.ACCESSIBILITY_SETTINGS")
         assertTrue(E2e.waitPackage(SETTINGS, 10_000))
-        val ours = E2e.scrollFind(By.text("RaiseSteady Guard"), 20_000)
-        assertTrue("Guard's row is not in the Accessibility list", ours != null)
-        ours!!.click()
+        assertTrue("Guard's row is not in the Accessibility list", E2e.tapOn(By.text("RaiseSteady Guard"), 20_000, scroll = true))
         assertTrue("Guard's own accessibility page was not covered", E2e.waitText(gate, 4_000))
         shot("a11y-our-page-covered")
         device.pressHome()
@@ -130,7 +127,7 @@ class GuardTest {
         val lock = findLock()
         shot("notice-unlocked")
         assertTrue("no Lock now on the notice", lock != null)
-        lock!!.click()
+        assertTrue(E2e.tapOn(E2e.byTag("lock-now"), scroll = true))
         device.pressHome()
         Thread.sleep(1000)
         assertTrue("App info was not covered after Lock now", covered(appInfo, "App info after Lock now"))
@@ -155,7 +152,7 @@ class GuardTest {
         assertTrue("no Lock now on the parent page while Settings are unlocked", lock != null)
         assertTrue(device.hasObject(By.textContains("Settings are unlocked until")))
         shot("parent-lock-now")
-        lock!!.click()
+        assertTrue(E2e.tapOn(E2e.byTag("lock-now"), scroll = true))
         assertTrue("the parent page does not say the pages are locked", E2e.waitText("Settings pages need the parent PIN", 5_000))
         device.pressHome()
         Thread.sleep(1000)
