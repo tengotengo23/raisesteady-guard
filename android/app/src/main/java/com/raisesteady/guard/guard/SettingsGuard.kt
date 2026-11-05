@@ -5,12 +5,15 @@ import android.view.accessibility.AccessibilityNodeInfo
 
 /**
  * Which windows the PIN screen covers (design 3.6). Only these packages are ever read: Settings,
- * the permission controller, the package installer and the VPN dialogs. A window is covered when
- * its text shows our label (App info, App battery, the uninstall dialog, Device admin apps, our
- * own accessibility page and its turn-off dialog, VPN settings and its gear dialog), when it is a
- * VPN consent dialog (another app's VPN would replace ours), or when its title is one of the
- * guarded pages (Private DNS, Date and time, Developer options, Multiple users, Private space,
- * Reset options, Device admin apps). The parent's PIN opens them for 10 minutes.
+ * the permission controller, the package installer and the VPN dialogs. In Settings only our own
+ * pages are covered (review S2): App info for this app (titled with our label or "App info", or
+ * showing our label with its Force stop button), our App battery page, VPN settings and its gear
+ * page, our own accessibility page and its turn-off dialog, and the guarded pages found by their
+ * title (Private DNS, Date and time, Developer options, Multiple users, Private space, Reset
+ * options, Device admin apps). A list that merely shows our name (Apps, Notifications, Battery
+ * usage, search results) stays open. The short dialogs of the package installer, the permission
+ * controller and the VPN dialogs are covered when they show our label; any VPN consent dialog is
+ * covered (another app's VPN would replace ours). The parent's PIN opens them for 10 minutes.
  *
  * The Accessibility list itself is never covered, though it shows our row: a child must be free
  * to turn on TalkBack and other aids (director's decision D1). Only our own page there (its
@@ -70,10 +73,18 @@ object SettingsGuard {
     )
 
     /** What the guard compares window titles and texts with, in the device's language plus fallbacks. */
-    data class Marks(val pages: Set<String>, val a11yList: Set<String>, val ourA11y: Set<String>) {
+    data class Marks(
+        val pages: Set<String>,
+        val a11yList: Set<String>,
+        val ourA11y: Set<String>,
+        val ownPages: Set<String> = FALLBACK_OWN_PAGES,
+        val appInfoButtons: Set<String> = FALLBACK_APP_INFO_BUTTONS,
+    ) {
         internal val pagesN = pages.map(::normalize).toSet()
         internal val a11yListN = a11yList.map(::normalize).toSet()
         internal val ourA11yN = ourA11y.map(::normalize).toSet()
+        internal val ownPagesN = ownPages.map(::normalize).toSet()
+        internal val appInfoButtonsN = appInfoButtons.map(::normalize).toSet()
 
         companion object {
             val FALLBACK = Marks(FALLBACK_TITLES, FALLBACK_A11Y_LIST, FALLBACK_OUR_A11Y)
@@ -85,7 +96,25 @@ object SettingsGuard {
         "Private DNS", "Date & time", "Date and time", "Developer options", "Multiple users", "Private space", "Reset options",
         "Device admin apps", "Device admin app", "Device admin",
         "Персональный DNS-сервер", "Дата и время", "Для разработчиков", "Несколько пользователей", "Сброс настроек",
+        // Georgian (review N1), for when the Settings app's own strings cannot be read.
+        "პირადი DNS", "თარიღი და დრო", "დეველოპერის პარამეტრები", "რამდენიმე მომხმარებელი", "გადატვირთვის პარამეტრები",
     )
+
+    /** Titles of our own pages in Settings, when our label is on them (AOSP names). */
+    val OWN_PAGE_RESOURCES = listOf(
+        "application_info_label", "app_info_title", "vpn_settings_title", "vpn_title", "app_battery_usage_title",
+    )
+
+    /** The Force stop button: with our label, it is App info for this app whatever its title (AOSP names). */
+    val APP_INFO_BUTTON_RESOURCES = listOf("force_stop")
+
+    val FALLBACK_OWN_PAGES = setOf(
+        "App info", "App information", "VPN", "App battery usage",
+        "О приложении", "Сведения о приложении", "Расход заряда приложением",
+        "აპის ინფორმაცია", "აპის შესახებ",
+    )
+
+    val FALLBACK_APP_INFO_BUTTONS = setOf("Force stop", "Остановить", "Принудительно остановить", "ძალით შეჩერება", "იძულებით შეჩერება")
 
     fun normalize(t: String) = t.trim().lowercase().replace("&", "and").replace(Regex("\\s+"), " ")
 
@@ -98,13 +127,15 @@ object SettingsGuard {
         if (pkg == VPN_DIALOGS) return true
         val known = titles.filterNotNull().filter { it.isNotBlank() }
         val shown = texts.any { it.contains(LABEL) } || known.any { it.contains(LABEL) }
-        if (shown) {
-            if (isOurA11yPage(known, texts, marks)) return true
-            // The Accessibility list shows our row next to TalkBack and the other aids: never covered (D1).
-            if (pkg == SETTINGS && isA11yList(known, texts, marks)) return false
-            return true
-        }
-        return known.any { normalize(it) in marks.pagesN }
+        if (known.any { normalize(it) in marks.pagesN }) return true
+        if (!shown) return false
+        if (pkg != SETTINGS) return true // the installer's and the permission controller's short dialogs
+        if (isOurA11yPage(known, texts, marks)) return true
+        // The Accessibility list shows our row next to TalkBack and the other aids: never covered (D1).
+        if (isA11yList(known, texts, marks)) return false
+        // Only our own pages (S2): a list that just shows our name (Apps, Notifications, search) stays open.
+        return known.any { normalize(it) == normalize(LABEL) || normalize(it) in marks.ownPagesN } ||
+            texts.any { normalize(it) in marks.appInfoButtonsN }
     }
 
     /** One title (the event's): kept for the tests and callers with a single title. */
@@ -124,6 +155,8 @@ object SettingsGuard {
         val pages = HashSet(FALLBACK_TITLES)
         val list = HashSet(FALLBACK_A11Y_LIST)
         val ours = HashSet(FALLBACK_OUR_A11Y)
+        val own = HashSet(FALLBACK_OWN_PAGES)
+        val buttons = HashSet(FALLBACK_APP_INFO_BUTTONS)
         runCatching {
             val res = context.packageManager.getResourcesForApplication(SETTINGS)
             fun read(name: String, vararg args: Any): String? {
@@ -135,8 +168,10 @@ object SettingsGuard {
             TITLE_RESOURCES.forEach { n -> read(n)?.let(pages::add) }
             A11Y_LIST_RESOURCES.forEach { n -> read(n)?.let(list::add) }
             OUR_A11Y_RESOURCES.forEach { n -> read(n, LABEL)?.takeIf { it.contains(LABEL) }?.let(ours::add) }
+            OWN_PAGE_RESOURCES.forEach { n -> read(n)?.let(own::add) }
+            APP_INFO_BUTTON_RESOURCES.forEach { n -> read(n)?.let(buttons::add) }
         }
-        return Marks(pages, list, ours)
+        return Marks(pages, list, ours, own, buttons)
     }
 
     /** The texts and descriptions in a window (at most [max] nodes, breadth first). */

@@ -22,6 +22,7 @@ import com.raisesteady.guard.rules.Policy
 import com.raisesteady.guard.rules.Schedule
 import com.raisesteady.guard.rules.UsageMath
 import com.raisesteady.guard.rules.Verdict
+import com.raisesteady.guard.vpn.GuardVpnService
 import com.raisesteady.guard.vpn.Notices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -99,6 +100,8 @@ class GuardAccessibilityService : AccessibilityService() {
         // "Turn protection off" on the parent page: the service switches itself off.
         scope.launch { app.turnOff.collect { disableSelf() } }
         main.postDelayed(saveTick, TIMELINE_MS)
+        // While the site filter is off, this service keeps its own ongoing notice (N4).
+        scope.launch { GuardVpnService.state.collect { limitsOnlyNotice() } }
         running = true
         Notices.clearLimitsOff(this)
         Log.i(TAG, "connected")
@@ -175,10 +178,18 @@ class GuardAccessibilityService : AccessibilityService() {
         return app.catalog.level(pkg, isGame(pkg), s, app.bands.byId(s.bandId).minAge)
     }
 
-    private fun enforce(pkg: String) {
+    /**
+     * Enforces every app that is visible now, not only the one in front (review S1): in split
+     * screen a Game-time app in one half keeps its limits while an allowed app is used in the
+     * other. Only the package names of other apps' windows are read.
+     */
+    private fun enforce(front: String) {
         main.removeCallbacks(tick)
-        val level = if (pkg in exempt) Level.ALLOWED else level(pkg)
-        if (level == Level.ALLOWED) {
+        val limited = (listOf(front) + visibleApps()).distinct()
+            .filter { it !in exempt && it != packageName && it !in SettingsGuard.PACKAGES }
+            .map { it to level(it) }
+            .filter { it.second != Level.ALLOWED }
+        if (limited.isEmpty()) {
             if (app.gameLeftMin != null) {
                 app.gameLeftMin = null
                 Notices.refreshProtection(this)
@@ -190,24 +201,36 @@ class GuardAccessibilityService : AccessibilityService() {
         val nowI = app.clock.now()
         val schedule = Schedule(app.clock.zone())
         val policy = Policy(schedule, exempt)
-        val pool = if (level == Level.GAME_TIME) poolUsedMs(schedule, nowI.toEpochMilli()) else 0L
-        when (val v = policy.decide(pkg, level, nowI, s, st, pool)) {
-            is Verdict.Closed -> {
-                app.gameLeftMin = null
-                block(pkg, v)
+        val pool = if (limited.any { it.second == Level.GAME_TIME }) poolUsedMs(schedule, nowI.toEpochMilli()) else 0L
+        var gameOpen = false
+        for ((pkg, level) in limited) {
+            when (val v = policy.decide(pkg, level, nowI, s, st, pool)) {
+                is Verdict.Closed -> {
+                    app.gameLeftMin = null
+                    block(pkg, v)
+                    Notices.refreshProtection(this)
+                    writeReport(schedule)
+                    return
+                }
+                Verdict.Open -> gameOpen = true
             }
-            Verdict.Open -> {
-                val dailyMs = schedule.dailyMinutes(s, nowI) * 60_000L
-                val leftMs = dailyMs - pool
-                app.gameLeftMin = if (st.moreTime(nowI.toEpochMilli())) null else UsageMath.minutes(leftMs.coerceAtLeast(0) + 59_999)
-                warnFiveMinutes(schedule, nowI.toEpochMilli(), leftMs, st.moreTime(nowI.toEpochMilli()))
-                val next = policy.nextCheck(nowI, s, st, pool).toEpochMilli() - nowI.toEpochMilli()
-                main.postDelayed(tick, next.coerceIn(MIN_DELAY_MS, MAX_DELAY_MS))
-            }
+        }
+        if (gameOpen) {
+            val dailyMs = schedule.dailyMinutes(s, nowI) * 60_000L
+            val leftMs = dailyMs - pool
+            app.gameLeftMin = if (st.moreTime(nowI.toEpochMilli())) null else UsageMath.minutes(leftMs.coerceAtLeast(0) + 59_999)
+            warnFiveMinutes(schedule, nowI.toEpochMilli(), leftMs, st.moreTime(nowI.toEpochMilli()))
+            val next = policy.nextCheck(nowI, s, st, pool).toEpochMilli() - nowI.toEpochMilli()
+            main.postDelayed(tick, next.coerceIn(MIN_DELAY_MS, MAX_DELAY_MS))
         }
         Notices.refreshProtection(this)
         writeReport(schedule)
     }
+
+    /** The packages of every application window on screen (split screen, picture-in-picture). */
+    private fun visibleApps(): List<String> = runCatching { windows }.getOrNull().orEmpty()
+        .filter { it.type == AccessibilityWindowInfo.TYPE_APPLICATION }
+        .mapNotNull { w -> runCatching { w.root?.packageName?.toString() }.getOrNull() }
 
     /** Milliseconds of the Game time pool used today (usage events, or our own record without usage access). */
     private fun poolUsedMs(schedule: Schedule, nowMs: Long): Long {
@@ -236,7 +259,7 @@ class GuardAccessibilityService : AccessibilityService() {
             return
         }
         lastBlock = pkg to t
-        Log.i(TAG, "closed $pkg: ${v.reason}")
+        if (BuildConfig.DEBUG) Log.i(TAG, "closed $pkg: ${v.reason}") // no app names in a release build's log (N3)
         startActivity(BlockActivity.intent(this, pkg, v.reason, v.until?.toEpochMilli() ?: 0L))
     }
 
@@ -330,8 +353,14 @@ class GuardAccessibilityService : AccessibilityService() {
     private val saveTick = object : Runnable {
         override fun run() {
             saveTimeline()
+            limitsOnlyNotice()
             main.postDelayed(this, TIMELINE_MS)
         }
+    }
+
+    /** "RaiseSteady Guard is on: time limits only" while setup is done and the filter is off. */
+    private fun limitsOnlyNotice() {
+        if (app.repo.settings.value.setupDone && !GuardVpnService.state.value.running) Notices.limitsOnly(this) else Notices.clearLimitsOnly(this)
     }
 
     private fun saveTimeline() {
@@ -367,6 +396,7 @@ class GuardAccessibilityService : AccessibilityService() {
         main.removeCallbacks(contentCheck)
         main.removeCallbacks(saveTick)
         runCatching { saveTimeline() }
+        Notices.clearLimitsOnly(this)
         scope.cancel()
         runCatching { unregisterReceiver(screen) }
         runCatching { unregisterReceiver(packages) }

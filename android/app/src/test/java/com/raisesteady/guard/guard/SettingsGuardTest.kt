@@ -88,4 +88,28 @@ class SettingsGuardTest {
         // Two titles (the event's and the window's): either one can name the page.
         assertTrue(SettingsGuard.shouldCover("com.android.settings", listOf(null, "RaiseSteady Guard"), listOf("RaiseSteady Guard"), ka, false))
     }
+
+    // Review S2: only our own pages in Settings; lists that merely show our name stay open.
+
+    @Test fun theAppsListIsNotCovered() {
+        assertFalse(cover("com.android.settings", "All apps", listOf("All apps", "Chrome", "RaiseSteady Guard", "YouTube")))
+        assertFalse(cover("com.android.settings", "App notifications", listOf("App notifications", "RaiseSteady Guard", "Chrome")))
+        assertFalse(cover("com.android.settings", "Battery usage", listOf("Battery usage", "RaiseSteady Guard", "2%")))
+        assertFalse(cover("com.android.settings", "Settings", listOf("Search results", "RaiseSteady Guard")))
+        assertFalse(cover("com.android.settings", null, listOf("Recently opened apps", "RaiseSteady Guard", "Chrome")))
+    }
+
+    @Test fun ourAppInfoIsCoveredByItsTitleOrItsForceStopButton() {
+        assertTrue(cover("com.android.settings", "App info", listOf("RaiseSteady Guard", "Open", "Uninstall")))
+        assertTrue(cover("com.android.settings", null, listOf("RaiseSteady Guard", "Uninstall", "Force stop")))
+        assertTrue(cover("com.android.settings", "RaiseSteady Guard", listOf("RaiseSteady Guard", "Notifications")))
+        assertTrue(cover("com.android.settings", "VPN", listOf("VPN", "RaiseSteady Guard", "Connected")))
+        // Another app's App info stays open.
+        assertFalse(cover("com.android.settings", "App info", listOf("Chrome", "Force stop")))
+    }
+
+    @Test fun georgianTitlesAreKnownWithoutTheSettingsStrings() {
+        assertTrue(cover("com.android.settings", "პირადი DNS"))
+        assertTrue(cover("com.android.settings", "დეველოპერის პარამეტრები"))
+    }
 }

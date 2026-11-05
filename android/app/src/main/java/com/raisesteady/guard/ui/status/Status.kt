@@ -5,6 +5,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.raisesteady.guard.R
@@ -27,6 +28,11 @@ import com.raisesteady.guard.ui.rememberHealth
 /** Whether every part runs: the title says "Protection is on" only then (always-on VPN and the clock are warnings). */
 fun Health.allOn() = vpnRunning && complete
 
+/** How many lines of the status page are not a tick (missing parts and warnings). */
+fun Health.toCheck(): Int = listOf(
+    !vpnRunning, !accessibility, !admin, privateDnsHost != null, !usageAccess, !notifications, !(alwaysOn && lockdown), !autoTime,
+).count { it }
+
 /**
  * The status page (design 4.2): what anyone opening the app sees, the child too. Missing parts
  * first, then what is on, what the parent can see, Android's limits, and "For the parent".
@@ -43,6 +49,9 @@ fun StatusScreen(onParent: () -> Unit) {
     Page(key = "status", bottom = { MainButton(stringResource(R.string.for_parent), onParent) }) {
         Body(stringResource(R.string.app_name))
         Title(stringResource(if (h == null || h.allOn()) R.string.status_on else R.string.status_incomplete), Modifier.testTag("status-title"))
+        // A sub-line when something needs a look, so the ticks below do not read as "all good" at a glance.
+        val toCheck = h?.toCheck() ?: 0
+        if (toCheck > 0) Note(pluralStringResource(R.plurals.to_check, toCheck, toCheck), Modifier.testTag("status-to-check"))
         GuardCard {
             if (h != null) {
                 if (!h.vpnRunning) StatusLine(Mark.STOP, stringResource(R.string.miss_vpn))
@@ -58,6 +67,7 @@ fun StatusScreen(onParent: () -> Unit) {
             StatusLine(Mark.OK, stringResource(R.string.st_safe))
             StatusLine(Mark.OK, stringResource(R.string.st_youtube))
             if (band.minAge < 13) StatusLine(Mark.OK, stringResource(R.string.st_social))
+            if (settings.topicFilter) StatusLine(Mark.OK, stringResource(R.string.st_topics))
             val schedule = Schedule(app.clock.zone())
             val now = app.clock.now()
             val daily = schedule.dailyMinutes(settings, now)

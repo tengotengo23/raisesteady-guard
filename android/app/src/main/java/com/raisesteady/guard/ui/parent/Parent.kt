@@ -162,6 +162,9 @@ fun ParentScreen(onApps: () -> Unit, onClose: () -> Unit, onOff: () -> Unit) {
                 val ask = VpnService.prepare(ctx)
                 if (ask == null) GuardVpnService.start(ctx) else vpnConsent.launch(ask)
             })
+            // The full list for the parent (the status page, which the child sees, leaves out the adb line).
+            Heading(stringResource(R.string.limits_title))
+            Note(stringResource(R.string.limits_text) + " " + stringResource(R.string.limits_adb))
         }
 
         // Director's decision D2: Lock now here too, not only on the notice.
@@ -257,6 +260,9 @@ private fun SitesSection(settings: Settings, edit: Edit) {
         error = null
     }
     Section(stringResource(R.string.sites_title)) {
+        // The topic filter (S10), as in the extension: on for every age, the parent can switch it off.
+        SwitchRow(stringResource(R.string.topics_switch), settings.topicFilter, { on -> edit { it.copy(topicFilter = on) } }, Modifier.testTag("topics-switch"))
+        Note(stringResource(R.string.topics_note))
         Note(stringResource(R.string.sites_text))
         GuardField(field, { field = it; error = null }, stringResource(R.string.site_field), Modifier.testTag("site"), error, androidx.compose.ui.text.input.KeyboardType.Uri)
         PillRow(listOf(stringResource(R.string.site_block) to { add(true) }, stringResource(R.string.site_allow) to { add(false) }))

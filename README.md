@@ -101,7 +101,7 @@ On Linux, browsers read these settings for the whole computer, so they apply to 
 RaiseSteady Guard for Android (version 1.0.0, Android 10 or later) is an app the parent installs on the child's phone or tablet. No account, no cloud and no parent phone: the parent uses a PIN on the child's device. Nothing is sent to us. Status: early; tested in automated runs on Android emulators (Android 10 and 16), not yet by families on real phones.
 
 **What it does:**
-- A site filter on the whole device, run as a local VPN that sees only the names of the sites looked up (DNS): adult, gambling and filter-bypass sites are blocked; Google, Bing and DuckDuckGo use safe search; YouTube uses Restricted Mode, in the browser and in the YouTube app; social network sites are blocked under 13 (VK and OK under 14). The family DNS filter (AdGuard DNS Family) is on unless the parent switches it off. Helplines are never blocked. The parent can block or allow single sites.
+- A site filter on the whole device, run as a local VPN that sees only the names of the sites looked up (DNS): adult, gambling and filter-bypass sites are blocked; Google, Bing and DuckDuckGo use safe search; YouTube uses Restricted Mode (Google documents that this also covers the YouTube app; we test the addresses, not every video); social network sites are blocked under 13 (VK and OK under 14); sites mainly about sexuality and gender identity are blocked at every age (the "Sexuality and gender identity topics" switch on the parent page, as in the browser extension). The family DNS filter (AdGuard DNS Family) is on unless the parent switches it off. Helplines are never blocked. The parent can block or allow single sites.
 - Apps: each app is Allowed, on Game time or Blocked. Games start on Game time, social and chat apps start blocked under the age in their own terms, known filter-bypass apps (Tor, Psiphon, Opera with its built-in VPN) are blocked. Game time is one daily time for all of them, with a bedtime, weekend times and homework time, a warning 5 minutes before it ends, and a calm screen for the child that says why an app is closed. The parent can pause game-time apps or give 15 or 30 more minutes with the PIN.
 - Without the PIN, the app cannot be removed (it is a device admin app) and its own pages in Settings are covered by a PIN screen: App info, its accessibility page, VPN, Private DNS, date and time, developer options and others. The Accessibility list itself stays open, so a child can always turn on TalkBack and other aids.
 - A report on the device for the parent: minutes of game time and the apps used most, today and for the last 7 days. The sites opened are not kept.
@@ -110,10 +110,14 @@ RaiseSteady Guard for Android (version 1.0.0, Android 10 or later) is an app the
 - stop a factory reset or safe mode, both of which remove or switch off the app;
 - switch on Always-on VPN or set Private DNS by itself: setup shows the parent where to switch them on;
 - protect guest users, other users or a private space (the filter covers one user);
+- protect cloned or dual apps and a work profile (they run as another user);
 - stop someone who uses USB debugging (adb) from switching it off;
 - block installing apps (new games start on Game time; use the Play Store's parental controls so new apps need your OK);
 - filter apps that use their own encrypted DNS or fixed addresses, or see inside apps and pages;
-- keep time limits on in Advanced Protection mode (Android 16), which switches off accessibility services that are not accessibility tools.
+- keep time limits on in Advanced Protection mode (Android 16), which switches off accessibility services that are not accessibility tools;
+- close a video that keeps playing in picture-in-picture after its app left the screen (planned for 1.1).
+
+Another VPN app replaces the filter unless Always-on VPN is on for RaiseSteady Guard; known VPN and proxy apps start Blocked.
 
 No filter is perfect: stay close and talk with your child about what they see online. Made with AI, provided "as is" without any guarantee, support voluntary: see [About this project](#about-this-project).
 

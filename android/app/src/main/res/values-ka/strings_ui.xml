@@ -45,7 +45,7 @@
     <string name="notif_why">შეტყობინება აჩვენებს, რომ დაცვა ჩართულია, და ბავშვს აფრთხილებს თამაშის დროის დასრულებამდე 5 წუთით ადრე.</string>
     <string name="allow">დაშვება</string>
 
-    <string name="usage_title">გამოყენების მონაცემებზე წვდომა</string>
+    <string name="usage_title">დაუშვით გამოყენების მონაცემებზე წვდომა</string>
     <string name="usage_why">ასე აპი ითვლის, რამდენ ხანს გამოიყენება თითოეული აპი დღეს, დროის შეზღუდვებისა და თქვენი ანგარიშისთვის. რიცხვები ამ მოწყობილობაზე რჩება.</string>
     <string name="usage_steps">იპოვეთ RaiseSteady Guard და ჩართეთ გამოყენების მონაცემებზე წვდომა.</string>
 
@@ -61,7 +61,7 @@
 
     <string name="always_title">ფილტრი ყოველთვის ჩართული იყოს</string>
     <string name="always_why">მაშინ Android ფილტრს თავად რთავს და ინტერნეტს კეტავს, თუ ფილტრი ოდესმე გაჩერდება.</string>
-    <string name="always_steps">შეეხეთ ბორბალს RaiseSteady Guard-ის გვერდით, შემდეგ ჩართეთ „მუდმივად ჩართული VPN“ და „კავშირების დაბლოკვა VPN-ის გარეშე“.</string>
+    <string name="always_steps">შეეხეთ პარამეტრების ნიშანს (კბილანას) RaiseSteady Guard-ის გვერდით, შემდეგ ჩართეთ „მუდმივად ჩართული VPN“ და „კავშირების დაბლოკვა VPN-ის გარეშე“.</string>
     <string name="always_button">VPN-ის პარამეტრების გახსნა</string>
 
     <string name="apps_title">აპები და თამაშები</string>
@@ -80,7 +80,7 @@
     <string name="level_blocked">დაბლოკილი</string>
     <string name="turn_protection_on">დაცვის ჩართვა</string>
 
-    <string name="checks_title">ბოლო შემოწმებები</string>
+    <string name="checks_title">საბოლოო შემოწმება</string>
     <string name="check_dns_ok">პირადი DNS ავტომატურ რეჟიმშია ან გამორთულია.</string>
     <string name="check_dns_bad">პირადი DNS დაყენებულია: %1$s. აირჩიეთ „ავტომატური“ ან „გამორთული“, თორემ ფილტრი ვერ იმუშავებს.</string>
     <string name="check_time_ok">თარიღი და დრო ავტომატურად დგინდება.</string>
@@ -111,7 +111,7 @@
     <string name="parent_see_title">რას ხედავს შენი მშობელი</string>
     <string name="parent_see">მშობელს შეუძლია ნახოს, რამდენ ხანს გამოიყენება აპები ამ მოწყობილობაზე ყოველდღე. შენ მიერ გახსნილი საიტები არ ინახება. ყველაფერი ამ მოწყობილობაზე რჩება.</string>
     <string name="limits_title">შეზღუდვები Android-ზე</string>
-    <string name="limits_text">Android აპს არ აძლევს საშუალებას, შეაჩეროს ქარხნული პარამეტრების აღდგენა ან უსაფრთხო რეჟიმი, თავად ჩართოს მუდმივი VPN ან პირადი DNS, ან დაიცვას სტუმრები, სხვა მომხმარებლები და პირადი სივრცე. ვისაც USB-ით გამართვა შეუძლია, დაცვას გამორთავს. საკუთარი დაშიფრული DNS-ის მქონე აპები არ იფილტრება, და აპი ვერ ხედავს აპებისა და გვერდების შიგთავსს. გაძლიერებული დაცვის რეჟიმი (Android 16) დროის შეზღუდვებს გამორთავს.</string>
+    <string name="limits_text">Android აპს არ აძლევს საშუალებას, შეაჩეროს ქარხნული პარამეტრების აღდგენა ან უსაფრთხო რეჟიმი, თავად ჩართოს მუდმივი VPN ან პირადი DNS, ან დაიცვას სტუმრები, სხვა მომხმარებლები, პირადი სივრცე, კლონირებული ან ორმაგი აპები და სამუშაო პროფილი (ისინი სხვა მომხმარებლის სახელით მუშაობს). საკუთარი დაშიფრული DNS-ის მქონე აპები არ იფილტრება, და აპი ვერ ხედავს აპებისა და გვერდების შიგთავსს. გაძლიერებული დაცვის რეჟიმი (Android 16) დროის შეზღუდვებს გამორთავს.</string>
 
     <string name="enter_pin">შეიყვანეთ მშობლის PIN-კოდი</string>
     <string name="parent_title">მშობლისთვის</string>
@@ -134,7 +134,7 @@
     <string name="rp_game">გამოყენებული თამაშის დრო: %1$s</string>
     <string name="rp_apps">ყველაზე მეტად გამოყენებული აპები</string>
     <string name="rp_none">აქტივობა ჯერ არ არის.</string>
-    <string name="rp_blocked">დახურული საიტების მოთხოვნები: %1$d</string>
+    <string name="rp_blocked">დაბლოკილი საიტის მოთხოვნები: %1$d</string>
     <string name="rp_note">ითვლება ამ მოწყობილობაზე. საიტების სახელები არ ინახება.</string>
     <string name="apps_change">აპებისა და თამაშების შეცვლა</string>
     <string name="times_title">დრო</string>
@@ -148,7 +148,7 @@
     <string name="homework_from">საშინაო დავალების დრო იწყება</string>
     <string name="homework_to">საშინაო დავალების დრო მთავრდება</string>
     <string name="homework_bad">საშინაო დავალების დრო უნდა დასრულდეს დაწყებიდან არანაკლებ 15 წუთში, იმავე დღეს.</string>
-    <string name="night_bad">ძილის დრო უნდა გრძელდებოდეს არანაკლებ 15 წუთი.</string>
+    <string name="night_bad">ძილის დრო უნდა გრძელდებოდეს სულ მცირე 15 წუთს.</string>
     <string name="sites_title">საიტები</string>
     <string name="sites_text">თქვენ მიერ დაბლოკილი საიტები ყველა ბრაუზერში ყოველთვის დახურულია. დაშვებული საიტები იხსნება მაშინაც, როცა ფილტრი მათ დაბლოკავდა.</string>
     <string name="site_field">საიტი, მაგალითად example.com</string>
@@ -165,6 +165,15 @@
     <string name="lock_open">პარამეტრები განბლოკილია %1$s-მდე.</string>
     <string name="lock_closed">პარამეტრების გვერდებს მშობლის PIN-კოდი სჭირდება.</string>
     <string name="pin_current">ამჟამინდელი PIN-კოდი</string>
+    <string name="limits_adb">ვისაც USB-ით გამართვა (adb) შეუძლია, დაცვას გამორთავს.</string>
+    <string name="st_topics">სექსუალობისა და გენდერული იდენტობის შესახებ საიტები დაბლოკილია</string>
+    <string name="topics_switch">სექსუალობისა და გენდერული იდენტობის თემები</string>
+    <string name="topics_note">ბლოკავს საიტებს, რომლებიც ძირითადად სექსუალური ორიენტაციის, გენდერული იდენტობისა და სქესის შეცვლის შესახებაა. დახმარების ცხელი ხაზები ღია რჩება.</string>
+    <string name="notif_limits_only">RaiseSteady Guard ჩართულია: მხოლოდ დროის შეზღუდვები</string>
+    <plurals name="to_check">
+        <item quantity="one">შესამოწმებელია %d პარამეტრი</item>
+        <item quantity="other">შესამოწმებელია %d პარამეტრი</item>
+    </plurals>
     <string name="change_pin">PIN-კოდის შეცვლა</string>
     <string name="pin_changed">PIN-კოდი შეიცვალა.</string>
     <string name="remove">დაცვის გამორთვა</string>

@@ -65,7 +65,7 @@
     <string name="always_button">Открыть настройки VPN</string>
 
     <string name="apps_title">Приложения и игры</string>
-    <string name="apps_text">Игры начинают со времени для игр. Соцсети и мессенджеры заблокированы до возраста, указанного в их правилах. Всё остальное разрешено.</string>
+    <string name="apps_text">Для игр по умолчанию действует время для игр. Соцсети и мессенджеры по умолчанию закрыты до возраста из их правил. Всё остальное разрешено.</string>
     <string name="game_minutes">Время для игр: %1$d мин в день</string>
     <string name="less_time">Меньше времени</string>
     <string name="more_time_step">Больше времени</string>
@@ -111,7 +111,7 @@
     <string name="parent_see_title">Что видит твой родитель</string>
     <string name="parent_see">Родитель может видеть, сколько времени каждый день используются приложения на этом устройстве. Сайты, которые ты открываешь, не сохраняются. Всё остаётся на этом устройстве.</string>
     <string name="limits_title">Ограничения Android</string>
-    <string name="limits_text">Android не позволяет приложению запретить сброс до заводских настроек или безопасный режим, самому включить постоянную VPN или частный DNS-сервер, а также защитить гостей, других пользователей и личное пространство. Тот, кто умеет пользоваться отладкой по USB, может отключить защиту. Приложения со своим зашифрованным DNS не фильтруются, и приложение не видит, что внутри приложений и страниц. Режим расширенной защиты (Android 16) отключает ограничения времени.</string>
+    <string name="limits_text">Android не позволяет приложению запретить сброс до заводских настроек или безопасный режим, самому включить постоянную VPN или частный DNS-сервер, а также защитить гостей, других пользователей, личное пространство, клоны приложений и рабочий профиль (они работают от имени другого пользователя). Приложения со своим зашифрованным DNS не фильтруются, и приложение не видит, что внутри приложений и страниц. Режим расширенной защиты (Android 16) отключает ограничения времени.</string>
 
     <string name="enter_pin">Введите PIN-код родителя</string>
     <string name="parent_title">Для родителя</string>
@@ -134,7 +134,7 @@
     <string name="rp_game">Использовано время для игр: %1$s</string>
     <string name="rp_apps">Самые используемые приложения</string>
     <string name="rp_none">Активности пока нет.</string>
-    <string name="rp_blocked">Закрытых запросов к сайтам: %1$d</string>
+    <string name="rp_blocked">Заблокированных запросов к сайтам: %1$d</string>
     <string name="rp_note">Считается на этом устройстве. Названия сайтов не сохраняются.</string>
     <string name="apps_change">Изменить приложения и игры</string>
     <string name="times_title">Время</string>
@@ -165,6 +165,17 @@
     <string name="lock_open">Настройки открыты до %1$s.</string>
     <string name="lock_closed">Для страниц настроек нужен PIN-код родителя.</string>
     <string name="pin_current">Текущий PIN-код</string>
+    <string name="limits_adb">Тот, кто умеет пользоваться отладкой по USB (adb), может отключить защиту.</string>
+    <string name="st_topics">Сайты о сексуальности и гендерной идентичности заблокированы</string>
+    <string name="topics_switch">Темы сексуальности и гендерной идентичности</string>
+    <string name="topics_note">Блокирует сайты в основном о сексуальной ориентации, гендерной идентичности и смене пола. Телефоны доверия остаются открытыми.</string>
+    <string name="notif_limits_only">RaiseSteady Guard включён: только ограничения времени</string>
+    <plurals name="to_check">
+        <item quantity="one">%d настройку нужно проверить</item>
+        <item quantity="few">%d настройки нужно проверить</item>
+        <item quantity="many">%d настроек нужно проверить</item>
+        <item quantity="other">%d настройки нужно проверить</item>
+    </plurals>
     <string name="change_pin">Изменить PIN-код</string>
     <string name="pin_changed">PIN-код изменён.</string>
     <string name="remove">Отключить защиту</string>

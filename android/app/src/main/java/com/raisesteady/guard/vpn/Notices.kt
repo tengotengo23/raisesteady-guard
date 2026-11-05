@@ -22,6 +22,7 @@ object Notices {
     const val ID_LIMITS_OFF = 3
     const val ID_FIVE_MINUTES = 4
     const val ID_UNLOCKED = 5
+    const val ID_LIMITS_ONLY = 6
 
     fun createChannels(context: Context) {
         val nm = context.getSystemService(NotificationManager::class.java)
@@ -110,6 +111,27 @@ object Notices {
     }
 
     fun clearUnlocked(context: Context) = cancel(context, ID_UNLOCKED)
+
+    /**
+     * While the site filter is off but the accessibility service runs: an ongoing notice of its own,
+     * so the app is never watching the screen without one (Play's stalkerware rule; review N4).
+     */
+    fun limitsOnly(context: Context) {
+        val n = NotificationCompat.Builder(context, CHANNEL_PROTECTION)
+            .setSmallIcon(R.drawable.ic_stat_guard)
+            .setContentTitle(context.getString(R.string.notif_limits_only))
+            .setContentText(context.getString(R.string.notif_filter_off))
+            .setStyle(NotificationCompat.BigTextStyle().bigText(context.getString(R.string.notif_filter_off)))
+            .setContentIntent(openApp(context))
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setSilent(true)
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .build()
+        notify(context, ID_LIMITS_ONLY, n)
+    }
+
+    fun clearLimitsOnly(context: Context) = cancel(context, ID_LIMITS_ONLY)
 
     fun cancel(context: Context, id: Int) = context.getSystemService(NotificationManager::class.java).cancel(id)
 

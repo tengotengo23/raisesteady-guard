@@ -131,9 +131,10 @@ abstract class SharedDataTask : DefaultTask() {
             "shared/topics.json",
             "shared/learning-domains.json",
             "shared/android-apps.json",
-            "installer/terms-en.txt",
-            "installer/terms-ka.txt",
-            "installer/terms-ru.txt",
+            // Android's own terms: the installer's legal text with an Android privacy paragraph (review S7).
+            "android/terms/terms-en.txt",
+            "android/terms/terms-ka.txt",
+            "android/terms/terms-ru.txt",
         )
 
         /** Every file the task reads. */

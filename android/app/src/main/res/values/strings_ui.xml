@@ -95,13 +95,13 @@
     <string name="turn_protection_on">Turn protection on</string>
 
     <!-- 13 Checks -->
-    <string name="checks_title">Last checks</string>
+    <string name="checks_title">Final checks</string>
     <string name="check_dns_ok">Private DNS is Automatic or Off.</string>
     <string name="check_dns_bad">Private DNS is set to %1$s. Set it to Automatic or Off, or the filter cannot work.</string>
     <string name="check_time_ok">Date and time are set automatically.</string>
     <string name="check_time_bad">Automatic date and time is off. Switch it on, so bedtime and game time are right.</string>
-    <string name="check_unused_ok">Pause app activity if unused is off for this app.</string>
-    <string name="check_unused_bad">Switch off Pause app activity if unused for RaiseSteady Guard.</string>
+    <string name="check_unused_ok">\"Pause app activity if unused\" is off for this app.</string>
+    <string name="check_unused_bad">Switch off \"Pause app activity if unused\" for RaiseSteady Guard.</string>
     <string name="check_battery">This kind of phone may stop apps to save battery. Let RaiseSteady Guard run without battery limits.</string>
     <string name="battery_settings">Battery settings</string>
     <string name="advice_play">Set up parental controls in the Play Store, so new apps need your OK.</string>
@@ -127,7 +127,7 @@
     <string name="parent_see_title">What your parent can see</string>
     <string name="parent_see">Your parent can see how long apps are used on this device each day. The sites you open are not kept. It all stays on this device.</string>
     <string name="limits_title">Limits on Android</string>
-    <string name="limits_text">Android does not let an app stop a factory reset or safe mode, set Always-on VPN or Private DNS by itself, or cover guest users, other users or a private space. Someone with USB debugging can switch the protection off. Apps with their own encrypted DNS are not filtered, and the app cannot see inside apps or pages. Advanced Protection mode (Android 16) switches the time limits off.</string>
+    <string name="limits_text">Android does not let an app stop a factory reset or safe mode, set Always-on VPN or Private DNS by itself, or cover guest users, other users, a private space, cloned or dual apps and a work profile (they run as another user). Apps with their own encrypted DNS are not filtered, and the app cannot see inside apps or pages. Advanced Protection mode (Android 16) switches the time limits off.</string>
 
     <!-- Parent page -->
     <string name="enter_pin">Enter the parent PIN</string>
@@ -151,7 +151,7 @@
     <string name="rp_game">Game time used: %1$s</string>
     <string name="rp_apps">Apps used most</string>
     <string name="rp_none">No activity yet.</string>
-    <string name="rp_blocked">Site lookups closed: %1$d</string>
+    <string name="rp_blocked">Blocked site requests: %1$d</string>
     <string name="rp_note">Counted on this device. No site names are kept.</string>
     <string name="apps_change">Change apps and games</string>
     <string name="times_title">Times</string>
@@ -182,6 +182,15 @@
     <string name="lock_open">Settings are unlocked until %1$s.</string>
     <string name="lock_closed">Settings pages need the parent PIN.</string>
     <string name="pin_current">Current PIN</string>
+    <string name="limits_adb">Someone with USB debugging (adb) can switch the protection off.</string>
+    <string name="st_topics">Sites about sexuality and gender identity are blocked</string>
+    <string name="topics_switch">Sexuality and gender identity topics</string>
+    <string name="topics_note">Blocks sites mainly about sexual orientation, gender identity and changing sex. Helplines stay open.</string>
+    <string name="notif_limits_only">RaiseSteady Guard is on: time limits only</string>
+    <plurals name="to_check">
+        <item quantity="one">%d setting to check</item>
+        <item quantity="other">%d settings to check</item>
+    </plurals>
     <string name="change_pin">Change PIN</string>
     <string name="pin_changed">The PIN is changed.</string>
     <string name="remove">Turn protection off</string>

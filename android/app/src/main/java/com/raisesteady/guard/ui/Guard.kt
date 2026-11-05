@@ -13,7 +13,7 @@ import androidx.compose.runtime.produceState
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.core.content.IntentCompat
 import androidx.core.graphics.drawable.toBitmap
 import androidx.core.net.toUri
@@ -163,7 +163,7 @@ suspend fun turnProtectionOff(ctx: Context) {
     app.repo.updateSettings { com.raisesteady.guard.data.Settings() }
     app.repo.updateState { com.raisesteady.guard.data.State() }
     withContext(Dispatchers.Main) {
-        listOf(Notices.ID_FILTER_OFF, Notices.ID_LIMITS_OFF, Notices.ID_FIVE_MINUTES, Notices.ID_UNLOCKED).forEach { Notices.cancel(ctx, it) }
+        listOf(Notices.ID_FILTER_OFF, Notices.ID_LIMITS_OFF, Notices.ID_FIVE_MINUTES, Notices.ID_UNLOCKED, Notices.ID_LIMITS_ONLY).forEach { Notices.cancel(ctx, it) }
     }
 }
 

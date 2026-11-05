@@ -48,8 +48,11 @@ class SetupTest {
 
     @Test fun setupFromAFreshInstall() {
         // Fresh: as after a new install (e2e.sh installs fresh; this makes the class safe to run alone).
-        shell("am start -n $GUARD/.debug.DebugFilterActivity --ez fresh true")
-        E2e.waitFor("settings were not reset", 10_000) { !E2e.guardSettingsJson().contains("\"setupDone\":true") }
+        // The release smoke has no debug hooks: the fresh install is all it needs.
+        if (!E2e.release) {
+            shell("am start -n $GUARD/.debug.DebugFilterActivity --ez fresh true")
+            E2e.waitFor("settings were not reset", 10_000) { !E2e.guardSettingsJson().contains("\"setupDone\":true") }
+        }
         E2e.openGuard()
 
         title("Make this device safer for your child")
@@ -133,6 +136,10 @@ class SetupTest {
 
         assertTrue("the status page does not say Protection is on", waitText("Protection is on", 20_000))
         shot("setup/14-status")
+        if (E2e.release) { // run-as cannot read a release build's files
+            device.pressHome()
+            return
+        }
         val stored = E2e.guardSettingsJson()
         assertTrue("setup not stored as done: $stored", stored.contains("\"setupDone\":true"))
         assertTrue("age band not stored", stored.contains("\"bandId\":\"9-12\""))

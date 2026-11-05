@@ -10,11 +10,22 @@
 # tests; screens/look/<scale>-<theme>/ from LookTest), logcat.txt (streamed during the run), and
 # passed when every test passed and logcat shows no crash.
 # Tests are never retried: a failure is a failure.
+#
+# Release smoke (E2E_RELEASE=1, review M1): installs the minified, signed release APK instead of the
+# debug build (CI signs it with a throwaway key made in the job), walks the real setup (a release
+# build has no debug hooks) and checks the filter, into $E2E_OUT/<api>-release/.
 set -uo pipefail
 
 AND="$(cd "$(dirname "$0")/.." && pwd)"
+RELEASE="${E2E_RELEASE:-0}"
 # In this order: SetupTest needs the fresh install; LookTest changes font size and theme last.
-CLASSES="${E2E_CLASSES:-SetupTest FilterTest GameTimeTest GuardTest ReportTest ParentTest LookTest}"
+if [ "$RELEASE" = 1 ]; then
+  CLASSES="${E2E_CLASSES:-SetupTest FilterTest#adultAndBypassDomainsDoNotResolve FilterTest#safeSearchAndRestrictedMode FilterTest#socialIsBlockedUnder13 FilterTest#ordinaryAndHelplineSitesResolve}"
+  ARGS="-e release true"
+else
+  CLASSES="${E2E_CLASSES:-SetupTest FilterTest GameTimeTest GuardTest ReportTest ParentTest LookTest}"
+  ARGS=""
+fi
 PKG=com.raisesteady.guard
 E2E=com.raisesteady.guard.e2e
 RUNNER="$E2E.test/androidx.test.runner.AndroidJUnitRunner"
@@ -23,6 +34,7 @@ DEV_DIR=/data/local/tmp/guard-e2e
 adb wait-for-device
 API="$(adb shell getprop ro.build.version.sdk | tr -d '\r')"
 OUT="${E2E_OUT:-$AND/build/e2e}/$API"
+[ "$RELEASE" = 1 ] && OUT="$OUT-release"
 rm -rf "$OUT"; mkdir -p "$OUT/screens"
 # The emulator booted and this script runs: from here on a failure is a test failure, not a boot failure.
 date -u +%FT%TZ > "$OUT/started"
@@ -45,6 +57,10 @@ adb logcat -v threadtime > "$OUT/logcat.txt" 2>&1 &
 LOGCAT_PID=$!
 
 APP_APK="$AND/app/build/outputs/apk/debug/app-debug.apk"
+if [ "$RELEASE" = 1 ]; then
+  APP_APK="$(find "$AND/app/build/outputs/apk/release" -name 'raisesteady-guard-android-*.apk' 2>/dev/null | head -1)"
+  [ -n "$APP_APK" ] || fail "no release APK in app/build/outputs/apk/release (build :app:assembleRelease first)"
+fi
 E2E_APK="$AND/e2e/build/outputs/apk/debug/e2e-debug.apk"
 TEST_APK="$AND/e2e/build/outputs/apk/androidTest/debug/e2e-debug-androidTest.apk"
 for a in "$APP_APK" "$E2E_APK" "$TEST_APK"; do [ -f "$a" ] || fail "missing $a (build it first)"; done
@@ -83,9 +99,11 @@ for c in $CLASSES; do
   echo "== $c"
   # A class that hangs is stopped after 15 minutes and counts as failed (no result).
   if command -v timeout >/dev/null; then
-    timeout 900 adb shell am instrument -w -r -e class "$E2E.$c" "$RUNNER" > "$f" 2>&1
+    # shellcheck disable=SC2086
+    timeout 900 adb shell am instrument -w -r $ARGS -e class "$E2E.$c" "$RUNNER" > "$f" 2>&1
   else
-    adb shell am instrument -w -r -e class "$E2E.$c" "$RUNNER" > "$f" 2>&1
+    # shellcheck disable=SC2086
+    adb shell am instrument -w -r $ARGS -e class "$E2E.$c" "$RUNNER" > "$f" 2>&1
   fi
   awk -v cls="$c" '
     /^INSTRUMENTATION_STATUS: test=/ { t = substr($0, index($0, "=") + 1) }

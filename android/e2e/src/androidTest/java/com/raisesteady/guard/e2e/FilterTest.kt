@@ -34,6 +34,8 @@ class FilterTest {
         @BeforeClass
         @JvmStatic
         fun startFilter() {
+            // A release build has no debug hooks: SetupTest's real setup started the filter (release smoke).
+            if (E2e.release) return
             shell("am start -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true")
             val deadline = System.currentTimeMillis() + 30_000
             while (resolves("pornhub.com")) {
@@ -56,8 +58,13 @@ class FilterTest {
     }
 
     @Test fun safeSearchAndRestrictedMode() {
-        assertEquals(addresses("forcesafesearch.google.com"), addresses("www.google.com"))
-        assertEquals(addresses("restrict.youtube.com"), addresses("www.youtube.com"))
+        val safe = addresses("forcesafesearch.google.com")
+        for (h in listOf("www.google.com", "google.com", "www.google.co.uk")) assertEquals("$h is not on SafeSearch", safe, addresses(h))
+        // Every host Google documents for YouTube Restricted Mode (review S6), the app's own API hosts too.
+        val restrict = addresses("restrict.youtube.com")
+        for (h in listOf("www.youtube.com", "m.youtube.com", "youtubei.googleapis.com", "youtube.googleapis.com", "www.youtube-nocookie.com")) {
+            assertEquals("$h is not on Restricted Mode", restrict, addresses(h))
+        }
     }
 
     @Test fun ordinaryAndHelplineSitesResolve() {

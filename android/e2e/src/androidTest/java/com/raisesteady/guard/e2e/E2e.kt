@@ -30,6 +30,9 @@ object E2e {
     }
 
     val instr get() = InstrumentationRegistry.getInstrumentation()
+
+    /** The release smoke (tools/e2e.sh --release): Guard is the minified release build, with no debug hooks. */
+    val release: Boolean get() = InstrumentationRegistry.getArguments().getString("release") == "true"
     val device: UiDevice get() = UiDevice.getInstance(instr)
 
     /** Runs a command as the shell user (no shell syntax: words only) and returns what it printed. */
@@ -70,6 +73,8 @@ object E2e {
             shell("settings put secure enabled_accessibility_services $A11Y")
             shell("settings put secure accessibility_enabled 1")
         }
+        // A release build has no status receiver: there the setup step moving on is the proof (SetupTest).
+        if (release) return
         waitFor("Guard's accessibility service was not bound", 30_000) { guardStatus().contains("a11y=true") }
     }
 
@@ -127,6 +132,14 @@ object E2e {
             Thread.sleep(150)
         }
         return true
+    }
+
+    /** The clock offset that puts Guard's time at the first [at] after [after]. */
+    fun offsetTo(after: java.time.Instant, at: java.time.LocalTime): Long {
+        val zone = java.time.ZoneId.systemDefault()
+        var t = java.time.ZonedDateTime.of(after.atZone(zone).toLocalDate(), at, zone)
+        while (t.toInstant().isBefore(after)) t = t.plusDays(1)
+        return java.time.Duration.between(java.time.Instant.now(), t.toInstant()).toMillis()
     }
 
     fun waitFor(what: String, ms: Long, ok: () -> Boolean) {

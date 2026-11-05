@@ -86,4 +86,40 @@ class LookTest {
         device.wait(Until.findObject(byTag("status-title")), 2_000)
         device.pressHome()
     }
+
+    /** Review W8: the changed screens at font scale 2.0 (screens/w8/): status with its sub-line, parent Sites, block screen in Russian. */
+    @Test fun c_changedScreensAtLargeText() {
+        E2e.enableGuard()
+        E2e.clearLook()
+        shell("settings put system font_scale 2.0")
+        Thread.sleep(1_500)
+        E2e.openGuard("status")
+        assertTrue(waitText("Protection is", 15_000))
+        // Always-on VPN is off on the emulator: the title gets a sub-line.
+        assertTrue("no \"to check\" sub-line under the status title", device.wait(Until.hasObject(byTag("status-to-check")), 5_000) == true)
+        Thread.sleep(900)
+        shot("w8/2.0-status")
+        E2e.openGuard("parent")
+        assertTrue(waitText("Pause game-time apps now", 15_000))
+        assertTrue("no topic filter switch in Sites", E2e.scrollFind(byTag("topics-switch")) != null)
+        Thread.sleep(600)
+        shot("w8/2.0-parent-sites")
+        device.pressHome()
+        if (android.os.Build.VERSION.SDK_INT >= 33) {
+            shell("cmd locale set-app-locales com.raisesteady.guard --locales ru")
+            Thread.sleep(1_500)
+            try {
+                E2e.showChild("block", "PAUSED")
+                assertTrue("the block screen is not in Russian", waitText("Приложение Test game сейчас закрыто", 15_000))
+                assertTrue(device.hasObject(androidx.test.uiautomator.By.textContains("Родитель поставил на паузу до")))
+                Thread.sleep(900)
+                shot("w8/2.0-ru-block")
+            } finally {
+                shell("cmd locale set-app-locales com.raisesteady.guard --locales en")
+                device.pressHome()
+            }
+        }
+        val log = E2e.look()
+        assertTrue("texts were cut in their box: $log", log.contains("overflow=0"))
+    }
 }

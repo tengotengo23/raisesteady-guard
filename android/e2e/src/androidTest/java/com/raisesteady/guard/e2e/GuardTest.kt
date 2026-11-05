@@ -9,6 +9,7 @@ import com.raisesteady.guard.e2e.E2e.shell
 import com.raisesteady.guard.e2e.E2e.shot
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Before
 import org.junit.FixMethodOrder
 import org.junit.Rule
@@ -166,5 +167,43 @@ class GuardTest {
         val out = shell("pm uninstall $GUARD")
         assertTrue("uninstall was not refused: $out", out.contains("DELETE_FAILED_DEVICE_POLICY_MANAGER"))
         assertTrue("Guard is gone", shell("pm path $GUARD").contains("package:"))
+    }
+
+    /**
+     * Review S1: in split screen the game in one half keeps its limits while an allowed app
+     * (Chrome) is used in the other half. Skipped (assumption) where the emulator cannot make a
+     * split screen from the shell or has no Chrome.
+     */
+    @Test fun f_splitScreenKeepsTheGameLimited() {
+        assumeTrue("split screen from the shell needs Android 12L or later", android.os.Build.VERSION.SDK_INT >= 32)
+        assumeTrue("no Chrome on this image", shell("pm path com.android.chrome").contains("package:"))
+        try {
+            E2e.clockOffset(E2e.offsetTo(java.time.Instant.now(), java.time.LocalTime.NOON))
+            shell("am start -n ${E2e.GAME}/.TestGameActivity")
+            assertTrue("the test game did not open", E2e.waitPackage(E2e.GAME, 10_000))
+            val task = Regex("#(\\d+) type=standard A=\\d+:${Regex.escape(E2e.GAME)}\\b").find(shell("dumpsys activity activities"))?.groupValues?.get(1)
+            assumeTrue("no task id for the test game", task != null)
+            shell("am start -a android.intent.action.VIEW -d https://example.org com.android.chrome")
+            assertTrue("Chrome did not open", E2e.waitPackage("com.android.chrome", 15_000))
+            shell("dumpsys activity service SystemUIService WMShell splitscreen moveToSideStage $task 1")
+            fun visible() = E2e.instr.uiAutomation.windows
+                .filter { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION }
+                .mapNotNull { runCatching { it.root?.packageName?.toString() }.getOrNull() }
+            var both = false
+            repeat(20) { if (!both) { both = visible().containsAll(listOf(E2e.GAME, "com.android.chrome")); if (!both) Thread.sleep(500) } }
+            assumeTrue("the emulator did not show a split screen: ${visible()}", both)
+            // The allowed app is the one in use: tap its half.
+            val chrome = E2e.instr.uiAutomation.windows.firstOrNull { runCatching { it.root?.packageName?.toString() }.getOrNull() == "com.android.chrome" }
+            val r = android.graphics.Rect().also { chrome!!.getBoundsInScreen(it) }
+            device.click(r.centerX(), r.centerY())
+            shot("split-screen")
+            // Bedtime starts (band 9-12: 21:00): the game in the other half is closed.
+            E2e.clockOffset(E2e.offsetTo(java.time.Instant.now(), java.time.LocalTime.of(21, 1)))
+            assertTrue("the game in split screen was not closed at bedtime", E2e.waitText("Bedtime until", 30_000))
+            shot("split-screen-closed")
+        } finally {
+            E2e.clockOffset(0)
+            device.pressHome()
+        }
     }
 }
