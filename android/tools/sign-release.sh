@@ -37,7 +37,7 @@ rm -f "$apk"
 ( cd "$AND" && ./gradlew --no-daemon -q :app:assembleRelease )
 [ -f "$apk" ] || fail "the build made no $apk"
 
-bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+bt="$(find "$ANDROID_HOME/build-tools" -mindepth 1 -maxdepth 1 -type d | sort -V | tail -1)"
 certs="$("$bt/apksigner" verify --print-certs "$apk")" || fail "apksigner verify failed"
 fp="$(sed -n 's/^Signer #1 certificate SHA-256 digest: //p' <<< "$certs")"
 [ -n "$fp" ] || fail "no signer certificate in $apk"

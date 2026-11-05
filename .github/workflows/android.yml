@@ -7,7 +7,7 @@ name: android
 on:
   workflow_dispatch:
   push:
-    branches: [main, p2-162-android]
+    branches: [main]
   pull_request:
 
 permissions:
