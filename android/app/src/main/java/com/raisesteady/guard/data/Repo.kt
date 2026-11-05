@@ -6,6 +6,7 @@ import androidx.datastore.core.DataStore
 import androidx.datastore.core.DataStoreFactory
 import androidx.datastore.core.Serializer
 import androidx.datastore.core.handlers.ReplaceFileCorruptionHandler
+import com.raisesteady.guard.guard.TimelineRecord
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -44,7 +45,8 @@ class JsonSerializer<T>(private val serializer: KSerializer<T>, override val def
 /**
  * The three files Guard keeps, all on this device (no backup, allowBackup=false): settings.json
  * (what the parent set, the PIN hash), state.json (pause, more time, PIN lock, settings unlock),
- * usage.json (30 days of minutes; no site names). One process.
+ * usage.json (30 days of minutes; no site names), timeline.json (today's foreground record, kept
+ * for counting without usage access). One process.
  */
 class Repo(private val dir: File, private val scope: CoroutineScope) {
     constructor(context: Context, scope: CoroutineScope) : this(File(context.filesDir, "datastore"), scope)
@@ -59,6 +61,7 @@ class Repo(private val dir: File, private val scope: CoroutineScope) {
     private val settingsStore = store("settings.json", Settings.serializer(), Settings())
     private val stateStore = store("state.json", State.serializer(), State())
     private val usageStore = store("usage.json", Usage.serializer(), Usage())
+    private val timelineStore = store("timeline.json", TimelineRecord.serializer(), TimelineRecord())
 
     val settings: StateFlow<Settings> = settingsStore.data.stateIn(scope, SharingStarted.Eagerly, Settings())
     val state: StateFlow<State> = stateStore.data.stateIn(scope, SharingStarted.Eagerly, State())
@@ -67,6 +70,13 @@ class Repo(private val dir: File, private val scope: CoroutineScope) {
     suspend fun updateSettings(f: (Settings) -> Settings): Settings = settingsStore.updateData(f)
     suspend fun updateState(f: (State) -> State): State = stateStore.updateData(f)
     suspend fun updateUsage(f: (Usage) -> Usage): Usage = usageStore.updateData(f)
+
+    /** The foreground record kept without usage access (D3): saved each minute, read when the guard starts. */
+    suspend fun saveTimeline(rec: TimelineRecord) {
+        timelineStore.updateData { rec }
+    }
+
+    suspend fun readTimeline(): TimelineRecord = timelineStore.data.first()
 
     /** Reads the files (not the cached flows): for code that must see what is stored now. */
     suspend fun readSettings(): Settings = settingsStore.data.first()

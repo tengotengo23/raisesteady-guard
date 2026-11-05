@@ -2,17 +2,19 @@
 # RaiseSteady Guard for Android: end-to-end tests on a booted emulator (design 6.2).
 # CI runs it from ReactiveCircus/android-emulator-runner; it works on any device adb sees.
 #
-#   E2E_OUT=<dir> E2E_CLASSES="FilterTest GameTimeTest GuardTest" bash android/tools/e2e.sh
+#   E2E_OUT=<dir> E2E_CLASSES="SetupTest FilterTest GameTimeTest GuardTest ReportTest ParentTest LookTest" bash android/tools/e2e.sh
 #
 # Needs the APKs built first (./gradlew :app:assembleDebug :e2e:assembleDebug
 # :e2e:assembleDebugAndroidTest). Writes to $E2E_OUT/<api>/: started (the emulator booted),
 # instrument-<Class>.txt (raw results), results.txt (one line per test), screens/ (from the
-# tests), logcat.txt (streamed during the run), and passed when every test passed and logcat shows no crash.
+# tests; screens/look/<scale>-<theme>/ from LookTest), logcat.txt (streamed during the run), and
+# passed when every test passed and logcat shows no crash.
 # Tests are never retried: a failure is a failure.
 set -uo pipefail
 
 AND="$(cd "$(dirname "$0")/.." && pwd)"
-CLASSES="${E2E_CLASSES:-FilterTest GameTimeTest GuardTest}"  # in this order: FilterTest runs before the guard is on
+# In this order: SetupTest needs the fresh install; LookTest changes font size and theme last.
+CLASSES="${E2E_CLASSES:-SetupTest FilterTest GameTimeTest GuardTest ReportTest ParentTest LookTest}"
 PKG=com.raisesteady.guard
 E2E=com.raisesteady.guard.e2e
 RUNNER="$E2E.test/androidx.test.runner.AndroidJUnitRunner"

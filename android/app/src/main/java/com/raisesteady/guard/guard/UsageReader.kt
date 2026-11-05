@@ -6,6 +6,7 @@ import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.os.Process
 import com.raisesteady.guard.rules.UsageEvent
+import kotlinx.serialization.Serializable
 
 /**
  * Usage events from Android (UsageStatsManager: system-held, so they survive our process
@@ -47,9 +48,18 @@ class UsageReader(private val context: Context, private val offsetMs: () -> Long
     }
 }
 
+/** One saved foreground event (timeline.json). */
+@Serializable
+data class SavedEvent(val pkg: String, val kind: UsageEvent.Kind, val timeMs: Long)
+
+/** timeline.json: today's foreground record and when it was saved. */
+@Serializable
+data class TimelineRecord(val events: List<SavedEvent> = emptyList(), val front: String? = null, val savedMs: Long = 0)
+
 /**
- * The accessibility service's own record of which app is in front, kept in memory: used to count
- * when usage access is switched off (design 3.3). Events of today only.
+ * The accessibility service's own record of which app is in front: used to count when usage
+ * access is switched off (design 3.3). Kept in memory and saved each minute to timeline.json
+ * (director's decision D3), so the minutes survive our process dying. Events of today only.
  */
 class ForegroundTimeline {
     private val events = ArrayList<UsageEvent>()
@@ -73,6 +83,25 @@ class ForegroundTimeline {
             // An app already in front when the day began counts from the start of the day.
             front?.takeIf { f -> events.none { it.timeMs >= fromMs && it.pkg == f } }?.let { UsageEvent(it, "", UsageEvent.Kind.RESUMED, fromMs) },
         )
+    }
+
+    /** What to save at [nowMs]: the events since [fromMs] (the start of today) and the app in front. */
+    @Synchronized fun record(fromMs: Long, nowMs: Long): TimelineRecord =
+        TimelineRecord(since(fromMs).map { SavedEvent(it.pkg, it.kind, it.timeMs) }, front, nowMs)
+
+    /**
+     * Puts a saved record back after the process started again. The app that was in front counts
+     * up to the moment of the save (nothing is known after it); events before [fromMs] (an older
+     * day) are dropped. Events seen since the start are kept after the saved ones.
+     */
+    @Synchronized fun restore(rec: TimelineRecord, fromMs: Long) {
+        if (rec.savedMs < fromMs) return
+        val saved = rec.events.filter { it.timeMs >= fromMs }.map { UsageEvent(it.pkg, "", it.kind, it.timeMs) }.toMutableList()
+        rec.front?.let { saved += UsageEvent(it, "", UsageEvent.Kind.PAUSED, rec.savedMs) }
+        val newer = events.filter { it.timeMs >= rec.savedMs }
+        events.clear()
+        events += saved
+        events += newer
     }
 
     private companion object {

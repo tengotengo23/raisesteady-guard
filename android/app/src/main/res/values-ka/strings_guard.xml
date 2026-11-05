@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Georgian. The child screens speak to the child ("შენ"), as the iOS shield screen. -->
+<resources>
+    <string name="block_title">%1$s ახლა დახურულია</string>
+    <string name="reason_time_up">დღევანდელი თამაშის დრო ამოიწურა.</string>
+    <string name="reason_bedtime">ძილის დროა %1$s-მდე.</string>
+    <string name="reason_homework">საშინაო დავალების დროა %1$s-მდე.</string>
+    <string name="reason_paused">მშობელმა შეაჩერა %1$s-მდე.</string>
+    <string name="reason_blocked">მშობელმა გადაწყვიტა, რომ ეს აპი დახურული იყოს.</string>
+    <string name="block_ask">სთხოვე მშობელს: მას აქ შეუძლია მეტი დრო მოგცეს.</string>
+    <string name="block_home">მთავარ ეკრანზე გადასვლა</string>
+    <string name="for_parent">მშობლისთვის</string>
+    <string name="more_15">კიდევ 15 წუთი</string>
+    <string name="more_30">კიდევ 30 წუთი</string>
+    <string name="cancel">გაუქმება</string>
+    <string name="pin_label">მშობლის PIN-კოდი</string>
+    <string name="pin_wrong">არასწორი PIN-კოდი.</string>
+    <string name="pin_locked">ძალიან ბევრი არასწორი ცდა. სცადეთ თავიდან %1$s-ზე.</string>
+    <string name="gate_title">ამ გვერდს მშობლის PIN-კოდი სჭირდება</string>
+    <string name="gate_text">ის ცვლის, როგორ იცავს RaiseSteady Guard ამ მოწყობილობას.</string>
+    <string name="gate_unlock">განბლოკვა 10 წუთით</string>
+    <string name="gate_back">უკან</string>
+    <string name="unlocked_until">პარამეტრები განბლოკილია %1$s-მდე. შეეხეთ, რომ ახლავე ჩაიკეტოს.</string>
+    <string name="lock_now">ახლავე ჩაკეტვა</string>
+    <string name="notif_limits_off">დროის შეზღუდვები გამორთულია. სთხოვეთ მშობელს, გახსნას RaiseSteady Guard.</string>
+    <string name="notif_five_minutes">დღეს თამაშის 5 წუთი დარჩა.</string>
+    <string name="notif_game_left">საიტები იფილტრება. დღეს თამაშის დრო დარჩა: %1$d წთ.</string>
+    <string name="notif_incomplete">დაცვა არასრულია. სთხოვეთ მშობელს, გახსნას RaiseSteady Guard.</string>
+    <string name="admin_description">თქვენი PIN-კოდის გარეშე აპის წაშლა შეუძლებელია.</string>
+    <string name="admin_disable_warning">ამის გამორთვით RaiseSteady Guard-ის წაშლა შესაძლებელი გახდება. სთხოვეთ მშობელს.</string>
+    <string name="a11y_description">Android-ის მარტივი წვდომის უფლებით აპი ხედავს, რომელი აპია ეკრანზე: ასე მას შეუძლია დახუროს აპი, როცა მისი დრო ამოიწურება, და არ დაუშვას დაცვის გამორთვა თქვენი PIN-კოდის გარეშე. ეკრანზე არსებულ სიტყვებს ის კითხულობს მხოლოდ პარამეტრებში და აპების ინსტალერში, რომ იპოვოს ამ აპის საკუთარი გვერდები. ის არ კითხულობს შეტყობინებებს, პაროლებს და აკრეფილ ტექსტს, და ამ მოწყობილობიდან არაფერი გადის.</string>
+</resources>

@@ -42,20 +42,16 @@ object E2e {
     fun guardSettingsJson(): String = shell("run-as $GUARD cat files/datastore/settings.json")
 
     /**
-     * Sets Guard up as a parent would before the setup screens exist (W6): age 9-12, PIN 2468,
-     * nothing paused or unlocked, the filter on; then switches the accessibility service on and
-     * waits until Android has bound it.
+     * Sets Guard up quickly (SetupTest walks the real setup screens once): age 9-12, PIN 2468,
+     * setup done, nothing paused or unlocked, the filter on; then switches the accessibility
+     * service on and waits until Android has bound it.
      */
     fun enableGuard(gameMinutes: Int? = null) {
         val extra = gameMinutes?.let { " --ei gameMinutes $it" } ?: ""
         shell("am start -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true --es pin $PIN --ez resetState true$extra")
         val want = gameMinutes?.let { "\"gameMinutes\":$it" } ?: "\"pin\":{"
-        waitFor("Guard's settings were not written ($want)", 20_000) { guardSettingsJson().contains(want) }
-        if (!shell("settings get secure enabled_accessibility_services").contains(A11Y)) {
-            shell("settings put secure enabled_accessibility_services $A11Y")
-            shell("settings put secure accessibility_enabled 1")
-        }
-        waitFor("Guard's accessibility service was not bound", 30_000) { guardStatus().contains("a11y=true") }
+        waitFor("Guard's settings were not written ($want)", 20_000) { guardSettingsJson().let { it.contains(want) && it.contains("\"setupDone\":true") } }
+        enableAccessibility()
         Thread.sleep(1000)
     }
 
@@ -66,6 +62,71 @@ object E2e {
     fun clockOffset(offsetMs: Long) {
         val out = shell("am broadcast -n $GUARD/.debug.DebugClockReceiver --el offsetMs $offsetMs")
         check(out.contains("offset $offsetMs")) { "clock offset not set: $out" }
+    }
+
+    /** Switches Guard's accessibility service on (as a parent does in Settings) and waits until it is bound. */
+    fun enableAccessibility() {
+        if (!shell("settings get secure enabled_accessibility_services").contains(A11Y)) {
+            shell("settings put secure enabled_accessibility_services $A11Y")
+            shell("settings put secure accessibility_enabled 1")
+        }
+        waitFor("Guard's accessibility service was not bound", 30_000) { guardStatus().contains("a11y=true") }
+    }
+
+    /** Opens Guard's app at [route] ("setup:8", "status", "parent", "apps"; debug builds), in a new task. */
+    fun openGuard(route: String? = null) {
+        val extra = route?.let { " --es debugScreen $it" } ?: ""
+        shell("am start -n $GUARD/.MainActivity -f 0x10008000$extra")
+    }
+
+    /** Opens a child screen (debug builds): "block" with a reason, or "gate". */
+    fun showChild(screen: String, reason: String = "TIME_UP") {
+        shell("am start -n $GUARD/.debug.DebugShowActivity --es screen $screen --es reason $reason")
+    }
+
+    /** The look log (debug builds): texts that overflowed their box and the screen entries' motion. */
+    fun look(clear: Boolean = false): String =
+        shell("am broadcast -n $GUARD/.debug.DebugStatusReceiver --ez look true --ez clearLook $clear")
+
+    fun clearLook() {
+        shell("am broadcast -n $GUARD/.debug.DebugStatusReceiver --ez clearLook true")
+    }
+
+    /** An object by its Compose test tag (Guard's screens publish tags as resource ids). */
+    fun byTag(tag: String) = By.res(tag)
+
+    /**
+     * Finds [selector] on screen, scrolling the page down (and then up) when needed: Guard's pages
+     * and Settings lists are longer than the screen at large text.
+     */
+    fun scrollFind(selector: androidx.test.uiautomator.BySelector, ms: Long = 10_000): androidx.test.uiautomator.UiObject2? {
+        device.wait(Until.findObject(selector), 2_000)?.let { return it }
+        val end = System.currentTimeMillis() + ms
+        while (System.currentTimeMillis() < end) {
+            val list = device.findObjects(By.scrollable(true)).maxByOrNull { it.visibleBounds.height() }
+            if (list == null) {
+                device.wait(Until.findObject(selector), 1_000)?.let { return it }
+                continue
+            }
+            for (dir in listOf(androidx.test.uiautomator.Direction.DOWN, androidx.test.uiautomator.Direction.UP)) {
+                repeat(25) {
+                    device.findObject(selector)?.let { return it }
+                    if (!list.scroll(dir, 0.6f)) return@repeat
+                }
+            }
+            device.findObject(selector)?.let { return it }
+        }
+        return device.findObject(selector)
+    }
+
+    /** True when [text] does not show for [ms] (nothing covered the page). */
+    fun staysAway(text: String, ms: Long): Boolean {
+        val end = System.currentTimeMillis() + ms
+        while (System.currentTimeMillis() < end) {
+            if (device.hasObject(By.text(text))) return false
+            Thread.sleep(150)
+        }
+        return true
     }
 
     fun waitFor(what: String, ms: Long, ok: () -> Boolean) {
@@ -91,7 +152,9 @@ object E2e {
     /** Screenshots and window dumps; tools/e2e.sh pulls this folder into the CI artefact. */
     private val dir: File by lazy { File(instr.targetContext.getExternalFilesDir(null), "screens").apply { mkdirs() } }
 
+    /** [name] may hold folders ("look/2.0-dark/status"). */
     fun shot(name: String) {
+        File(dir, name).parentFile?.mkdirs()
         runCatching { device.takeScreenshot(File(dir, "$name.png")) }
         runCatching { File(dir, "$name.xml").outputStream().use { device.dumpWindowHierarchy(it) } }
     }

@@ -17,8 +17,9 @@ import kotlinx.coroutines.runBlocking
  * tests, before the setup screens exist (W6):
  * `am start -n com.raisesteady.guard/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true`
  * Optional: `--ei gameMinutes 1` (debug builds allow 1 minute), `--es pin 2468`, `--ez resetState true`
- * (no pause, more time, PIN lock or settings unlock). VPN consent is pre-approved with
- * `appops set com.raisesteady.guard ACTIVATE_VPN allow`.
+ * (no pause, more time, PIN lock or settings unlock), `--ez setupDone false` (default true: the
+ * guard acts only after setup), `--ez fresh true` (everything as after a new install; the filter
+ * is not started). VPN consent is pre-approved with `appops set com.raisesteady.guard ACTIVATE_VPN allow`.
  */
 class DebugFilterActivity : Activity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,6 +27,16 @@ class DebugFilterActivity : Activity() {
         val app = application as GuardApp
         val band = app.bands.byId(intent.getStringExtra("band") ?: "9-12")
         val newPin = intent.getStringExtra("pin")?.let { Pin.hash(it) }
+        if (intent.getBooleanExtra("fresh", false)) {
+            runBlocking {
+                app.repo.updateState { State() }
+                app.repo.updateSettings { Settings() }
+            }
+            app.filterSettings.value = FilterSettings.SAFEST
+            Log.i("GuardDebug", "settings: fresh")
+            finish()
+            return
+        }
         val stored = runBlocking {
             if (intent.getBooleanExtra("resetState", false)) app.repo.updateState { State() }
             app.repo.updateSettings {
@@ -35,6 +46,7 @@ class DebugFilterActivity : Activity() {
                     familyDns = intent.getBooleanExtra("familyDns", true),
                     topicFilter = intent.getBooleanExtra("topicFilter", true),
                     gameMinutes = intent.getIntExtra("gameMinutes", base.gameMinutes),
+                    setupDone = intent.getBooleanExtra("setupDone", true),
                 )
             }
         }

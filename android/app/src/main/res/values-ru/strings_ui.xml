@@ -1,0 +1,174 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Russian. Lines with the same meaning come from guard-ios/App/Strings.swift. The parent is "вы", the child "ты". -->
+<resources>
+    <string name="start">Начать</string>
+    <string name="next">Далее</string>
+    <string name="nav_back">Назад</string>
+    <string name="done">Готово</string>
+    <string name="save">Сохранить</string>
+    <string name="close">Закрыть</string>
+    <string name="skip_now">Пока пропустить</string>
+    <string name="not_now">Не сейчас</string>
+    <string name="open_settings">Открыть настройки</string>
+    <string name="fix">Исправить</string>
+    <string name="step_of">Шаг %1$d из %2$d</string>
+    <string name="is_on">Готово: включено.</string>
+    <string name="dur_m">%1$d мин</string>
+    <string name="dur_hm">%1$d ч %2$d мин</string>
+
+    <string name="welcome_text">RaiseSteady Guard блокирует сайты для взрослых, даёт выбранным вами приложениям время на день и время сна и не даёт отключить защиту без вашего PIN-кода. Настройте его на телефоне или планшете ребёнка. Это займёт около 5 минут.</string>
+    <string name="about_link">Что важно знать</string>
+
+    <string name="terms_title">Перед началом</string>
+    <string name="agree">Принимаю</string>
+
+    <string name="age_title">Возраст ребёнка</string>
+    <string name="band">От %1$d до %2$d лет</string>
+    <string name="age_note">От возраста зависят заблокированные сайты, безопасный поиск и рекомендуемое время. Всё это можно изменить позже.</string>
+
+    <string name="pin_title">PIN-код родителя</string>
+    <string name="pin_hint">PIN-код нужен, чтобы менять настройки и отключать защиту. Никому его не говорите.</string>
+    <string name="pin1">PIN-код, от 4 до 8 цифр</string>
+    <string name="pin2">Повторите PIN-код</string>
+    <string name="pin_bad">PIN-код должен состоять из 4–8 цифр, и оба должны совпадать.</string>
+
+    <string name="dns_title">Семейный DNS-фильтр</string>
+    <string name="dns_switch">Использовать семейный DNS-фильтр</string>
+    <string name="dns_text">AdGuard DNS Family, бесплатный публичный сервис, дополнительно блокирует сайты для взрослых, фишинг и много рекламы. Он видит названия открытых сайтов и ваш интернет-адрес, как любой DNS-сервис. Наши собственные списки работают на этом устройстве в любом случае.</string>
+
+    <string name="vpn_title">Включите фильтр сайтов</string>
+    <string name="vpn_why">Android запускает фильтр как VPN на этом устройстве: он сверяет название каждого сайта с нашими списками и ничего не отправляет нам.</string>
+    <string name="vpn_see">Android сообщит, что приложение может отслеживать сетевой трафик. Нажмите OK.</string>
+    <string name="vpn_button">Включить фильтр</string>
+
+    <string name="notif_title">Разрешите уведомления</string>
+    <string name="notif_why">Уведомление показывает, что защита включена, и предупреждает ребёнка за 5 минут до конца времени для игр.</string>
+    <string name="allow">Разрешить</string>
+
+    <string name="usage_title">Разрешите доступ к истории использования</string>
+    <string name="usage_why">Так приложение считает, сколько времени сегодня используется каждое приложение, для ограничений и вашего отчёта. Цифры остаются на этом устройстве.</string>
+    <string name="usage_steps">Найдите RaiseSteady Guard и включите «Разрешить доступ к истории использования».</string>
+
+    <string name="a11y_title">Разрешите RaiseSteady Guard видеть, какое приложение открыто</string>
+    <string name="a11y_agree">Принимаю, открыть настройки</string>
+    <string name="a11y_steps">Откройте «Скачанные приложения» (или «Установленные приложения»), затем RaiseSteady Guard и включите его.</string>
+    <string name="a11y_restricted">Если Android пишет «Настройка ограничена»: откройте «О приложении» для RaiseSteady Guard, нажмите на меню вверху справа, затем «Разрешить ограниченные настройки» и попробуйте снова.</string>
+    <string name="open_app_info">Открыть «О приложении»</string>
+
+    <string name="admin_title">Защитите приложение от удаления</string>
+    <string name="admin_why">Как приложение администратора устройства, RaiseSteady Guard нельзя удалить, пока это не отключено, а та страница просит ваш PIN-код.</string>
+    <string name="turn_on">Включить</string>
+
+    <string name="always_title">Пусть фильтр работает всегда</string>
+    <string name="always_why">Тогда Android сам запускает фильтр и закрывает интернет, если фильтр когда-нибудь остановится.</string>
+    <string name="always_steps">Нажмите на шестерёнку рядом с RaiseSteady Guard, затем включите «Постоянная VPN» и «Блокировать соединения без VPN».</string>
+    <string name="always_button">Открыть настройки VPN</string>
+
+    <string name="apps_title">Приложения и игры</string>
+    <string name="apps_text">Игры начинают со времени для игр. Соцсети и мессенджеры заблокированы до возраста, указанного в их правилах. Всё остальное разрешено.</string>
+    <string name="game_minutes">Время для игр: %1$d мин в день</string>
+    <string name="less_time">Меньше времени</string>
+    <string name="more_time_step">Больше времени</string>
+    <string name="bedtime_switch">Закрывать приложения со временем для игр на время сна</string>
+    <string name="bedtime_from">Время сна начинается</string>
+    <string name="bedtime_to">Время сна заканчивается</string>
+    <string name="time_value">%1$s: %2$s</string>
+    <string name="apps_search">Поиск приложений</string>
+    <string name="apps_none">Приложения не найдены.</string>
+    <string name="level_allowed">Разрешено</string>
+    <string name="level_game">Время для игр</string>
+    <string name="level_blocked">Заблокировано</string>
+    <string name="turn_protection_on">Включить защиту</string>
+
+    <string name="checks_title">Последние проверки</string>
+    <string name="check_dns_ok">Частный DNS-сервер: автоматически или выключен.</string>
+    <string name="check_dns_bad">Частный DNS-сервер: %1$s. Выберите «Автоматически» или «Отключено», иначе фильтр не сможет работать.</string>
+    <string name="check_time_ok">Дата и время устанавливаются автоматически.</string>
+    <string name="check_time_bad">Автоматические дата и время отключены. Включите их, чтобы время сна и время для игр были верными.</string>
+    <string name="check_unused_ok">«Приостанавливать работу, если приложение не используется» отключено для этого приложения.</string>
+    <string name="check_unused_bad">Отключите «Приостанавливать работу, если приложение не используется» для RaiseSteady Guard.</string>
+    <string name="check_battery">Такие телефоны могут останавливать приложения ради экономии батареи. Разрешите RaiseSteady Guard работать без ограничений батареи.</string>
+    <string name="battery_settings">Настройки батареи</string>
+    <string name="advice_play">Настройте родительский контроль в Play Маркете, чтобы новые приложения требовали вашего согласия.</string>
+    <string name="advice_guest">Уберите гостевой доступ: Настройки, Система, Несколько пользователей.</string>
+
+    <string name="status_on">Защита включена</string>
+    <string name="status_incomplete">Защита неполная</string>
+    <string name="st_sites">Сайты для взрослых, азартных игр и обхода фильтра заблокированы</string>
+    <string name="st_safe">Безопасный поиск включён в Google, Bing и DuckDuckGo</string>
+    <string name="st_youtube">Безопасный режим YouTube включён</string>
+    <string name="st_social">Сайты соцсетей заблокированы (до 13 лет)</string>
+    <string name="st_game">Время для игр: %1$d мин в день, сегодня осталось %2$d мин</string>
+    <string name="st_bedtime">Время сна с %1$s до %2$s</string>
+    <string name="st_dns_on">Семейный DNS-фильтр: включён</string>
+    <string name="st_dns_off">Семейный DNS-фильтр: выключен</string>
+    <string name="miss_vpn">Фильтр сайтов выключен.</string>
+    <string name="miss_a11y">Ограничения времени и защита настроек выключены: доступ к специальным возможностям отключён.</string>
+    <string name="miss_usage">Доступ к истории использования отключён: приложение считает минуты само.</string>
+    <string name="miss_admin">Приложение можно удалить: администратор устройства отключён.</string>
+    <string name="miss_notif">Уведомления отключены.</string>
+    <string name="miss_always">Постоянная VPN отключена: если фильтр остановится, интернет останется открытым.</string>
+    <string name="parent_see_title">Что видит твой родитель</string>
+    <string name="parent_see">Родитель может видеть, сколько времени каждый день используются приложения на этом устройстве. Сайты, которые ты открываешь, не сохраняются. Всё остаётся на этом устройстве.</string>
+    <string name="limits_title">Ограничения Android</string>
+    <string name="limits_text">Android не позволяет приложению запретить сброс до заводских настроек или безопасный режим, самому включить постоянную VPN или частный DNS-сервер, а также защитить гостей, других пользователей и личное пространство. Тот, кто умеет пользоваться отладкой по USB, может отключить защиту. Приложения со своим зашифрованным DNS не фильтруются, и приложение не видит, что внутри приложений и страниц. Режим расширенной защиты (Android 16) отключает ограничения времени.</string>
+
+    <string name="enter_pin">Введите PIN-код родителя</string>
+    <string name="parent_title">Для родителя</string>
+    <string name="pause_title">Приостановить приложения со временем для игр сейчас</string>
+    <string name="pause_text">Они сразу закроются и снова откроются, когда время выйдет.</string>
+    <string name="pause_30">30 мин</string>
+    <string name="pause_60">1 час</string>
+    <string name="pause_120">2 часа</string>
+    <string name="pause_morning">До 06:00</string>
+    <string name="paused_until">Приостановлено до %1$s</string>
+    <string name="resume">Снять паузу</string>
+    <string name="more_title">Дополнительное время</string>
+    <string name="more_text">Откройте приложения со временем для игр ещё ненадолго: когда время для игр на сегодня закончилось, во время сна или уроков. Потом они снова закроются.</string>
+    <string name="give_15">15 мин</string>
+    <string name="give_30">30 мин</string>
+    <string name="extra_until">Дополнительное время до %1$s</string>
+    <string name="activity_title">Активность</string>
+    <string name="today">Сегодня</string>
+    <string name="week">Последние 7 дней</string>
+    <string name="rp_game">Использовано время для игр: %1$s</string>
+    <string name="rp_apps">Самые используемые приложения</string>
+    <string name="rp_none">Активности пока нет.</string>
+    <string name="rp_blocked">Закрытых запросов к сайтам: %1$d</string>
+    <string name="rp_note">Считается на этом устройстве. Названия сайтов не сохраняются.</string>
+    <string name="apps_change">Изменить приложения и игры</string>
+    <string name="times_title">Время</string>
+    <string name="weekend_on">Другое время на выходных</string>
+    <string name="weekend_note">В субботу и воскресенье действует время для игр на выходных. В ночь на субботу и на воскресенье — время сна выходных.</string>
+    <string name="weekend_minutes">Время для игр на выходных: %1$d мин в день</string>
+    <string name="weekend_bed_from">Время сна на выходных начинается</string>
+    <string name="weekend_bed_to">Время сна на выходных заканчивается</string>
+    <string name="homework_on">Время для уроков в учебные дни</string>
+    <string name="homework_note">С понедельника по пятницу в это время приложения со временем для игр закрыты.</string>
+    <string name="homework_from">Время для уроков начинается</string>
+    <string name="homework_to">Время для уроков заканчивается</string>
+    <string name="homework_bad">Время для уроков должно закончиться не раньше чем через 15 минут после начала, в тот же день.</string>
+    <string name="night_bad">Время сна должно длиться не меньше 15 минут.</string>
+    <string name="sites_title">Сайты</string>
+    <string name="sites_text">Сайты, которые вы заблокируете, всегда закрыты во всех браузерах. Разрешённые сайты открываются, даже если фильтр заблокировал бы их.</string>
+    <string name="site_field">Сайт, например example.com</string>
+    <string name="site_block">Заблокировать</string>
+    <string name="site_allow">Разрешить</string>
+    <string name="site_bad">Это не похоже на адрес сайта.</string>
+    <string name="site_full">Этот список заполнен (сайтов: %1$d).</string>
+    <string name="blocked_list">Всегда заблокированы</string>
+    <string name="allowed_list">Всегда разрешены</string>
+    <string name="site_remove">Убрать %1$s</string>
+    <string name="list_empty">Пока нет.</string>
+    <string name="checks_parent">Проверка защиты</string>
+    <string name="lock_title">Страницы настроек</string>
+    <string name="lock_open">Настройки открыты до %1$s.</string>
+    <string name="lock_closed">Для страниц настроек нужен PIN-код родителя.</string>
+    <string name="pin_current">Текущий PIN-код</string>
+    <string name="change_pin">Изменить PIN-код</string>
+    <string name="pin_changed">PIN-код изменён.</string>
+    <string name="remove">Отключить защиту</string>
+    <string name="remove_confirm">Это снимет все ограничения на этом устройстве.</string>
+    <string name="removed">Защита отключена. Чтобы удалить приложение: Настройки, Приложения, RaiseSteady Guard, Удалить. Также отключите для него постоянную VPN.</string>
+    <string name="setup_again">Настроить заново</string>
+</resources>

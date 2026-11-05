@@ -19,8 +19,10 @@ import java.util.regex.Pattern
 
 /**
  * Design 6.2 test 4: Guard's own pages in Settings are covered by the PIN screen within 2 s of
- * opening; the right PIN opens them for 10 minutes and "Lock now" closes them again; while Guard
- * is a device admin, uninstalling it is refused. Tests run in name order (uninstall last).
+ * opening; the right PIN opens them for 10 minutes and "Lock now" (on the notice, and on the
+ * parent page: D2) closes them again; while Guard is a device admin, uninstalling it is refused.
+ * The Accessibility list stays open, TalkBack and the other aids too; only Guard's own page there
+ * is covered (D1). Tests run in name order (uninstall last).
  */
 @RunWith(AndroidJUnit4::class)
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
@@ -64,15 +66,42 @@ class GuardTest {
         assertFalse("Back went to Settings", device.hasObject(By.pkg(SETTINGS).depth(0)))
     }
 
-    @Test fun b_vpnAccessibilityAndDeviceAdminPagesAreCovered() {
+    @Test fun b_vpnAndDeviceAdminPagesAreCovered() {
         assertTrue("VPN settings were not covered", covered("am start -a android.settings.VPN_SETTINGS", "VPN settings"))
-        device.pressHome()
-        assertTrue("Accessibility settings were not covered", covered("am start -a android.settings.ACCESSIBILITY_SETTINGS", "Accessibility"))
         device.pressHome()
         assertTrue(
             "Device admin apps were not covered",
             covered("am start -n $SETTINGS/.Settings\$DeviceAdminSettingsActivity", "Device admin apps"),
         )
+        device.pressHome()
+    }
+
+    /** D1: the Accessibility list and the other aids stay open; Guard's own page in it is covered. */
+    @Test fun ba_accessibilityListStaysOpenButOurPageIsCovered() {
+        shell("am force-stop $SETTINGS")
+        shell("am start -a android.settings.ACCESSIBILITY_SETTINGS")
+        assertTrue("Accessibility settings did not open", E2e.waitPackage(SETTINGS, 10_000))
+        assertTrue("the Accessibility list was covered", E2e.staysAway(gate, 4_000))
+        shot("a11y-list-open")
+
+        // Another aid (TalkBack where the image has it, or Magnification, in every Android) opens freely.
+        val aid = listOf("TalkBack", "Magnification").firstNotNullOfOrNull { E2e.scrollFind(By.text(it), 6_000) }
+        assertTrue("no TalkBack or Magnification row in Accessibility", aid != null)
+        val aidName = aid!!.text
+        aid.click()
+        assertTrue("$aidName was covered", E2e.staysAway(gate, 4_000))
+        assertTrue("$aidName did not open in Settings", device.hasObject(By.pkg(SETTINGS).depth(0)))
+        shot("a11y-aid-open")
+
+        // Guard's own page in the list is covered.
+        shell("am force-stop $SETTINGS")
+        shell("am start -a android.settings.ACCESSIBILITY_SETTINGS")
+        assertTrue(E2e.waitPackage(SETTINGS, 10_000))
+        val ours = E2e.scrollFind(By.text("RaiseSteady Guard"), 20_000)
+        assertTrue("Guard's row is not in the Accessibility list", ours != null)
+        ours!!.click()
+        assertTrue("Guard's own accessibility page was not covered", E2e.waitText(gate, 4_000))
+        shot("a11y-our-page-covered")
         device.pressHome()
     }
 
@@ -108,7 +137,33 @@ class GuardTest {
         device.pressHome()
     }
 
-    @Test fun d_uninstallIsRefusedWhileDeviceAdmin() {
+    /** D2: "Lock now" on the parent page closes the unlocked Settings pages too. */
+    @Test fun d_lockNowOnTheParentPage() {
+        assertTrue(covered(appInfo, "App info"))
+        E2e.typePin()
+        assertTrue(E2e.tap("Unlock for 10 minutes"))
+        assertTrue("App info did not show after the PIN", device.wait(androidx.test.uiautomator.Until.hasObject(forceStop), 10_000) == true)
+        device.pressHome()
+
+        E2e.openGuard()
+        assertTrue(E2e.tap("For the parent"))
+        assertTrue(E2e.waitText("Enter the parent PIN", 5_000))
+        E2e.typePin()
+        assertTrue(E2e.tap("Next"))
+        assertTrue("the parent page did not open", E2e.waitText("Pause game-time apps now", 10_000))
+        val lock = E2e.scrollFind(E2e.byTag("lock-now"))
+        assertTrue("no Lock now on the parent page while Settings are unlocked", lock != null)
+        assertTrue(device.hasObject(By.textContains("Settings are unlocked until")))
+        shot("parent-lock-now")
+        lock!!.click()
+        assertTrue("the parent page does not say the pages are locked", E2e.waitText("Settings pages need the parent PIN", 5_000))
+        device.pressHome()
+        Thread.sleep(1000)
+        assertTrue("App info was not covered after Lock now on the parent page", covered(appInfo, "App info after parent Lock now"))
+        device.pressHome()
+    }
+
+    @Test fun e_uninstallIsRefusedWhileDeviceAdmin() {
         val admins = shell("dumpsys device_policy")
         assertTrue("Guard is not an active device admin", admins.contains("$GUARD/.guard.GuardAdminReceiver"))
         val out = shell("pm uninstall $GUARD")

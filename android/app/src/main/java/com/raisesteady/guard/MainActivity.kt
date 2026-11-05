@@ -1,59 +1,116 @@
 package com.raisesteady.guard
 
+import android.content.Intent
 import android.os.Bundle
+import android.os.SystemClock
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawingPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.semantics
-import com.raisesteady.guard.ui.components.GuardCard
-import com.raisesteady.guard.ui.theme.GuardDimens
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import com.raisesteady.guard.ui.Routes
+import com.raisesteady.guard.ui.parent.AppsScreen
+import com.raisesteady.guard.ui.parent.OffScreen
+import com.raisesteady.guard.ui.parent.ParentScreen
+import com.raisesteady.guard.ui.parent.PinScreen
+import com.raisesteady.guard.ui.setup.STEPS
+import com.raisesteady.guard.ui.setup.SetupFlow
+import com.raisesteady.guard.ui.status.StatusScreen
 import com.raisesteady.guard.ui.theme.GuardTheme
-import com.raisesteady.guard.ui.theme.LocalGuardColors
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 
-/** Single activity. The setup, status and parent screens arrive with W6; this is the shell. */
+/**
+ * Single activity: the setup (until it is done), then the status page; "For the parent" (PIN)
+ * opens the parent page and its apps list. Routes: "setup:<step>", "status", "pin", "parent",
+ * "apps", "off" (rules in ui/Routes). The parent session is short-lived: it ends when the app
+ * leaves the screen, is never restored, and closes after 5 minutes without a touch. Debug builds
+ * take a start route for the look tests: `--es debugScreen <route>`.
+ */
 class MainActivity : ComponentActivity() {
+
+    private var route by mutableStateOf(Routes.STATUS)
+    private var lastTouchMs = SystemClock.elapsedRealtime()
+
+    private val app get() = application as GuardApp
+    private val setupDone get() = app.repo.settings.value.setupDone
+
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
+        // The stored settings decide the first screen (a small file; read before the first frame).
+        val done = runBlocking { app.repo.readSettings().setupDone }
+        route = debugRoute(intent) ?: Routes.restored(savedInstanceState?.getString(KEY_ROUTE), done)
         setContent {
             GuardTheme {
-                val c = LocalGuardColors.current
-                Surface(modifier = Modifier.fillMaxSize(), color = c.bg) {
-                    Column(
-                        modifier = Modifier
-                            .safeDrawingPadding()
-                            .verticalScroll(rememberScrollState())
-                            .padding(GuardDimens.gap),
-                        verticalArrangement = Arrangement.spacedBy(GuardDimens.gap),
-                    ) {
-                        Text(
-                            stringResource(R.string.app_name),
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = c.text,
-                            modifier = Modifier.semantics { heading() },
-                        )
-                        GuardCard {
-                            Text(stringResource(R.string.welcome_title), style = MaterialTheme.typography.titleLarge, color = c.text)
-                            Text(stringResource(R.string.welcome_free), style = MaterialTheme.typography.bodyLarge, color = c.text)
-                        }
-                        Text(stringResource(R.string.honest), style = MaterialTheme.typography.bodyMedium, color = c.text2)
-                        Text(stringResource(R.string.about), style = MaterialTheme.typography.bodySmall, color = c.text2)
+                val go: (String) -> Unit = { wanted -> route = Routes.next(route, wanted, setupDone) }
+                LaunchedEffect(route) {
+                    while (Routes.gated(route)) {
+                        delay(IDLE_CHECK_MS)
+                        if (Routes.idle(route, lastTouchMs, SystemClock.elapsedRealtime())) route = Routes.home(setupDone)
                     }
+                }
+                BackHandler(enabled = route != Routes.STATUS && route != Routes.FIRST_STEP) {
+                    go(
+                        when {
+                            Routes.isSetup(route) -> "setup:${(route.removePrefix("setup:").toIntOrNull() ?: 2) - 1}"
+                            route == Routes.APPS -> Routes.PARENT
+                            route == Routes.OFF -> Routes.FIRST_STEP
+                            else -> Routes.STATUS
+                        },
+                    )
+                }
+                val r = route
+                when {
+                    Routes.isSetup(r) -> SetupFlow(
+                        step = r.removePrefix("setup:").toIntOrNull()?.coerceIn(1, STEPS) ?: 1,
+                        onStep = { s -> go("setup:${s.coerceIn(1, STEPS)}") },
+                        onDone = { go(Routes.STATUS) },
+                    )
+                    r == Routes.PIN -> PinScreen(onOk = { go(Routes.PARENT) }, onCancel = { go(Routes.STATUS) })
+                    r == Routes.PARENT -> ParentScreen(onApps = { go(Routes.APPS) }, onClose = { go(Routes.STATUS) }, onOff = { go(Routes.OFF) })
+                    r == Routes.APPS -> AppsScreen(onBack = { go(Routes.PARENT) })
+                    r == Routes.OFF -> OffScreen(onSetup = { go(Routes.FIRST_STEP) })
+                    else -> StatusScreen(onParent = {
+                        lastTouchMs = SystemClock.elapsedRealtime()
+                        go(Routes.PIN)
+                    })
                 }
             }
         }
+    }
+
+    override fun onUserInteraction() {
+        super.onUserInteraction()
+        lastTouchMs = SystemClock.elapsedRealtime()
+    }
+
+    /** Leaving the screen (home, another app, the screen off) ends the parent session. */
+    override fun onStop() {
+        super.onStop()
+        route = Routes.onLeave(route, setupDone)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(KEY_ROUTE, route) // Routes.restored never gives a PIN-gated route back
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        debugRoute(intent)?.let { route = it }
+    }
+
+    /** Debug builds only: the route the look tests open ("setup:8", "status", "parent", "apps"). */
+    private fun debugRoute(intent: Intent?): String? =
+        if (BuildConfig.DEBUG) intent?.getStringExtra("debugScreen") else null
+
+    private companion object {
+        const val KEY_ROUTE = "route"
+        const val IDLE_CHECK_MS = 10_000L
     }
 }

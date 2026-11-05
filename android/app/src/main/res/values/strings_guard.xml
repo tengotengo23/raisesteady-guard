@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- W5 (guard) texts, English from design 4.3 and 3.6. ka and ru come with desk C (W6): then
-     remove tools:ignore="MissingTranslation" so lint checks them again. -->
-<resources xmlns:tools="http://schemas.android.com/tools" tools:ignore="MissingTranslation">
+<!-- W5 (guard) texts, English from design 4.3 and 3.6; ka and ru in values-ka, values-ru. -->
+<resources>
     <string name="block_title">%1$s is closed for now</string>
     <string name="reason_time_up">Today\'s game time is used up.</string>
     <string name="reason_bedtime">Bedtime until %1$s.</string>

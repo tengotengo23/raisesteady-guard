@@ -6,13 +6,9 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.content.pm.ApplicationInfo
-import android.content.pm.PackageManager
 import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
-import android.provider.Settings
-import android.provider.Telephony
-import android.telecom.TelecomManager
 import android.util.Log
 import android.view.accessibility.AccessibilityEvent
 import android.view.accessibility.AccessibilityNodeInfo
@@ -54,7 +50,9 @@ class GuardAccessibilityService : AccessibilityService() {
     private var front: String? = null
     private var exempt: Set<String> = emptySet()
     private var transient: Set<String> = emptySet()
-    private var titles: Set<String> = emptySet()
+    private var marks = SettingsGuard.Marks.FALLBACK
+    /** The title of the window in front, from its last state change (content changes carry none). */
+    private var frontTitle: String? = null
     private val gameCache = HashMap<String, Boolean>()
     private var lastCoverMs = 0L
     private var rootRetries = 0
@@ -84,7 +82,8 @@ class GuardAccessibilityService : AccessibilityService() {
         usage = UsageReader(this) { app.debugClockOffsetMs.get() }
         exempt = exemptPackages()
         transient = transientPackages()
-        titles = SettingsGuard.titles(this)
+        marks = SettingsGuard.marks(this)
+        restoreTimeline()
         ContextCompat.registerReceiver(
             this, screen,
             IntentFilter().apply { addAction(Intent.ACTION_SCREEN_ON); addAction(Intent.ACTION_USER_PRESENT); addAction(Intent.ACTION_SCREEN_OFF) },
@@ -97,6 +96,9 @@ class GuardAccessibilityService : AccessibilityService() {
         )
         // Settings, state and clock changes (more time, pause, Lock now) apply at once.
         scope.launch { merge(app.recheck, app.repo.state.drop(1), app.repo.settings.drop(1)).collect { recheck() } }
+        // "Turn protection off" on the parent page: the service switches itself off.
+        scope.launch { app.turnOff.collect { disableSelf() } }
+        main.postDelayed(saveTick, TIMELINE_MS)
         running = true
         Notices.clearLimitsOff(this)
         Log.i(TAG, "connected")
@@ -121,18 +123,23 @@ class GuardAccessibilityService : AccessibilityService() {
     }
 
     private fun onFront(pkg: String, title: String?) {
-        if (pkg != front) rootRetries = 0
+        if (pkg != front) {
+            rootRetries = 0
+            frontTitle = null
+        }
+        if (title != null) frontTitle = title
         front = pkg
         timeline.moved(pkg, now())
         when {
             pkg == packageName -> main.removeCallbacks(tick)
+            !app.repo.settings.value.setupDone -> main.removeCallbacks(tick) // nothing is limited or guarded before setup is done
             pkg in SettingsGuard.PACKAGES -> guardSettings(pkg, title)
             else -> enforce(pkg)
         }
     }
 
     private val contentCheck = Runnable {
-        front?.takeIf { it in SettingsGuard.PACKAGES }?.let {
+        front?.takeIf { it in SettingsGuard.PACKAGES && app.repo.settings.value.setupDone }?.let {
             rootRetries = 0
             guardSettings(it, null)
         }
@@ -149,6 +156,7 @@ class GuardAccessibilityService : AccessibilityService() {
         val pkg = front ?: return
         when {
             pkg == packageName -> Unit
+            !app.repo.settings.value.setupDone -> Unit
             pkg in SettingsGuard.PACKAGES -> guardSettings(pkg, null)
             else -> enforce(pkg)
         }
@@ -234,9 +242,11 @@ class GuardAccessibilityService : AccessibilityService() {
 
     /** usage.json: today's minutes, at most once a minute (design 3.5). No site names. */
     private fun writeReport(schedule: Schedule) {
+        // Throttled on the uptime clock: a debug clock offset (or a clock change) never stops the writes.
+        val up = SystemClock.elapsedRealtime()
+        if (lastReportMs != 0L && up - lastReportMs < REPORT_MS) return
+        lastReportMs = up
         val nowMs = now()
-        if (nowMs - lastReportMs < REPORT_MS) return
-        lastReportMs = nowMs
         val nowI = java.time.Instant.ofEpochMilli(nowMs)
         val day = schedule.day(nowI)
         val events = if (usage.hasAccess()) usage.events(day.start.toEpochMilli(), nowMs) else timeline.since(day.start.toEpochMilli())
@@ -274,12 +284,12 @@ class GuardAccessibilityService : AccessibilityService() {
             return
         }
         rootRetries = 0
-        val windowTitle = title ?: win.second
+        val titles = listOf(title ?: frontTitle, win.second)
         // The window's own search finds our label in rows the tree walk may not reach yet.
         val found = runCatching { win.first.findAccessibilityNodeInfosByText(SettingsGuard.LABEL).isNotEmpty() }.getOrDefault(false)
         val texts = SettingsGuard.texts(win.first).let { if (found) it + SettingsGuard.LABEL else it }
-        if (!SettingsGuard.shouldCover(pkg, windowTitle, texts, titles, unlocked)) {
-            if (BuildConfig.DEBUG) Log.d(TAG, "not covered: $pkg, title $windowTitle, texts $texts")
+        if (!SettingsGuard.shouldCover(pkg, titles, texts, marks, unlocked)) {
+            if (BuildConfig.DEBUG) Log.d(TAG, "not covered: $pkg, titles $titles, texts $texts")
             return
         }
         val t = SystemClock.elapsedRealtime()
@@ -309,27 +319,33 @@ class GuardAccessibilityService : AccessibilityService() {
 
     // --- Packages that are never limited ---
 
-    private fun exemptPackages(): Set<String> {
-        val out = HashSet<String>()
-        out += packageName
-        out += setOf("android", "com.android.systemui", "com.android.emergency", "com.google.android.apps.safetyhub")
-        out += SettingsGuard.PACKAGES
-        val pm = packageManager
-        pm.queryIntentActivities(Intent(Intent.ACTION_MAIN).addCategory(Intent.CATEGORY_HOME), PackageManager.MATCH_DEFAULT_ONLY)
-            .forEach { out += it.activityInfo.packageName }
-        out += transientPackages()
-        runCatching { getSystemService(TelecomManager::class.java)?.defaultDialerPackage }.getOrNull()?.let(out::add)
-        runCatching { Telephony.Sms.getDefaultSmsPackage(this) }.getOrNull()?.let(out::add)
-        return out
-    }
+    private fun exemptPackages(): Set<String> = Exempt.packages(this)
 
     /** Windows that sit over the app in front without replacing it: the keyboard and System UI. */
-    private fun transientPackages(): Set<String> {
-        val out = HashSet<String>()
-        out += "com.android.systemui"
-        Settings.Secure.getString(contentResolver, Settings.Secure.DEFAULT_INPUT_METHOD)
-            ?.substringBefore('/')?.takeIf { it.isNotBlank() }?.let(out::add)
-        return out
+    private fun transientPackages(): Set<String> = Exempt.transient(this)
+
+    // --- The record kept without usage access (design 3.3, D3) ---
+
+    /** Each minute: the foreground record goes to timeline.json, so it survives our process dying. */
+    private val saveTick = object : Runnable {
+        override fun run() {
+            saveTimeline()
+            main.postDelayed(this, TIMELINE_MS)
+        }
+    }
+
+    private fun saveTimeline() {
+        val nowMs = now()
+        val from = Schedule(app.clock.zone()).dayStart(java.time.Instant.ofEpochMilli(nowMs)).toEpochMilli()
+        val rec = timeline.record(from, nowMs)
+        app.scope.launch(Dispatchers.IO) { app.repo.saveTimeline(rec) }
+    }
+
+    private fun restoreTimeline() {
+        val nowMs = now()
+        val from = Schedule(app.clock.zone()).dayStart(java.time.Instant.ofEpochMilli(nowMs)).toEpochMilli()
+        val rec = kotlinx.coroutines.runBlocking(Dispatchers.IO) { app.repo.readTimeline() }
+        timeline.restore(rec, from)
     }
 
     override fun onInterrupt() = Unit
@@ -349,6 +365,8 @@ class GuardAccessibilityService : AccessibilityService() {
         running = false
         main.removeCallbacks(tick)
         main.removeCallbacks(contentCheck)
+        main.removeCallbacks(saveTick)
+        runCatching { saveTimeline() }
         scope.cancel()
         runCatching { unregisterReceiver(screen) }
         runCatching { unregisterReceiver(packages) }
@@ -366,6 +384,7 @@ class GuardAccessibilityService : AccessibilityService() {
         private const val CONTENT_MS = 300L
         private const val ROOT_RETRIES = 5
         private const val ROOT_RETRY_MS = 300L
+        private const val TIMELINE_MS = 60_000L
 
         /** The service is connected (the system bound it). */
         @Volatile var running = false

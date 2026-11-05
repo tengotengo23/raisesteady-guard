@@ -44,6 +44,9 @@ class GuardApp : Application() {
     /** Asks the guard to check the app on screen again now (settings, more time, the clock changed). */
     val recheck = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
 
+    /** "Turn protection off" (parent page): the accessibility service switches itself off. */
+    val turnOff = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+
     /** Game time left today while a Game-time app is in front (for the notification), or null. */
     @Volatile var gameLeftMin: Int? = null
 

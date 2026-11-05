@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- RS emoji emoji_u23f3 (emoji/svg), made by tools/emoji-to-vd.sh with svg2vectordrawable 2.9.1. Do not edit by hand. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+    <path
+        android:fillColor="#FFB8CFF5"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M30 22H98Q98 50 70 64 98 78 98 106H30Q30 78 58 64 30 50 30 22Z"/>
+    <path
+        android:fillColor="#FFFEDB71"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="5"
+        android:strokeLineJoin="round"
+        android:pathData="M42 40H86Q80 52 64 60 48 52 42 40Z"/>
+    <path
+        android:fillColor="#FFFEDB71"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="5"
+        android:strokeLineJoin="round"
+        android:pathData="M38 106Q50 84 64 82 78 84 90 106Z"/>
+    <path
+        android:strokeColor="#FFF2BD3D"
+        android:strokeWidth="4"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M64 62V84"/>
+    <path
+        android:fillColor="#FFC68A5A"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M20 14c0-3.31 2.69-6 6-6h76c3.31 0 6 2.69 6 6v4c0 3.31-2.69 6-6 6h-76c-3.31 0-6-2.69-6-6z"/>
+    <path
+        android:fillColor="#FFC68A5A"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M20 110c0-3.31 2.69-6 6-6h76c3.31 0 6 2.69 6 6v4c0 3.31-2.69 6-6 6h-76c-3.31 0-6-2.69-6-6z"/>
+</vector>

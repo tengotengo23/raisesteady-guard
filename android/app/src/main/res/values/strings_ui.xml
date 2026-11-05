@@ -1,0 +1,191 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- W6 screens (design 4.1 to 4.4). ka and ru: values-ka, values-ru (lint MissingTranslation is an error). -->
+<resources>
+    <!-- Common -->
+    <string name="start">Start</string>
+    <string name="next">Next</string>
+    <string name="nav_back">Back</string>
+    <string name="done">Done</string>
+    <string name="save">Save</string>
+    <string name="close">Close</string>
+    <string name="skip_now">Skip for now</string>
+    <string name="not_now">Not now</string>
+    <string name="open_settings">Open settings</string>
+    <string name="fix">Fix</string>
+    <string name="step_of">Step %1$d of %2$d</string>
+    <string name="is_on">Done: this is on.</string>
+    <string name="dur_m">%1$d min</string>
+    <string name="dur_hm">%1$d h %2$d min</string>
+    <string name="readme_url" translatable="false">https://github.com/tengotengo23/raisesteady-guard#android</string>
+
+    <!-- 1 Welcome -->
+    <string name="welcome_text">RaiseSteady Guard blocks adult sites, gives the apps you choose a daily time and a bedtime, and stops the protection being turned off without your PIN. Set it up on your child\'s phone or tablet. It takes about 5 minutes.</string>
+    <string name="about_link">What to know first</string>
+
+    <!-- 2 Terms -->
+    <string name="terms_title">Before you start</string>
+    <string name="agree">I agree</string>
+
+    <!-- 3 Age -->
+    <string name="age_title">Your child\'s age</string>
+    <string name="band">%1$d to %2$d years</string>
+    <string name="age_note">The age sets the blocked sites, safe search and the suggested times. You can change everything later.</string>
+
+    <!-- 4 PIN -->
+    <string name="pin_title">Parent PIN</string>
+    <string name="pin_hint">You need the PIN to change the settings and to turn the protection off. Keep it to yourself.</string>
+    <string name="pin1">PIN, 4 to 8 digits</string>
+    <string name="pin2">PIN again</string>
+    <string name="pin_bad">The PIN must be 4 to 8 digits, and both must be the same.</string>
+
+    <!-- 5 Family DNS filter -->
+    <string name="dns_title">Family DNS filter</string>
+    <string name="dns_switch">Use the family DNS filter</string>
+    <string name="dns_text">AdGuard DNS Family, a free public service, also blocks adult sites, phishing and many ads. It sees the names of the sites opened and your internet address, as any DNS service does. Our own block lists work on this device in any case.</string>
+
+    <!-- 6 Site filter (VPN) -->
+    <string name="vpn_title">Turn on the site filter</string>
+    <string name="vpn_why">Android runs the filter as a VPN on this device: it checks the name of each site against our lists and sends nothing to us.</string>
+    <string name="vpn_see">Android will say the app can monitor network traffic. Tap OK.</string>
+    <string name="vpn_button">Turn on the filter</string>
+
+    <!-- 7 Notifications -->
+    <string name="notif_title">Allow notifications</string>
+    <string name="notif_why">A notice shows that protection is on, and warns your child 5 minutes before game time ends.</string>
+    <string name="allow">Allow</string>
+
+    <!-- 8 Usage access -->
+    <string name="usage_title">Allow usage access</string>
+    <string name="usage_why">This lets the app count how long each app is used today, for the time limits and your report. The numbers stay on this device.</string>
+    <string name="usage_steps">Find RaiseSteady Guard and switch on Permit usage access.</string>
+
+    <!-- 9 Accessibility (why: a11y_description) -->
+    <string name="a11y_title">Let RaiseSteady Guard see which app is open</string>
+    <string name="a11y_agree">I agree, open settings</string>
+    <string name="a11y_steps">Open Downloaded apps (or Installed apps), then RaiseSteady Guard, and switch it on.</string>
+    <string name="a11y_restricted">If Android says Restricted setting: open App info for RaiseSteady Guard, tap the menu at the top right, then Allow restricted settings, and try again.</string>
+    <string name="open_app_info">Open App info</string>
+
+    <!-- 10 Device admin -->
+    <string name="admin_title">Stop the app being removed</string>
+    <string name="admin_why">As a device admin app, RaiseSteady Guard cannot be uninstalled until it is switched off, and that page asks for your PIN.</string>
+    <string name="turn_on">Turn on</string>
+
+    <!-- 11 Always-on VPN -->
+    <string name="always_title">Keep the filter always on</string>
+    <string name="always_why">Android then starts the filter by itself, and keeps the internet closed if the filter ever stops.</string>
+    <string name="always_steps">Tap the gear next to RaiseSteady Guard, then switch on Always-on VPN and Block connections without VPN.</string>
+    <string name="always_button">Open VPN settings</string>
+
+    <!-- 12 Apps and games -->
+    <string name="apps_title">Apps and games</string>
+    <string name="apps_text">Games start on Game time. Social and chat apps start blocked under the age in their own terms. Everything else stays allowed.</string>
+    <string name="game_minutes">Game time: %1$d min a day</string>
+    <string name="less_time">Less time</string>
+    <string name="more_time_step">More time</string>
+    <string name="bedtime_switch">Close game-time apps at bedtime</string>
+    <string name="bedtime_from">Bedtime starts</string>
+    <string name="bedtime_to">Bedtime ends</string>
+    <string name="time_value">%1$s: %2$s</string>
+    <string name="apps_search">Search apps</string>
+    <string name="apps_none">No apps found.</string>
+    <string name="level_allowed">Allowed</string>
+    <string name="level_game">Game time</string>
+    <string name="level_blocked">Blocked</string>
+    <string name="turn_protection_on">Turn protection on</string>
+
+    <!-- 13 Checks -->
+    <string name="checks_title">Last checks</string>
+    <string name="check_dns_ok">Private DNS is Automatic or Off.</string>
+    <string name="check_dns_bad">Private DNS is set to %1$s. Set it to Automatic or Off, or the filter cannot work.</string>
+    <string name="check_time_ok">Date and time are set automatically.</string>
+    <string name="check_time_bad">Automatic date and time is off. Switch it on, so bedtime and game time are right.</string>
+    <string name="check_unused_ok">Pause app activity if unused is off for this app.</string>
+    <string name="check_unused_bad">Switch off Pause app activity if unused for RaiseSteady Guard.</string>
+    <string name="check_battery">This kind of phone may stop apps to save battery. Let RaiseSteady Guard run without battery limits.</string>
+    <string name="battery_settings">Battery settings</string>
+    <string name="advice_play">Set up parental controls in the Play Store, so new apps need your OK.</string>
+    <string name="advice_guest">Remove guest access in Settings, System, Multiple users.</string>
+
+    <!-- Status page -->
+    <string name="status_on">Protection is on</string>
+    <string name="status_incomplete">Protection is not complete</string>
+    <string name="st_sites">Adult, gambling and filter-bypass sites are blocked</string>
+    <string name="st_safe">Safe search is on for Google, Bing and DuckDuckGo</string>
+    <string name="st_youtube">YouTube Restricted Mode is on</string>
+    <string name="st_social">Social network sites are blocked (under 13)</string>
+    <string name="st_game">Game time: %1$d min a day, %2$d min left today</string>
+    <string name="st_bedtime">Bedtime %1$s to %2$s</string>
+    <string name="st_dns_on">Family DNS filter: on</string>
+    <string name="st_dns_off">Family DNS filter: off</string>
+    <string name="miss_vpn">The site filter is off.</string>
+    <string name="miss_a11y">Time limits and the settings guard are off: accessibility access is off.</string>
+    <string name="miss_usage">Usage access is off: the app counts the minutes itself.</string>
+    <string name="miss_admin">The app can be removed: device admin is off.</string>
+    <string name="miss_notif">Notifications are off.</string>
+    <string name="miss_always">Always-on VPN is off: if the filter stops, the internet stays open.</string>
+    <string name="parent_see_title">What your parent can see</string>
+    <string name="parent_see">Your parent can see how long apps are used on this device each day. The sites you open are not kept. It all stays on this device.</string>
+    <string name="limits_title">Limits on Android</string>
+    <string name="limits_text">Android does not let an app stop a factory reset or safe mode, set Always-on VPN or Private DNS by itself, or cover guest users, other users or a private space. Someone with USB debugging can switch the protection off. Apps with their own encrypted DNS are not filtered, and the app cannot see inside apps or pages. Advanced Protection mode (Android 16) switches the time limits off.</string>
+
+    <!-- Parent page -->
+    <string name="enter_pin">Enter the parent PIN</string>
+    <string name="parent_title">For the parent</string>
+    <string name="pause_title">Pause game-time apps now</string>
+    <string name="pause_text">They close at once and open again when the time ends.</string>
+    <string name="pause_30">30 min</string>
+    <string name="pause_60">1 hour</string>
+    <string name="pause_120">2 hours</string>
+    <string name="pause_morning">Until 06:00</string>
+    <string name="paused_until">Paused until %1$s</string>
+    <string name="resume">Resume</string>
+    <string name="more_title">More time</string>
+    <string name="more_text">Open game-time apps for a little longer: when today\'s game time is used up, at bedtime or in homework time. Then they close again.</string>
+    <string name="give_15">15 min</string>
+    <string name="give_30">30 min</string>
+    <string name="extra_until">More time until %1$s</string>
+    <string name="activity_title">Activity</string>
+    <string name="today">Today</string>
+    <string name="week">Last 7 days</string>
+    <string name="rp_game">Game time used: %1$s</string>
+    <string name="rp_apps">Apps used most</string>
+    <string name="rp_none">No activity yet.</string>
+    <string name="rp_blocked">Site lookups closed: %1$d</string>
+    <string name="rp_note">Counted on this device. No site names are kept.</string>
+    <string name="apps_change">Change apps and games</string>
+    <string name="times_title">Times</string>
+    <string name="weekend_on">Different times at the weekend</string>
+    <string name="weekend_note">Saturday and Sunday use the weekend game time. Friday and Saturday nights use the weekend bedtime.</string>
+    <string name="weekend_minutes">Weekend game time: %1$d min a day</string>
+    <string name="weekend_bed_from">Weekend bedtime starts</string>
+    <string name="weekend_bed_to">Weekend bedtime ends</string>
+    <string name="homework_on">Homework time on school days</string>
+    <string name="homework_note">Monday to Friday, game-time apps are closed in this window.</string>
+    <string name="homework_from">Homework time starts</string>
+    <string name="homework_to">Homework time ends</string>
+    <string name="homework_bad">Homework time must end at least 15 minutes after it starts, on the same day.</string>
+    <string name="night_bad">Bedtime must last at least 15 minutes.</string>
+    <string name="sites_title">Sites</string>
+    <string name="sites_text">Sites you block stay closed in every browser at all times. Sites you allow open even when the filter would block them.</string>
+    <string name="site_field">Site, for example example.com</string>
+    <string name="site_block">Block</string>
+    <string name="site_allow">Allow</string>
+    <string name="site_bad">This does not look like a site address.</string>
+    <string name="site_full">This list is full (%1$d sites).</string>
+    <string name="blocked_list">Always blocked</string>
+    <string name="allowed_list">Always allowed</string>
+    <string name="site_remove">Remove %1$s</string>
+    <string name="list_empty">None yet.</string>
+    <string name="checks_parent">Protection checks</string>
+    <string name="lock_title">Settings pages</string>
+    <string name="lock_open">Settings are unlocked until %1$s.</string>
+    <string name="lock_closed">Settings pages need the parent PIN.</string>
+    <string name="pin_current">Current PIN</string>
+    <string name="change_pin">Change PIN</string>
+    <string name="pin_changed">The PIN is changed.</string>
+    <string name="remove">Turn protection off</string>
+    <string name="remove_confirm">This takes every limit off this device.</string>
+    <string name="removed">Protection is off. To remove the app: Settings, Apps, RaiseSteady Guard, Uninstall. Also switch off Always-on VPN for it.</string>
+    <string name="setup_again">Set up again</string>
+</resources>

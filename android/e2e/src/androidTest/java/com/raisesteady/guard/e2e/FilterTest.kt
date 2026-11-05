@@ -24,7 +24,7 @@ import java.net.InetAddress
 /**
  * Design 6.2 test 2. Runs from the e2e app (another UID), so its lookups pass through Guard's VPN.
  * Guard must be installed with VPN consent pre-approved (tools/e2e.sh: appops ACTIVATE_VPN allow).
- * Until SetupTest exists (W6), the debug hook starts the filter for age band 9-12.
+ * The debug hook sets age band 9-12 and starts the filter (SetupTest walked the real screens before).
  */
 @RunWith(AndroidJUnit4::class)
 class FilterTest {

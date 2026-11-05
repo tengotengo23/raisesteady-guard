@@ -7,10 +7,14 @@ import android.view.accessibility.AccessibilityNodeInfo
  * Which windows the PIN screen covers (design 3.6). Only these packages are ever read: Settings,
  * the permission controller, the package installer and the VPN dialogs. A window is covered when
  * its text shows our label (App info, App battery, the uninstall dialog, Device admin apps, our
- * Accessibility page, VPN settings and its gear dialog), when it is a VPN consent dialog (another
- * app's VPN would replace ours), or when its title is one of the guarded pages (Private DNS, Date
- * and time, Developer options, Multiple users, Private space, Reset options, Device admin apps). The parent's PIN
- * opens them for 10 minutes.
+ * own accessibility page and its turn-off dialog, VPN settings and its gear dialog), when it is a
+ * VPN consent dialog (another app's VPN would replace ours), or when its title is one of the
+ * guarded pages (Private DNS, Date and time, Developer options, Multiple users, Private space,
+ * Reset options, Device admin apps). The parent's PIN opens them for 10 minutes.
+ *
+ * The Accessibility list itself is never covered, though it shows our row: a child must be free
+ * to turn on TalkBack and other aids (director's decision D1). Only our own page there (its
+ * "Use RaiseSteady Guard" switch, or the page titled with our label) and its turn-off dialog are.
  */
 object SettingsGuard {
     /** Our label: the same in every language. */
@@ -43,6 +47,39 @@ object SettingsGuard {
         "manage_device_admin", "device_admin_settings_title",
     )
 
+    /** The Accessibility list: its title and the heading of its downloaded services (AOSP names). */
+    val A11Y_LIST_RESOURCES = listOf(
+        "accessibility_settings", "accessibility_settings_title",
+        "user_installed_services_category_title", "accessibility_services_title",
+    )
+
+    /** Texts only on our own accessibility page and its turn-off dialog: "%1$s" is our label (AOSP names). */
+    val OUR_A11Y_RESOURCES = listOf(
+        "accessibility_service_primary_switch_title", "accessibility_service_master_switch_title",
+        "disable_service_title", "accessibility_shortcut_title", "accessibility_service_shortcut_title",
+    )
+
+    val FALLBACK_A11Y_LIST = setOf(
+        "Accessibility", "Downloaded apps", "Downloaded services", "Installed apps", "Installed services",
+        "Специальные возможности", "Спец. возможности", "Скачанные приложения", "Установленные приложения", "Скачанные сервисы",
+    )
+
+    val FALLBACK_OUR_A11Y = setOf(
+        "Use $LABEL", "Stop $LABEL?", "Turn off $LABEL?", "$LABEL shortcut",
+        "Использовать $LABEL", "Остановить $LABEL?", "Отключить $LABEL?",
+    )
+
+    /** What the guard compares window titles and texts with, in the device's language plus fallbacks. */
+    data class Marks(val pages: Set<String>, val a11yList: Set<String>, val ourA11y: Set<String>) {
+        internal val pagesN = pages.map(::normalize).toSet()
+        internal val a11yListN = a11yList.map(::normalize).toSet()
+        internal val ourA11yN = ourA11y.map(::normalize).toSet()
+
+        companion object {
+            val FALLBACK = Marks(FALLBACK_TITLES, FALLBACK_A11Y_LIST, FALLBACK_OUR_A11Y)
+        }
+    }
+
     /** Fallback titles when the Settings app's resources cannot be read (en, ru). */
     val FALLBACK_TITLES = setOf(
         "Private DNS", "Date & time", "Date and time", "Developer options", "Multiple users", "Private space", "Reset options",
@@ -52,28 +89,54 @@ object SettingsGuard {
 
     fun normalize(t: String) = t.trim().lowercase().replace("&", "and").replace(Regex("\\s+"), " ")
 
-    /** Pure: whether to cover a window of [pkg] with [title] and on-screen [texts]. */
-    fun shouldCover(pkg: String, title: String?, texts: List<String>, titles: Set<String>, unlocked: Boolean): Boolean {
+    /**
+     * Pure: whether to cover a window of [pkg] with the [titles] known for it (the event's and the
+     * window's) and its on-screen [texts].
+     */
+    fun shouldCover(pkg: String, titles: List<String?>, texts: List<String>, marks: Marks, unlocked: Boolean): Boolean {
         if (pkg !in PACKAGES || unlocked) return false
         if (pkg == VPN_DIALOGS) return true
-        if (texts.any { it.contains(LABEL) } || title?.contains(LABEL) == true) return true
-        if (title == null) return false
-        val t = normalize(title)
-        return titles.any { normalize(it) == t }
+        val known = titles.filterNotNull().filter { it.isNotBlank() }
+        val shown = texts.any { it.contains(LABEL) } || known.any { it.contains(LABEL) }
+        if (shown) {
+            if (isOurA11yPage(known, texts, marks)) return true
+            // The Accessibility list shows our row next to TalkBack and the other aids: never covered (D1).
+            if (pkg == SETTINGS && isA11yList(known, texts, marks)) return false
+            return true
+        }
+        return known.any { normalize(it) in marks.pagesN }
     }
 
-    /** The guarded titles in the device's language, read from the Settings app, plus the fallbacks. */
-    fun titles(context: Context): Set<String> {
-        val out = HashSet(FALLBACK_TITLES)
+    /** One title (the event's): kept for the tests and callers with a single title. */
+    fun shouldCover(pkg: String, title: String?, texts: List<String>, marks: Marks, unlocked: Boolean): Boolean =
+        shouldCover(pkg, listOf(title), texts, marks, unlocked)
+
+    /** Our own accessibility page (titled with our label, or its "Use ..." switch) or its turn-off dialog. */
+    fun isOurA11yPage(titles: List<String>, texts: List<String>, marks: Marks): Boolean =
+        titles.any { normalize(it) == normalize(LABEL) } || texts.any { normalize(it) in marks.ourA11yN }
+
+    /** The Accessibility list (or its Downloaded apps part): by its title, or its heading on screen. */
+    fun isA11yList(titles: List<String>, texts: List<String>, marks: Marks): Boolean =
+        titles.any { normalize(it) in marks.a11yListN } || texts.any { normalize(it) in marks.a11yListN }
+
+    /** The guarded titles and the accessibility marks in the device's language, read from the Settings app, plus the fallbacks. */
+    fun marks(context: Context): Marks {
+        val pages = HashSet(FALLBACK_TITLES)
+        val list = HashSet(FALLBACK_A11Y_LIST)
+        val ours = HashSet(FALLBACK_OUR_A11Y)
         runCatching {
             val res = context.packageManager.getResourcesForApplication(SETTINGS)
-            for (name in TITLE_RESOURCES) {
+            fun read(name: String, vararg args: Any): String? {
                 @Suppress("DiscouragedApi") // the only way to read another app's strings by name
                 val id = res.getIdentifier(name, "string", SETTINGS)
-                if (id != 0) runCatching { res.getString(id) }.getOrNull()?.takeIf { it.isNotBlank() }?.let(out::add)
+                if (id == 0) return null
+                return runCatching { if (args.isEmpty()) res.getString(id) else res.getString(id, *args) }.getOrNull()?.takeIf { it.isNotBlank() }
             }
+            TITLE_RESOURCES.forEach { n -> read(n)?.let(pages::add) }
+            A11Y_LIST_RESOURCES.forEach { n -> read(n)?.let(list::add) }
+            OUR_A11Y_RESOURCES.forEach { n -> read(n, LABEL)?.takeIf { it.contains(LABEL) }?.let(ours::add) }
         }
-        return out
+        return Marks(pages, list, ours)
     }
 
     /** The texts and descriptions in a window (at most [max] nodes, breadth first). */
