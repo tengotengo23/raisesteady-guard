@@ -127,7 +127,7 @@ class GuardTest {
         val lock = findLock()
         shot("notice-unlocked")
         assertTrue("no Lock now on the notice", lock != null)
-        assertTrue(E2e.tapOn(E2e.byTag("lock-now"), scroll = true))
+        lock!!.click()
         device.pressHome()
         Thread.sleep(1000)
         assertTrue("App info was not covered after Lock now", covered(appInfo, "App info after Lock now"))
