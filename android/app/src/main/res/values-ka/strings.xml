@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="welcome_title">გახადეთ ეს მოწყობილობა თქვენი შვილისთვის უფრო უსაფრთხო</string>
+    <string name="welcome_free">უფასოა. ჩვენთან არაფერი იგზავნება.</string>
+    <string name="honest">არცერთი ფილტრი არ არის სრულყოფილი: იყავით ახლოს და ესაუბრეთ ბავშვს იმაზე, რასაც ინტერნეტში ხედავს.</string>
+    <string name="about">შექმნილია ხელოვნური ინტელექტით და მოწოდებულია ყოველგვარი გარანტიის გარეშე. მხარდაჭერა ნებაყოფლობითია და შესაძლოა, განახლებები აღარ გამოვიდეს.</string>
+    <string name="channel_protection">დაცვა</string>
+    <string name="channel_notices">შეტყობინებები</string>
+    <string name="notif_on_title">RaiseSteady Guard ჩართულია</string>
+    <string name="notif_on_text">საიტები იფილტრება.</string>
+    <string name="notif_filter_off">საიტების ფილტრი გამორთულია. სთხოვეთ მშობელს, გახსნას RaiseSteady Guard.</string>
+</resources>

@@ -1,5 +1,5 @@
 # Release: build the agent and the installer on Windows, the extension zips and
-# the Linux packages (.deb, .rpm, .tar.gz) on Linux, sign the Windows files through SignPath Foundation once signing is set
+# the Linux packages (.deb, .rpm, .tar.gz) on Linux, the Android app (APK), sign the Windows files through SignPath Foundation once signing is set
 # up, and publish a GitHub release with them.
 #
 # Runs on a version tag (v0.1.0), or by hand (Actions, release, Run workflow)
@@ -9,6 +9,11 @@
 # and SIGNPATH_PROJECT_SLUG and the secret SIGNPATH_API_TOKEN (SignPath project
 # with the signing policy "release-signing" and the artifact configurations
 # "agent" and "installer"). Without them the release is built unsigned and says so.
+#
+# The Android APK is signed only when the repository has the four secrets ANDROID_KEYSTORE_B64
+# (the PKCS12 keystore, base64), ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS and
+# ANDROID_KEY_PASSWORD; the key file lives in $RUNNER_TEMP for the build only. Without them the
+# APK is built and tested for the record but not attached, and the notes say so.
 # Every job runs on GitHub-hosted runners, as SignPath's open-source checks require.
 name: release
 
@@ -193,8 +198,84 @@ jobs:
             dist/linux/*.tar.gz
           if-no-files-found: error
 
+  android:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    defaults:
+      run:
+        working-directory: android
+    env:
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_B64 != '' && secrets.ANDROID_KEYSTORE_PASSWORD != '' && secrets.ANDROID_KEY_ALIAS != '' && secrets.ANDROID_KEY_PASSWORD != '' }}
+    steps:
+      - name: Check the tag
+        working-directory: .
+        run: '[[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "tag must look like v1.2.3"; exit 1; }'
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
+
+      - name: The release key (only when the four secrets exist)
+        if: env.HAS_KEY == 'true'
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+        run: |
+          umask 077
+          printf '%s' "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/guard-release.p12"
+          echo "GUARD_KEYSTORE=$RUNNER_TEMP/guard-release.p12" >> "$GITHUB_ENV"
+
+      - name: Unit tests, lint and the release APK
+        env:
+          GUARD_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          GUARD_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          GUARD_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: ./gradlew --no-daemon :app:testDebugUnitTest :app:lintDebug :app:assembleRelease
+
+      - name: Remove the key file
+        if: always()
+        run: rm -f "$RUNNER_TEMP/guard-release.p12"
+
+      - name: Check the signature, write the checksum and the certificate fingerprint
+        if: env.HAS_KEY == 'true'
+        run: |
+          apk="$(ls app/build/outputs/apk/release/raisesteady-guard-android-*.apk)"
+          bt="$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)"
+          fp="$("$bt/apksigner" verify --print-certs "$apk" | sed -n 's/^Signer #1 certificate SHA-256 digest: //p')"
+          [ -n "$fp" ] || { echo "the APK is not signed"; exit 1; }
+          mkdir -p ../dist
+          cp "$apk" ../dist/
+          echo "$fp" > ../dist/android-certificate-sha256.txt
+          echo "Certificate SHA-256: $fp"
+
+      - name: Keep the APK for the publish job
+        if: env.HAS_KEY == 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-files
+          path: |
+            dist/raisesteady-guard-android-*.apk
+            dist/android-certificate-sha256.txt
+          if-no-files-found: error
+
+      - name: Keep the unsigned APK for the record (not attached to the release)
+        if: env.HAS_KEY != 'true'
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: android-unsigned
+          path: android/app/build/outputs/apk/release/
+          retention-days: 30
+
   publish:
-    needs: [windows, extension, linux]
+    needs: [windows, extension, linux, android]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -215,12 +296,20 @@ jobs:
           v="${TAG#v}"
           linux="raisesteady-guard_${v}-1_amd64.deb raisesteady-guard_${v}-1_arm64.deb raisesteady-guard-${v}-1.x86_64.rpm raisesteady-guard-${v}-1.aarch64.rpm raisesteady-guard-${v}-linux-amd64.tar.gz raisesteady-guard-${v}-linux-arm64.tar.gz"
           for f in $linux; do [ -f "$f" ] || { echo "missing $f"; exit 1; }; done
+          # Android: only when the signing secrets made a signed APK (android job).
+          android=""
+          if [ -f android-certificate-sha256.txt ]; then
+            android="$(ls raisesteady-guard-android-*.apk)"
+            fp="$(cat android-certificate-sha256.txt)"
+            sha256sum "$android" > "$android.sha256"
+            rm android-certificate-sha256.txt
+          fi
           # shellcheck disable=SC2086
-          sha256sum RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip $linux > SHA256SUMS.txt
+          sha256sum RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip $linux $android > SHA256SUMS.txt
           cat SHA256SUMS.txt
           home="https://github.com/$GH_REPO"
           {
-            echo "RaiseSteady Guard ${v}: free, open-source child-safe browsing for Windows and Linux."
+            echo "RaiseSteady Guard ${v}: free, open-source child-safe browsing for Windows and Linux${android:+, and an app for Android}."
             echo
             echo "**Windows 10 and 11:** download \`RaiseSteadyGuardSetup.exe\` and run it; Windows asks for an administrator."
             echo
@@ -229,6 +318,12 @@ jobs:
             echo "- Fedora and other RPM systems: \`raisesteady-guard-${v}-1.x86_64.rpm\`, then \`sudo dnf install ./raisesteady-guard-${v}-1.x86_64.rpm\`"
             echo "- Other Linux: \`raisesteady-guard-${v}-linux-amd64.tar.gz\`, unpack it, then \`sudo ./install.sh\`"
             echo "- ARM computers: the files marked arm64 or aarch64."
+            echo
+            if [ -n "$android" ]; then
+              echo "**Android:** \`$android\` (Android 10 or later). Certificate SHA-256: \`$fp\`. Install it on the child's phone or tablet as the [README]($home#android) says (allow \"Install unknown apps\" for your browser or files app)."
+            else
+              echo "**Android:** the Android app is not in this release yet."
+            fi
             echo
             echo "On Linux the browser settings apply to every account on the computer, including the parent's. What it does, its limits and privacy: [README]($home#readme)."
             echo
@@ -246,4 +341,4 @@ jobs:
           } > notes.md
           # shellcheck disable=SC2086
           gh release create "$TAG" --verify-tag --title "RaiseSteady Guard ${v}" --notes-file notes.md \
-            RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip $linux SHA256SUMS.txt
+            RaiseSteadyGuardSetup.exe raisesteady-guard-*-chromium.zip raisesteady-guard-*-firefox.zip $linux ${android:+$android $android.sha256} SHA256SUMS.txt

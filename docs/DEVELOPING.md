@@ -116,3 +116,22 @@ Permissions and why (for store review):
 | host `<all_urls>` | the page check on each page, the video timer, redirect rules and headers, and the local agent on 127.0.0.1 |
 
 No `tabs`, `scripting`, `cookies` or `history` permission is used.
+
+## Android app (`android/`)
+
+Kotlin and Jetpack Compose, minSdk 29, targetSdk 36. The build needs only JDK 17 and the Android SDK (no Node): `android/build-logic` packs `shared/` and `ext/rules/` into the app's assets at build time.
+
+```sh
+cd android
+./gradlew :app:testDebugUnitTest :app:lintDebug :app:assembleDebug   # JVM tests, lint (MissingTranslation is an error), debug APK
+./gradlew :e2e:assembleDebug :e2e:assembleDebugAndroidTest           # the test app and its end-to-end tests
+E2E_OUT=build/e2e bash tools/e2e.sh                                  # on a booted emulator or device (adb)
+```
+
+- End-to-end tests (`android/e2e`, another app so its traffic goes through the filter): SetupTest, FilterTest, GameTimeTest, GuardTest, ReportTest, ParentTest, LookTest. CI runs them on emulators with API 36 and 29 (`.github/workflows/android.yml`); LookTest saves screenshots of every screen at font scale 1.0 and 2.0, light and dark, in the `e2e-api*` artefacts (`screens/look/`).
+- Debug builds only have test hooks (`app/src/debug`): settings and filter start, a clock offset, the child screens, a status and look log receiver. Release builds have none.
+- Texts: `app/src/main/res/values*/strings*.xml` in English, Georgian and Russian; every string needs all three.
+- RS emoji: `bash tools/emoji-to-vd.sh` converts the repo's `emoji/svg` files to `res/drawable/rs_*.xml` (svg2vectordrawable 2.9.1, pinned); commit the output.
+- Version: `android/version.properties` (`versionName`; versionCode = major x 1,000,000 + minor x 1,000 + patch). Release tags do not set it.
+- Signed release APK (owner's Mac): the key is `~/Developer/keys/guard-android/guard-release.p12` (PKCS12, RSA 4096, 30 years), its passwords in `passwords.env` next to it (mode 600), never in the repository. `bash tools/sign-release.sh` builds `raisesteady-guard-android-<version>.apk`, checks it with `apksigner verify` and prints the certificate SHA-256. Keep this key: Android updates and a later Play listing ("use my own key") need the same one.
+- Releases: `.github/workflows/release.yml` (job `android`) signs the APK only when the repository secrets `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` exist; otherwise it builds the APK for the record and the release notes say the Android app is not in that release.

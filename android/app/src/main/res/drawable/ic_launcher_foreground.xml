@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The Guard icon (kidguard/ext/icons/icon-128.png) redrawn as a vector: the 128 px icon is scaled
+     by 0.5625 into the 72 dp seen through the launcher's mask (offset 18 dp). Head: circle (63.5, 50.5)
+     r 24; shoulders: circle (64, 152) r 72, cut by the mask. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path
+        android:fillColor="@color/guard_launcher_body"
+        android:pathData="M13.5,103.5 A40.5,40.5 0 1,0 94.5,103.5 A40.5,40.5 0 1,0 13.5,103.5 Z" />
+    <path
+        android:fillColor="@color/guard_launcher_fg"
+        android:pathData="M40.2,46.4 A13.5,13.5 0 1,0 67.2,46.4 A13.5,13.5 0 1,0 40.2,46.4 Z" />
+</vector>

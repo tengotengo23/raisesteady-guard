@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- RS emoji emoji_u1f512 (emoji/svg), made by tools/emoji-to-vd.sh with svg2vectordrawable 2.9.1. Do not edit by hand. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+    <path
+        android:fillColor="#FFC9C9D8"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M34 58V40Q34 12 64 12 94 12 94 40V58H80V40Q80 26 64 26 48 26 48 40V58Z"/>
+    <path
+        android:fillColor="#FFFEDB71"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M20 66c0-6.63 5.37-12 12-12h64c6.63 0 12 5.37 12 12v40c0 6.63-5.37 12-12 12h-64c-6.63 0-12-5.37-12-12z"/>
+    <path
+        android:fillColor="#FF282858"
+        android:pathData="M56 80A8 8 0 1 0 72 80 8 8 0 1 0 56 80Z"/>
+    <path
+        android:fillColor="#FF282858"
+        android:pathData="M60 82L56 100H72L68 82Z"/>
+</vector>

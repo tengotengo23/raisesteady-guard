@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 # One-way export of this folder to the public open-source repository.
 # kidguard/ inside the Nexodyne repository stays the home of the code; this
-# copies its tracked files to a separate working tree, writes the public
-# Windows and Linux test workflows from ../.github/workflows/kidguard-{windows,linux}.yml (paths
-# without the kidguard/ prefix), runs the secret scan and commits there.
+# copies its committed files (kidguard/ at HEAD, read from git, never the working
+# files: uncommitted changes are not published) to a separate working tree, writes
+# the public Windows, Linux and Android test workflows from
+# .github/workflows/kidguard-{windows,linux,android}.yml at HEAD (paths without the
+# kidguard/ prefix), runs the secret scan and commits there.
 #
 #   tools/publish-oss.sh <target dir> "<commit message>" [--push]
 #
@@ -23,19 +25,27 @@ case "$(cd "$TARGET" && pwd)" in "$MONO"|"$MONO"/*) echo "target must be outside
 
 [ -z "$(git -C "$TARGET" status --porcelain)" ] || { echo "$TARGET has uncommitted changes: commit or drop them first"; exit 1; }
 
-LIST="$(mktemp)"
-trap 'rm -f "$LIST"' EXIT
-git -C "$KG" ls-files -z . > "$LIST"
+# What is published: kidguard/ as committed at HEAD (its path inside the repository, for git).
+REL="$(git -C "$KG" rev-parse --show-prefix)"; REL="${REL%/}"
+[ -n "$REL" ] || { echo "cannot find kidguard/ inside its git repository"; exit 1; }
+HEAD_ID="$(git -C "$MONO" rev-parse --short HEAD)"
+if [ -n "$(git -C "$MONO" status --porcelain -- "$REL" .github/workflows)" ]; then
+  echo "note: uncommitted changes in $REL/ or .github/workflows are not published (HEAD $HEAD_ID is)"
+fi
 
-# Rebuild the target from the tracked files: everything there is committed (checked
+# Rebuild the target from the committed files: everything there is committed (checked
 # above), so clearing it loses nothing; git then records what changed or was deleted.
+# git archive keeps file modes and symbolic links; COPYFILE_DISABLE keeps macOS metadata out.
 find "$TARGET" -mindepth 1 -maxdepth 1 ! -name .git -exec rm -rf {} +
-rsync -a --from0 --files-from="$LIST" "$KG/" "$TARGET/"
+git -C "$MONO" archive --format=tar HEAD -- "$REL" | COPYFILE_DISABLE=1 tar -x -C "$TARGET" --strip-components="$(awk -F/ '{print NF}' <<< "$REL")"
 
-# Public Windows and Linux test workflows: same steps, root paths, run on push and pull requests.
+# Public Windows, Linux and Android test workflows: same steps, root paths, run on push and pull requests.
 mkdir -p "$TARGET/.github/workflows"
-for os in windows linux; do
-python3 - "$MONO/.github/workflows/kidguard-$os.yml" "$TARGET/.github/workflows/$os.yml" "$os" <<'PY'
+WF="$(mktemp -d)"
+trap 'rm -rf "$WF"' EXIT
+for os in windows linux android; do
+git -C "$MONO" show "HEAD:.github/workflows/kidguard-$os.yml" > "$WF/$os.yml"
+python3 - "$WF/$os.yml" "$TARGET/.github/workflows/$os.yml" "$os" <<'PY'
 import re, sys
 src, dst, name = sys.argv[1], sys.argv[2], sys.argv[3]
 s = open(src, encoding='utf-8').read()

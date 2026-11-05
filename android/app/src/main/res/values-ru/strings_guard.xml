@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Russian. The child screens speak to the child ("ты"), as the iOS shield screen. -->
+<resources>
+    <string name="block_title">Приложение %1$s сейчас закрыто</string>
+    <string name="reason_time_up">Время для игр на сегодня закончилось.</string>
+    <string name="reason_bedtime">Время сна до %1$s.</string>
+    <string name="reason_homework">Время для уроков до %1$s.</string>
+    <string name="reason_paused">Родитель поставил на паузу до %1$s.</string>
+    <string name="reason_blocked">Родитель решил оставить это приложение закрытым.</string>
+    <string name="block_ask">Спроси родителя: здесь он может дать ещё времени.</string>
+    <string name="block_home">На главный экран</string>
+    <string name="for_parent">Для родителя</string>
+    <string name="more_15">Ещё 15 минут</string>
+    <string name="more_30">Ещё 30 минут</string>
+    <string name="cancel">Отмена</string>
+    <string name="pin_label">PIN-код родителя</string>
+    <string name="pin_wrong">Неверный PIN-код.</string>
+    <string name="pin_locked">Слишком много неверных попыток. Попробуйте снова в %1$s.</string>
+    <string name="gate_title">Для этой страницы нужен PIN-код родителя</string>
+    <string name="gate_text">Она меняет то, как RaiseSteady Guard защищает это устройство.</string>
+    <string name="gate_unlock">Открыть на 10 минут</string>
+    <string name="gate_back">Назад</string>
+    <string name="unlocked_until">Настройки открыты до %1$s. Нажмите, чтобы закрыть их сейчас.</string>
+    <string name="lock_now">Закрыть сейчас</string>
+    <string name="notif_limits_off">Ограничения времени выключены. Попросите родителя открыть RaiseSteady Guard.</string>
+    <string name="notif_five_minutes">На игры сегодня осталось 5 минут.</string>
+    <string name="notif_game_left">Сайты фильтруются. Время для игр на сегодня: осталось %1$d мин.</string>
+    <string name="notif_incomplete">Защита неполная. Попросите родителя открыть RaiseSteady Guard.</string>
+    <string name="admin_description">Без вашего PIN-кода приложение нельзя удалить.</string>
+    <string name="admin_disable_warning">Если это отключить, RaiseSteady Guard можно будет удалить. Попросите родителя.</string>
+    <string name="a11y_description">Доступ к специальным возможностям Android позволяет приложению видеть, какое приложение на экране: так оно может закрыть приложение, когда его время вышло, и не дать отключить защиту без вашего PIN-кода. Слова на экране оно читает только в Настройках и в установщике приложений, чтобы найти собственные страницы этого приложения. Оно не читает сообщения, пароли и набранный текст, и ничего не покидает это устройство.</string>
+</resources>

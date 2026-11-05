@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- RS emoji emoji_u23f0 (emoji/svg), made by tools/emoji-to-vd.sh with svg2vectordrawable 2.9.1. Do not edit by hand. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+    <path
+        android:strokeColor="#FF282858"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M40 102L28 118M88 102L100 118"/>
+    <path
+        android:fillColor="#FFFEDB71"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M15.45 42.21A19 15-40 1 0 44.55 17.79 19 15-40 1 0 15.45 42.21Z"/>
+    <path
+        android:fillColor="#FFFEDB71"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M83.44 17.79A19 15 40 1 0 112.56 42.21 19 15 40 1 0 83.44 17.79Z"/>
+    <path
+        android:fillColor="#FFEE5D5D"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M20 68A44 44 0 1 0 108 68 44 44 0 1 0 20 68Z"/>
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="5"
+        android:strokeLineJoin="round"
+        android:pathData="M30 68A34 34 0 1 0 98 68 34 34 0 1 0 30 68Z"/>
+    <path
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M64 68V46M64 68H82"/>
+    <path
+        android:fillColor="#FF282858"
+        android:pathData="M59 68A5 5 0 1 0 69 68 5 5 0 1 0 59 68Z"/>
+</vector>

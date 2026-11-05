@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- RS emoji emoji_u1f319 (emoji/svg), made by tools/emoji-to-vd.sh with svg2vectordrawable 2.9.1. Do not edit by hand. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="128dp"
+    android:height="128dp"
+    android:viewportWidth="128"
+    android:viewportHeight="128">
+    <path
+        android:fillColor="#FFFEDB71"
+        android:strokeColor="#FF282858"
+        android:strokeWidth="6"
+        android:strokeLineJoin="round"
+        android:pathData="M56.59 16.02L48.91 16.83 41.46 18.82 34.39 21.92 27.89 26.08 22.11 31.19 17.18 37.13 13.22 43.75 10.33 50.91 8.58 58.42 8 66.12 8.61 73.81 10.4 81.31 13.33 88.46 17.31 95.06 22.27 100.98 28.08 106.06 34.6 110.18 41.67 113.26 49.14 115.21 56.82 115.99 64.52 115.57 72.07 113.98 79.29 111.24 86 107.43 92.04 102.63 97.27 96.95 101.56 90.54 104.82 83.55 100.93 85.26 96.9 86.56 92.75 87.45 88.53 87.92 84.29 87.97 80.06 87.58 75.9 86.77 71.83 85.54 67.92 83.91 64.18 81.89 60.67 79.5 57.42 76.78 54.46 73.74 51.82 70.41 49.53 66.84 47.62 63.05 46.09 59.09 44.98 55 44.28 50.81 44 46.58 44.16 42.34 44.74 38.13 45.75 34.01 47.16 30.01 48.98 26.17 51.17 22.54 53.71 19.14Z"/>
+</vector>

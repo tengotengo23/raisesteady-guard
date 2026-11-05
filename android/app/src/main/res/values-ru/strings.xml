@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="welcome_title">Сделайте это устройство безопаснее для ребёнка</string>
+    <string name="welcome_free">Бесплатно. К нам ничего не отправляется.</string>
+    <string name="honest">Ни один фильтр не идеален: будьте рядом и говорите с ребёнком о том, что он видит в интернете.</string>
+    <string name="about">Создано с помощью ИИ и предоставляется без каких-либо гарантий. Поддержка добровольная, и обновления могут не выходить.</string>
+    <string name="channel_protection">Защита</string>
+    <string name="channel_notices">Уведомления</string>
+    <string name="notif_on_title">RaiseSteady Guard включён</string>
+    <string name="notif_on_text">Сайты фильтруются.</string>
+    <string name="notif_filter_off">Фильтр сайтов выключен. Попросите родителя открыть RaiseSteady Guard.</string>
+</resources>

@@ -1,0 +1,13 @@
+# Gradle and build output
+.gradle/
+.kotlin/
+/build/
+/*/build/
+local.properties
+# Signing keys never live in the repo (see ../README.md, ~/Developer/keys/guard-android/)
+*.jks
+*.keystore
+*.p12
+captures/
+.idea/
+*.iml
