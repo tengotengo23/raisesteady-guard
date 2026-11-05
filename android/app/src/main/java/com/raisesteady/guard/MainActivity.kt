@@ -48,9 +48,9 @@ class MainActivity : ComponentActivity() {
             GuardTheme {
                 val go: (String) -> Unit = { wanted -> route = Routes.next(route, wanted, setupDone) }
                 LaunchedEffect(route) {
-                    while (Routes.gated(route)) {
+                    while (Routes.privileged(route, setupDone)) {
                         delay(IDLE_CHECK_MS)
-                        if (Routes.idle(route, lastTouchMs, SystemClock.elapsedRealtime())) route = Routes.home(setupDone)
+                        if (Routes.idle(route, setupDone, lastTouchMs, SystemClock.elapsedRealtime())) route = Routes.home(setupDone)
                     }
                 }
                 BackHandler(enabled = route != Routes.STATUS && route != Routes.FIRST_STEP) {

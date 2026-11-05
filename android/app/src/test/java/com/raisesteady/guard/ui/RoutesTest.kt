@@ -28,6 +28,8 @@ class RoutesTest {
         assertEquals("status", Routes.onLeave("apps", setupDone = true))
         assertEquals("status", Routes.onLeave("pin", setupDone = true))
         assertEquals("setup:6", Routes.onLeave("setup:6", setupDone = false)) // the parent comes back from Settings mid-setup
+        // Step 13 after setup: its "Fix" unlocks Settings, so leaving it ends there too (security review, 5 Nov).
+        assertEquals("status", Routes.onLeave("setup:13", setupDone = true))
     }
 
     @Test fun setupStepsAreRefusedOnceSetupIsDone() {
@@ -42,9 +44,12 @@ class RoutesTest {
 
     @Test fun theParentPageClosesAfterFiveMinutesWithoutATouch() {
         assertEquals(5 * 60_000L, Routes.IDLE_MS)
-        assertFalse(Routes.idle("parent", 0, Routes.IDLE_MS - 1))
-        assertTrue(Routes.idle("parent", 0, Routes.IDLE_MS))
-        assertTrue(Routes.idle("apps", 0, Routes.IDLE_MS + 1))
-        assertFalse(Routes.idle("status", 0, 10 * Routes.IDLE_MS))
+        assertFalse(Routes.idle("parent", true, 0, Routes.IDLE_MS - 1))
+        assertTrue(Routes.idle("parent", true, 0, Routes.IDLE_MS))
+        assertTrue(Routes.idle("apps", true, 0, Routes.IDLE_MS + 1))
+        assertFalse(Routes.idle("status", true, 0, 10 * Routes.IDLE_MS))
+        // The last setup step closes too once setup is done; mid-setup steps never time out.
+        assertTrue(Routes.idle("setup:13", true, 0, Routes.IDLE_MS))
+        assertFalse(Routes.idle("setup:6", false, 0, 10 * Routes.IDLE_MS))
     }
 }
