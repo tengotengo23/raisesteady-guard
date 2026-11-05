@@ -51,7 +51,7 @@ object E2e {
      */
     fun enableGuard(gameMinutes: Int? = null, bedtime: Boolean = true) {
         val extra = (gameMinutes?.let { " --ei gameMinutes $it" } ?: "") + (if (bedtime) "" else " --ez bedtimeOn false")
-        shell("am start -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true --es pin $PIN --ez resetState true$extra")
+        shell("am start -f 0x18000000 -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true --es pin $PIN --ez resetState true$extra")
         val want = gameMinutes?.let { "\"gameMinutes\":$it" } ?: "\"pin\":{"
         waitFor("Guard's settings were not written ($want)", 20_000) { guardSettingsJson().let { it.contains(want) && it.contains("\"setupDone\":true") } }
         enableAccessibility()
@@ -86,7 +86,7 @@ object E2e {
 
     /** Opens a child screen (debug builds): "block" with a reason, or "gate". */
     fun showChild(screen: String, reason: String = "TIME_UP") {
-        shell("am start -n $GUARD/.debug.DebugShowActivity --es screen $screen --es reason $reason")
+        shell("am start -f 0x18000000 -n $GUARD/.debug.DebugShowActivity --es screen $screen --es reason $reason")
     }
 
     /** The look log (debug builds): texts that overflowed their box and the screen entries' motion. */
@@ -132,6 +132,18 @@ object E2e {
             Thread.sleep(150)
         }
         return true
+    }
+
+    /** Every window on screen (split screen too): the test's UiAutomation asks for interactive windows. */
+    fun windows(): List<android.view.accessibility.AccessibilityWindowInfo> {
+        val ua = instr.getUiAutomation(FLAGS)
+        val info = ua.serviceInfo
+        if (info.flags and android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS == 0) {
+            info.flags = info.flags or android.accessibilityservice.AccessibilityServiceInfo.FLAG_RETRIEVE_INTERACTIVE_WINDOWS
+            ua.serviceInfo = info
+            Thread.sleep(300)
+        }
+        return ua.windows
     }
 
     /** The clock offset that puts Guard's time at the first [at] after [after]. */

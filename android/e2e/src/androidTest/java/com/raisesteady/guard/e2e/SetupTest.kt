@@ -50,7 +50,7 @@ class SetupTest {
         // Fresh: as after a new install (e2e.sh installs fresh; this makes the class safe to run alone).
         // The release smoke has no debug hooks: the fresh install is all it needs.
         if (!E2e.release) {
-            shell("am start -n $GUARD/.debug.DebugFilterActivity --ez fresh true")
+            shell("am start -f 0x18000000 -n $GUARD/.debug.DebugFilterActivity --ez fresh true")
             E2e.waitFor("settings were not reset", 10_000) { !E2e.guardSettingsJson().contains("\"setupDone\":true") }
         }
         E2e.openGuard()
@@ -70,7 +70,7 @@ class SetupTest {
 
         title("Your child's age")
         step(3)
-        device.findObject(byTag("band-9-12"))!!.click()
+        assertTrue("no age 9 to 12 choice", E2e.tapOn(byTag("band-9-12"), scroll = true))
         shot("setup/03-age")
         assertTrue(E2e.tap("Next"))
 
@@ -129,7 +129,7 @@ class SetupTest {
         shot("setup/12-apps")
         assertTrue(E2e.tap("Turn protection on"))
 
-        title("Last checks")
+        title("Final checks")
         step(13)
         shot("setup/13-checks")
         assertTrue(E2e.tap("Done"))

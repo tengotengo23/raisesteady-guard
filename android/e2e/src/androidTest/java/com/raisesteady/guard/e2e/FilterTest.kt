@@ -36,7 +36,7 @@ class FilterTest {
         fun startFilter() {
             // A release build has no debug hooks: SetupTest's real setup started the filter (release smoke).
             if (E2e.release) return
-            shell("am start -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true")
+            shell("am start -f 0x18000000 -n $GUARD/.debug.DebugFilterActivity --es band 9-12 --ez familyDns true")
             val deadline = System.currentTimeMillis() + 30_000
             while (resolves("pornhub.com")) {
                 if (System.currentTimeMillis() > deadline) fail("the filter did not start within 30 s")

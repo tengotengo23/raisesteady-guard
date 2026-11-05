@@ -186,14 +186,14 @@ class GuardTest {
             shell("am start -a android.intent.action.VIEW -d https://example.org com.android.chrome")
             assertTrue("Chrome did not open", E2e.waitPackage("com.android.chrome", 15_000))
             shell("dumpsys activity service SystemUIService WMShell splitscreen moveToSideStage $task 1")
-            fun visible() = E2e.instr.uiAutomation.windows
+            fun visible() = E2e.windows()
                 .filter { it.type == android.view.accessibility.AccessibilityWindowInfo.TYPE_APPLICATION }
                 .mapNotNull { runCatching { it.root?.packageName?.toString() }.getOrNull() }
             var both = false
             repeat(20) { if (!both) { both = visible().containsAll(listOf(E2e.GAME, "com.android.chrome")); if (!both) Thread.sleep(500) } }
             assumeTrue("the emulator did not show a split screen: ${visible()}", both)
             // The allowed app is the one in use: tap its half.
-            val chrome = E2e.instr.uiAutomation.windows.firstOrNull { runCatching { it.root?.packageName?.toString() }.getOrNull() == "com.android.chrome" }
+            val chrome = E2e.windows().firstOrNull { runCatching { it.root?.packageName?.toString() }.getOrNull() == "com.android.chrome" }
             val r = android.graphics.Rect().also { chrome!!.getBoundsInScreen(it) }
             device.click(r.centerX(), r.centerY())
             shot("split-screen")
