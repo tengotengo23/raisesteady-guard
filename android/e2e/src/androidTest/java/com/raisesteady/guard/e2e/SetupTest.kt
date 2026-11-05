@@ -32,11 +32,19 @@ class SetupTest {
 
     /** Taps the step's action, or Next when its part is already on; then waits for the next step's title. */
     private fun advance(action: String, nextTitle: String) {
-        val o = device.wait(Until.findObject(By.text(action)), 3_000) ?: device.wait(Until.findObject(By.text("Next")), 3_000)
-        assertNotNull("neither \"$action\" nor Next", o)
-        o!!.click()
+        // tapOn finds the button again when a redraw made it stale (the step reads its state each second).
+        val tapped = E2e.tapOn(By.text(action), 3_000) || E2e.tapOn(By.text("Next"), 3_000)
+        assertTrue("neither \"$action\" nor Next", tapped)
         title(nextTitle)
     }
+
+    /**
+     * A permission step moves on by itself only after it has read its part as off at least once
+     * (Health, each second while the screen is shown). A parent reads the screen first; the test
+     * waits as long before it switches the part on from the shell (a switch 70 ms after the step
+     * appeared beat the first read on API 29, run 41959674207).
+     */
+    private fun readTheStep() = Thread.sleep(3_000)
 
     /** Types into the text field with Compose test tag [tag]. */
     private fun type(tag: String, text: String) {
@@ -107,11 +115,13 @@ class SetupTest {
         assertTrue(device.hasObject(By.text("Not now")))
         assertTrue(E2e.scrollFind(By.textContains("Allow restricted settings")) != null)
         shot("setup/09-accessibility")
+        readTheStep()
         E2e.enableAccessibility()
         title("Stop the app being removed") // moves on by itself
 
         step(10)
         shot("setup/10-admin")
+        readTheStep()
         shell("dpm set-active-admin $GUARD/.guard.GuardAdminReceiver")
         title("Keep the filter always on")
 

@@ -4,7 +4,7 @@ Free, open-source child-safe browsing for Windows and Linux computers: one insta
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
-Status: early (version 0.3.2). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. In Firefox the extension installs by itself (signed by Mozilla). It is not in the Chrome, Edge and Brave stores yet, so in those browsers only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Status: early (version 0.4.0). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. In Firefox the extension installs by itself (signed by Mozilla). It is not in the Chrome, Edge and Brave stores yet, so in those browsers only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 

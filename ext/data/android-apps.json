@@ -1,0 +1,279 @@
+{
+ "version": 1,
+ "note": "Android apps with a default level in RaiseSteady Guard for Android (P2-162). kind: game and video start on Game time; social starts Blocked under minAge (the minimum age in its own terms, as shared/social-domains.json) and on Game time from it; chat starts Blocked under minAge and Allowed from it (as pc-apps.json); bypass (built-in proxy, VPN or Tor) starts Blocked at every age. Any installed app in Android's game category also starts on Game time. Every package id was checked on its Google Play page on 5 Nov 2026 (com.ss.android.ugc.trill is listed in Asian stores only; checked with gl=JP). The parent can change every level.",
+ "youtubeKids": "com.google.android.apps.youtube.kids",
+ "apps": [
+  {
+   "id": "roblox",
+   "name": "Roblox",
+   "packages": [
+    "com.roblox.client"
+   ],
+   "kind": "game",
+   "from": "https://play.google.com/store/apps/details?id=com.roblox.client"
+  },
+  {
+   "id": "minecraft",
+   "name": "Minecraft",
+   "packages": [
+    "com.mojang.minecraftpe"
+   ],
+   "kind": "game",
+   "from": "https://play.google.com/store/apps/details?id=com.mojang.minecraftpe"
+  },
+  {
+   "id": "epic-fortnite",
+   "name": "Fortnite",
+   "packages": [
+    "com.epicgames.fortnite"
+   ],
+   "kind": "game",
+   "from": "https://play.google.com/store/apps/details?id=com.epicgames.fortnite"
+  },
+  {
+   "id": "youtube",
+   "name": "YouTube",
+   "packages": [
+    "com.google.android.youtube"
+   ],
+   "kind": "video",
+   "from": "https://play.google.com/store/apps/details?id=com.google.android.youtube"
+  },
+  {
+   "id": "tiktok",
+   "name": "TikTok",
+   "packages": [
+    "com.zhiliaoapp.musically",
+    "com.ss.android.ugc.trill"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.zhiliaoapp.musically"
+  },
+  {
+   "id": "instagram",
+   "name": "Instagram",
+   "packages": [
+    "com.instagram.android"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.instagram.android"
+  },
+  {
+   "id": "facebook",
+   "name": "Facebook",
+   "packages": [
+    "com.facebook.katana",
+    "com.facebook.lite"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.facebook.katana"
+  },
+  {
+   "id": "snapchat",
+   "name": "Snapchat",
+   "packages": [
+    "com.snapchat.android"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.snapchat.android"
+  },
+  {
+   "id": "x",
+   "name": "X",
+   "packages": [
+    "com.twitter.android"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.twitter.android"
+  },
+  {
+   "id": "reddit",
+   "name": "Reddit",
+   "packages": [
+    "com.reddit.frontpage"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.reddit.frontpage"
+  },
+  {
+   "id": "threads",
+   "name": "Threads",
+   "packages": [
+    "com.instagram.barcelona"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.instagram.barcelona"
+  },
+  {
+   "id": "pinterest",
+   "name": "Pinterest",
+   "packages": [
+    "com.pinterest"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.pinterest"
+  },
+  {
+   "id": "tumblr",
+   "name": "Tumblr",
+   "packages": [
+    "com.tumblr"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.tumblr"
+  },
+  {
+   "id": "twitch",
+   "name": "Twitch",
+   "packages": [
+    "tv.twitch.android.app"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=tv.twitch.android.app"
+  },
+  {
+   "id": "kick",
+   "name": "Kick",
+   "packages": [
+    "com.kick.mobile"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=com.kick.mobile"
+  },
+  {
+   "id": "bluesky",
+   "name": "Bluesky",
+   "packages": [
+    "xyz.blueskyweb.app"
+   ],
+   "kind": "social",
+   "minAge": 13,
+   "from": "https://play.google.com/store/apps/details?id=xyz.blueskyweb.app"
+  },
+  {
+   "id": "vk",
+   "name": "VK",
+   "packages": [
+    "com.vkontakte.android"
+   ],
+   "kind": "social",
+   "minAge": 14,
+   "from": "https://play.google.com/store/apps/details?id=com.vkontakte.android"
+  },
+  {
+   "id": "ok",
+   "name": "Odnoklassniki",
+   "packages": [
+    "ru.ok.android"
+   ],
+   "kind": "social",
+   "minAge": 14,
+   "from": "https://play.google.com/store/apps/details?id=ru.ok.android"
+  },
+  {
+   "id": "discord",
+   "name": "Discord",
+   "packages": [
+    "com.discord"
+   ],
+   "kind": "chat",
+   "minAge": 13,
+   "from": "https://discord.com/terms"
+  },
+  {
+   "id": "whatsapp",
+   "name": "WhatsApp",
+   "packages": [
+    "com.whatsapp"
+   ],
+   "kind": "chat",
+   "minAge": 13,
+   "from": "https://www.whatsapp.com/legal/terms-of-service"
+  },
+  {
+   "id": "messenger",
+   "name": "Messenger",
+   "packages": [
+    "com.facebook.orca"
+   ],
+   "kind": "chat",
+   "minAge": 13,
+   "from": "https://www.facebook.com/terms"
+  },
+  {
+   "id": "telegram",
+   "name": "Telegram",
+   "packages": [
+    "org.telegram.messenger"
+   ],
+   "kind": "chat",
+   "minAge": 18,
+   "from": "https://telegram.org/tos"
+  },
+  {
+   "id": "tor-browser",
+   "name": "Tor Browser",
+   "packages": [
+    "org.torproject.torbrowser"
+   ],
+   "kind": "bypass",
+   "from": "https://play.google.com/store/apps/details?id=org.torproject.torbrowser"
+  },
+  {
+   "id": "orbot",
+   "name": "Orbot",
+   "packages": [
+    "org.torproject.android"
+   ],
+   "kind": "bypass",
+   "from": "https://play.google.com/store/apps/details?id=org.torproject.android"
+  },
+  {
+   "id": "opera-mini",
+   "name": "Opera Mini",
+   "packages": [
+    "com.opera.mini.native"
+   ],
+   "kind": "bypass",
+   "from": "https://play.google.com/store/apps/details?id=com.opera.mini.native"
+  },
+  {
+   "id": "opera",
+   "name": "Opera",
+   "packages": [
+    "com.opera.browser"
+   ],
+   "kind": "bypass",
+   "from": "https://play.google.com/store/apps/details?id=com.opera.browser"
+  },
+  {
+   "id": "uc-browser",
+   "name": "UC Browser",
+   "packages": [
+    "com.UCMobile.intl"
+   ],
+   "kind": "bypass",
+   "from": "https://play.google.com/store/apps/details?id=com.UCMobile.intl"
+  },
+  {
+   "id": "psiphon",
+   "name": "Psiphon",
+   "packages": [
+    "com.psiphon3.subscription"
+   ],
+   "kind": "bypass",
+   "from": "https://play.google.com/store/apps/details?id=com.psiphon3.subscription"
+  }
+ ]
+}

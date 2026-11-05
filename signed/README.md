@@ -8,4 +8,4 @@ the agent. The builds (tools/build-linux.sh, tools/build-installer.sh) copy it t
 To sign a new version: raise the version in ext/manifest.json, build, then
 `web-ext sign --channel=unlisted --source-dir dist/firefox` with the maintainer's AMO API key
 (WEB_EXT_API_KEY, WEB_EXT_API_SECRET), and replace the file here. Each version can be signed once.
-Current: 0.3.2.
+Current: 0.4.0.

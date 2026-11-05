@@ -72,7 +72,9 @@ class GameTimeTest {
 
         // Bedtime: Guard's clock at the next 21:01 after the 15 more minutes (band 9-12: 21:00 to 07:00).
         E2e.clockOffset(offsetTo(Instant.now().plusMillis(offsetMs).plus(Duration.ofMinutes(20)), LocalTime.of(21, 1)))
-        if (!E2e.waitPackage(GAME, 1_000)) openGame()
+        // Guard closes the game within milliseconds of the clock change (run 41959674207), so the
+        // game is started again only when the bedtime screen did not come, and it is not expected to stay open.
+        if (!waitText("Bedtime until", 3_000)) shell("am start -n $GAME/.TestGameActivity")
         assertTrue("the block screen did not come at bedtime", waitText("Bedtime until", 30_000))
         assertTrue("the bedtime does not end at 7:00", device.hasObject(By.textContains("7:00")))
         shot("block-bedtime")
