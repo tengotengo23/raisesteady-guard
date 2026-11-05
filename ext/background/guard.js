@@ -17,16 +17,17 @@ export const VIDEO_DOMAINS = [
 const LOCAL = ['127.0.0.1', 'localhost'];
 const ALL_TYPES = ['main_frame', 'sub_frame', 'stylesheet', 'script', 'image', 'font', 'object', 'xmlhttprequest', 'ping', 'media', 'websocket', 'other'];
 const NOT_MAIN = ALL_TYPES.filter((t) => t !== 'main_frame');
-export const RULE_ID = { bedtime: 1, time: 2, videoMain: 3, videoFrame: 4, paused: 5, homework: 6, helpline: 7, allow: 10, blockMain: 11, blockSub: 12, content: 20, topic: 21, learnPath: 30, contentUrl: 1000 };
+export const RULE_ID = { bedtime: 1, time: 2, videoMain: 3, videoFrame: 4, paused: 5, homework: 6, helpline: 7, allow: 10, blockMain: 11, blockSub: 12, content: 20, topic: 21, values: 22, learnPath: 30, contentUrl: 1000 };
 const MAX_URL_RULES = 500;
 // urlFilter treats * ^ | as special; such rare URLs are left to the page check, which runs again on load.
 const plainUrl = (k) => !!k && !/[*^|]/.test(k);
 
-const page = (reason) => ({ type: 'redirect', redirect: { extensionPath: `/pages/blocked.html?reason=${reason}` } });
+const page = (reason, kind) => ({ type: 'redirect', redirect: { extensionPath: `/pages/blocked.html?reason=${reason}${kind ? `&kind=${kind}` : ''}` } });
 
 /**
  * @param s { paused, bedtime, homework, timeOver, videoOver, allow[], block[], content[] (hosts), contentUrls[] (urlKey), learning[] (hosts), learningPaths[] ({host, path}),
- *            helplines[] (always open), topicDomains[] (topic filter on: sites mainly about the topic) }
+ *            helplines[] (always open), topicDomains[] (topic filter on: sites mainly about the topic),
+ *            valuesDomains[] (those of topicDomains for the values terms, P2-175: the block page says "not for your age") }
  */
 export function buildRules(s) {
   const rules = [];
@@ -71,9 +72,15 @@ export function buildRules(s) {
   if (content.length) {
     rules.push({ id: RULE_ID.content, priority: 90, action: page('content'), condition: { resourceTypes: ['main_frame'], requestDomains: content } });
   }
-  const topic = (s.topicDomains || []).filter((d) => !inDomains(d, allow) && !inDomains(d, helplines));
+  const vals = s.valuesDomains || [];
+  const topicAll = (s.topicDomains || []).filter((d) => !inDomains(d, allow) && !inDomains(d, helplines));
+  const topic = topicAll.filter((d) => !vals.includes(d));
+  const values = topicAll.filter((d) => vals.includes(d));
   if (topic.length) {
     rules.push({ id: RULE_ID.topic, priority: 90, action: page('topic'), condition: { resourceTypes: ['main_frame'], requestDomains: topic } });
+  }
+  if (values.length) {
+    rules.push({ id: RULE_ID.values, priority: 90, action: page('topic', 'values'), condition: { resourceTypes: ['main_frame'], requestDomains: values } });
   }
   const urls = (s.contentUrls || []).filter((k) => plainUrl(k) && !inDomains(hostOfKey(k), allow)).slice(-MAX_URL_RULES);
   urls.forEach((k, i) => {
@@ -114,8 +121,9 @@ export function contentScope(host, why, learning) {
   return (why === 'label' || why === 'rating') && !learnHost && !isMixedHost(host) ? 'host' : 'url';
 }
 
-export function blockedUrl(api, reason, host) {
+export function blockedUrl(api, reason, host, kind) {
   const q = new URLSearchParams({ reason });
+  if (kind === 'values') q.set('kind', 'values');
   if (host) q.set('site', host);
   return api.runtime.getURL(`pages/blocked.html?${q}`);
 }

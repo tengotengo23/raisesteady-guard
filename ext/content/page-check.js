@@ -90,7 +90,7 @@
     try { t = topics.matchPage(f); } catch { return; }
     if (!t.hit) return;
     hide();
-    send({ type: 'kg:core:page-flag', reason: 'topic', why: t.why }).then((r) => { if (r && r.ok === false) unhide(); }); // the background said no
+    send({ type: 'kg:core:page-flag', reason: 'topic', why: t.why, kind: t.kind }).then((r) => { if (r && r.ok === false) unhide(); }); // the background said no
   }
   if (isTop && /^https?:$/.test(location.protocol)) {
     const start = () => { topicsReady.then(() => { check(); setTimeout(check, 3000); }); };

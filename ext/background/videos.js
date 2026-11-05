@@ -1,7 +1,10 @@
 // Curated videos and focus mode data. No API key: the public YouTube RSS feed of each channel
 // (https://www.youtube.com/feeds/videos.xml?channel_id=<id>), cached 6 hours in storage.local, merged with
 // the built-in list data/videos.json (tools/update-videos.mjs; P2-161), which is used alone when the feeds
-// do not answer (they answer 404 on and off). Titles on the topic filter's list are left out.
+// do not answer (they answer 404 on and off). Titles on the topic filter's list are always left out of what we
+// recommend, also with the parent's topic switch off (that switch is about blocking, not about our picks; P2-175).
+// P2-175: about a third of the grid comes from data/values-videos.json, reviewed classic fables, parables and stories
+// on the RaiseSteady book's themes; the pick changes every day (valuesPicks, seeded by the date, band and language).
 // Answers kg:focus:* messages:
 //   kg:focus:videos   { ageBand, lang, limit }  -> { videos: [{ id, title, channel, channelId, published }], offline, stale, saved }
 //     saved = every video shown comes from the built-in list; offline = the browser says it is offline and nothing is shown
@@ -122,6 +125,59 @@ export function mixVideos(lists, { limit = 12, lang = 'en', maxAgeDays = 0, now 
   return out;
 }
 
+// ---- values videos (P2-175) ----
+/** A small fixed-seed random number generator (mulberry32) and a string hash: same day, same picks. */
+export function seeded(str) {
+  let h = 1779033703 ^ String(str).length;
+  for (let i = 0; i < String(str).length; i++) { h = Math.imul(h ^ String(str).charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); }
+  let a = h >>> 0;
+  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+/** The local day as 'YYYY-MM-DD'. */
+export const localDay = (now = Date.now()) => { const d = new Date(now); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+
+/**
+ * Today's values videos for a band and language: the language's own first, English to fill up; a shuffle seeded
+ * by day, band and language; one per channel and theme first, so the few shown are varied. Pure.
+ * pool: [{ id, title, channel, channelId, lang, bands, themes }]; exclude: ids already in the grid.
+ */
+export function valuesPicks(pool, { band, lang = 'en', day = '', n = 8, exclude = [], topics = null } = {}) {
+  if (!Array.isArray(pool) || n <= 0) return [];
+  const ex = new Set(exclude);
+  const ok = (v) => v && ID_RE.test(v.id) && typeof v.title === 'string' && Array.isArray(v.bands) && v.bands.includes(band) && !ex.has(v.id)
+    && !(topics && topics.matchTitle(`${v.title} ${v.channel || ''}`).hit);
+  const shuffle = (list, seed) => {
+    const a = [...list].sort((x, y) => (x.id < y.id ? -1 : 1)), rnd = seeded(seed);
+    for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+    return a;
+  };
+  const own = shuffle(pool.filter((v) => ok(v) && v.lang === lang), `${day}|${band}|${lang}`);
+  const en = lang === 'en' ? [] : shuffle(pool.filter((v) => ok(v) && v.lang === 'en'), `${day}|${band}|en`);
+  const order = [...own, ...en];
+  const out = [], seen = new Set(), chans = new Set(), themes = new Set();
+  // first pass: new channel and new theme; second: new channel; third: anything
+  for (const rule of [(v) => !chans.has(v.channelId) && !(v.themes || []).some((t) => themes.has(t)), (v) => !chans.has(v.channelId), () => true]) {
+    for (const v of order) {
+      if (out.length >= n) break;
+      if (seen.has(v.id) || !rule(v)) continue;
+      seen.add(v.id); chans.add(v.channelId); for (const t of v.themes || []) themes.add(t);
+      out.push({ id: v.id, title: String(v.title).slice(0, 200), channel: String(v.channel || '').slice(0, 100), channelId: v.channelId, published: 0, src: 'values' });
+    }
+  }
+  return out;
+}
+
+/** The grid: after every two channel videos one values video; leftovers of either list at the end. Pure. */
+export function interleave(channelVids, valuesVids, limit) {
+  const out = [], a = [...channelVids], b = [...valuesVids], seen = new Set();
+  const push = (v) => { if (v && !seen.has(v.id) && out.length < limit) { seen.add(v.id); out.push(v); } };
+  while (out.length < limit && (a.length || b.length)) {
+    push(a.shift()); push(a.shift());
+    push(b.shift());
+  }
+  return out;
+}
+
 /** The curated channels for an age band and language: the language's own channels plus English ones. */
 export function channelsFor(channels, ageBand, lang) {
   const langs = new Set([lang, 'en']);
@@ -189,7 +245,7 @@ export async function pool(items, n, spacing, job) {
 
 export function initVideos(ctx) {
   const api = ctx.api;
-  let channels = null, builtin = null, feeds = null, shorts = null, i18nCache = new Map();
+  let channels = null, builtin = null, values = null, feeds = null, shorts = null, i18nCache = new Map();
   const inflight = new Map();
   let saveTimer = null;
 
@@ -199,6 +255,9 @@ export function initVideos(ctx) {
     }
     if (!builtin) {
       try { builtin = ((await (await fetch(api.runtime.getURL('data/videos.json'))).json()) || {}).channels || {}; } catch { builtin = {}; }
+    }
+    if (!values) {
+      try { values = ((await (await fetch(api.runtime.getURL('data/values-videos.json'))).json()) || {}).videos || []; } catch { values = []; }
     }
     if (!feeds) {
       const st = await api.storage.local.get([K.feeds, K.shorts]).catch(() => ({}));
@@ -270,11 +329,17 @@ export function initVideos(ctx) {
     const now = Date.now();
     const stale = list.filter((c) => !fresh(feeds[c.id], now) && retryable(feeds[c.id], now));
     if (stale.length) await pool(stale, CONCURRENCY, SPACING_MS, (c) => fetchChannel(c.id));
-    const lists = mergeLists(list, feeds, builtin, typeof ctx.topics === 'function' ? ctx.topics() : null);
+    // Our picks are always filtered (feedTopics: the matcher whatever the parent's topic switch says).
+    const filter = typeof ctx.feedTopics === 'function' ? ctx.feedTopics() : typeof ctx.topics === 'function' ? ctx.topics() : null;
+    const lists = mergeLists(list, feeds, builtin, filter);
     const n = Math.max(1, Math.min(48, Number(limit) || 12));
-    const mixed = mixVideos(lists, { limit: n, lang: String(lang || 'en') });
+    const l = String(lang || 'en');
+    const fromChannels = mixVideos(lists, { limit: n, lang: l });
+    const picks = valuesPicks(values, { band, lang: l, day: localDay(now), n: Math.ceil(n / 3), exclude: fromChannels.map((v) => v.id), topics: filter });
+    const mixed = interleave(fromChannels.slice(0, n - picks.length), picks, n).concat(fromChannels.slice(n - picks.length)).slice(0, n);
     const anyFresh = list.some((c) => fresh(feeds[c.id], Date.now()));
-    const saved = mixed.length > 0 && mixed.every((v) => v.src === 'saved');
+    const chPart = mixed.filter((v) => v.src !== 'values');
+    const saved = chPart.length > 0 && chPart.every((v) => v.src === 'saved');
     const videos = mixed.map(({ src, ...v }) => v);
     const online = globalThis.navigator ? navigator.onLine !== false : true;
     return { videos, offline: !videos.length && !online, stale: !anyFresh, saved };
@@ -315,7 +380,11 @@ export function initVideos(ctx) {
         case 'kg:focus:channels': {
           await loadData();
           const band = String(msg.ageBand || (ctx.getConfig() || {}).ageBand || '');
-          return { channels: (channels || []).filter((c) => Array.isArray(c.bands) && c.bands.includes(band) && CH_RE.test(c.id)).map((c) => ({ id: c.id, handle: c.handle || '', name: c.name || '' })) };
+          // videos: the values videos of this band (P2-175), so the 3-5 curated check lets them play.
+          return {
+            channels: (channels || []).filter((c) => Array.isArray(c.bands) && c.bands.includes(band) && CH_RE.test(c.id)).map((c) => ({ id: c.id, handle: c.handle || '', name: c.name || '' })),
+            videos: (values || []).filter((v) => v && ID_RE.test(v.id) && Array.isArray(v.bands) && v.bands.includes(band)).map((v) => v.id),
+          };
         }
         case 'kg:focus:i18n': return { strings: await strings(String(msg.lang || (ctx.getConfig() || {}).lang || 'en')) };
         case 'kg:focus:state': return focusState(ctx.getConfig()) || { focusMode: true, ageBand: '9-12', youtubeMode: 'focus', kids: true, social: 'block', lang: 'en' };

@@ -183,9 +183,9 @@
     <string name="lock_closed">Settings pages need the parent PIN.</string>
     <string name="pin_current">Current PIN</string>
     <string name="limits_adb">Someone with USB debugging (adb) can switch the protection off.</string>
-    <string name="st_topics">Sites about sexuality and gender identity are blocked</string>
-    <string name="topics_switch">Sexuality and gender identity topics</string>
-    <string name="topics_note">Blocks sites mainly about sexual orientation, gender identity and changing sex. Helplines stay open.</string>
+    <string name="st_topics">Sites on sensitive topics are blocked</string>
+    <string name="topics_switch">Sensitive topics</string>
+    <string name="topics_note">Blocks sites mainly about sexual orientation and gender identity, horoscopes, tarot and yoga. Helplines stay open.</string>
     <string name="notif_limits_only">RaiseSteady Guard is on: time limits only</string>
     <plurals name="to_check">
         <item quantity="one">%d setting to check</item>

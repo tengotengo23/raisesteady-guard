@@ -270,6 +270,16 @@ try {
   { const p = await visit('http://topic.kgtest.example/guide', 'topic page'); await topicPage(p, 'a page titled "Coming out as transgender"'); await p.close(); }
   { const p = await visit('https://glaad.org/', 'topic site'); await topicPage(p, 'a site on the topic list (glaad.org)'); await p.close(); }
   { const p = await visit('https://www.youtube.com/watch?v=aaaaaaaaaa1', 'yt watch topic', 2500); await topicPage(p, 'a YouTube watch page titled "Pride Month special"'); await p.close(); }
+  // P2-175: the values topics (yoga, horoscopes, Halloween...) get their own words and no helpline line.
+  for (const [url, label] of [['https://www.google.com/search?q=kids+yoga', 'a Google search "kids yoga"'], ['https://www.bing.com/search?q=halloween+costumes', 'a Bing search "halloween costumes"'], ['https://www.horoscope.com/', 'a values site (horoscope.com)']]) {
+    const p = await visit(url, 'values');
+    const reason = await waitReason(p, 'topic');
+    await sleep(400);
+    const t = await p.evaluate(() => ({ title: document.getElementById('title').textContent, body: document.getElementById('body').textContent, help: !document.getElementById('help').hidden, kind: new URLSearchParams(location.search).get('kind') }));
+    check(`P2-175: ${label} goes to the topic page with the values words, no helpline line`, reason === 'topic' && t.kind === 'values' && t.title === "This page isn't for your age." && t.body === 'If you think you need it, ask a parent.' && !t.help, JSON.stringify({ reason, ...t }));
+    if (label.includes('yoga')) check('P2-175: values page text fits at font 20 and 110 % zoom', await fits(p));
+    await p.close();
+  }
   {
     const p = await visit('https://www.youtube.com/results?search_query=volcano', 'yt results', 2500);
     const r = await p.evaluate(() => [...document.querySelectorAll('ytd-video-renderer')].map((e) => `${e.dataset.id}:${getComputedStyle(e).display !== 'none'}`));
@@ -334,7 +344,7 @@ try {
   // ---- the parent page switch ----
   {
     const text = await parentPage();
-    check('parent page: "Sexuality and gender identity topics" with its plain line, on', text.includes('Sexuality and gender identity topics') && text.includes('Helplines stay open.') && await parent.$eval('input[name="topics"]', (e) => e.checked));
+    check('parent page: "Sensitive topics" with its plain line, on', text.includes('Sensitive topics') && text.includes('Helplines stay open.') && await parent.$eval('input[name="topics"]', (e) => e.checked));
     await parent.click('input[name="topics"]');
     await submit('form[action="/parent/save"] button[type=submit]');
     const r = await sync();
@@ -356,7 +366,7 @@ try {
   // The report counts topic pages under their own reason (sent to the agent with each block page).
   {
     const text = await parentPage();
-    check('parent report: blocked topic pages under "Sexuality and gender identity topics"', /Sexuality and gender identity topics\s*\n?\s*\d/.test(text) || (text.match(/Sexuality and gender identity topics/g) || []).length >= 2, (text.match(/Blocked pages by reason[\s\S]{0,300}/) || [''])[0].replace(/\s+/g, ' ').slice(0, 200));
+    check('parent report: blocked topic pages under "Sensitive topics"', /Sensitive topics\s*\n?\s*\d/.test(text) || (text.match(/Sensitive topics/g) || []).length >= 2, (text.match(/Blocked pages by reason[\s\S]{0,300}/) || [''])[0].replace(/\s+/g, ' ').slice(0, 200));
   }
 
   check('no console errors', errors.length === 0, errors.slice(0, 5).join(' | '));

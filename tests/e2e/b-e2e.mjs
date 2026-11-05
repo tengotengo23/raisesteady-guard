@@ -317,6 +317,20 @@ try {
     await waitFor(p, () => document.getElementById('kg-yt-com'), null, 8000);
     const c = await p.evaluate(() => ({ comments: [...document.querySelectorAll('ytd-comments#comments')].filter((e) => e.getBoundingClientRect().height > 0).length, note: (document.getElementById('kg-yt-com') || {}).textContent || '' }));
     check('watch page (9-12): comments hidden, one plain line says so', c.comments === 0 && /switched off/.test(c.note), c.note);
+    // P2-175: full screen fills the screen (the player's own state classes are never hidden), also after a scroll.
+    const fsBox = () => p.evaluate(() => {
+      const pl = document.querySelector('#movie_player'), v = pl && pl.querySelector('video');
+      const r = pl ? pl.getBoundingClientRect() : { width: 0, height: 0 }, vr = v ? v.getBoundingClientRect() : { width: 0 };
+      return { fs: !!document.fullscreenElement, w: Math.round(r.width), h: Math.round(r.height), vw: Math.round(vr.width), win: [innerWidth, innerHeight], grid: [...document.querySelectorAll('.ytp-fullscreen-grid')].filter((e) => e.getBoundingClientRect().height > 0).length };
+    });
+    await p.click('.ytp-fullscreen-button').catch(() => {});
+    await sleep(1500);
+    const fs1 = await fsBox();
+    await p.mouse.move(400, 300); await p.mouse.wheel({ deltaY: 600 }); await sleep(1200);
+    const fs2 = await fsBox();
+    const fills = (b) => b.fs && b.w >= b.win[0] - 2 && b.h >= b.win[1] - 2 && b.vw >= b.win[0] - 2 && b.grid === 0;
+    check('watch page: full screen fills the screen, no suggestion grid (also after a scroll)', fills(fs1) && fills(fs2), JSON.stringify([fs1, fs2]));
+    await p.keyboard.press('Escape'); await sleep(800);
     await setBand('13-15');
     await p.reload({ waitUntil: 'domcontentloaded' }).catch(() => {});
     await sleep(4000);
@@ -332,7 +346,8 @@ try {
     await waitFor(p, () => { const h = document.getElementById('kg-yt-home'); return h && h.shadowRoot && h.shadowRoot.querySelector('.note') && h.shadowRoot.querySelectorAll('a.card').length >= 2; }, null, 30000);
     const hn = await p.evaluate(() => { const sr = document.getElementById('kg-yt-home').shadowRoot; return { note: (sr.querySelector('.note') || {}).textContent || '', cards: sr.querySelectorAll('a.card').length }; });
     check('3-5 home: curated videos and the one-line note under the search box', hn.cards >= 2 && /only from the channels/.test(hn.note), `${hn.cards} cards; ${hn.note}`);
-    await p.goto('https://www.youtube.com/results?search_query=elmo', { waitUntil: 'domcontentloaded' }).catch(() => {});
+    // P2-175: Sesame Street (the old "elmo" search) is no longer curated; Numberblocks is.
+    await p.goto('https://www.youtube.com/results?search_query=numberblocks', { waitUntil: 'domcontentloaded' }).catch(() => {});
     await waitFor(p, () => document.querySelectorAll('[data-kg-ok]').length >= 1, null, 20000);
     await sleep(1500);
     const cur = await p.evaluate(() => {

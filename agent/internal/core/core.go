@@ -78,8 +78,8 @@ type Settings struct {
 	// AppGame or AppBlocked); an app not named here takes its default.
 	Apps map[string]string `json:"apps,omitempty"`
 
-	// 0.3.1 (P2-161). TopicsOff turns off the topic filter "Sexuality and
-	// gender identity topics" in the extension (zero value = on, so older
+	// 0.3.1 (P2-161). TopicsOff turns off the topic filter "Sensitive topics" (P2-175;
+	// was "Sexuality and gender identity topics") in the extension (zero value = on, so older
 	// config files load with it on, as the brief sets for ages 3-17).
 	TopicsOff bool `json:"topicsOff,omitempty"`
 }

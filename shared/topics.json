@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "note": "Topic filter 'Sexuality and gender identity topics' (P2-161). Read by ext/content/topics.js. terms: [id, pattern, weight, unless]. Patterns are matched on lower-case text as whole words ({L} = any further letters, so a pattern ending in {L} is a prefix). weight 2 = a hit in a search, a title or the address blocks; weight 1 = counts only in descriptions and headings. unless = a pattern that, anywhere in the same text, cancels the term (other meanings). domains: sites mainly about these topics. helplines: never blocked, by any rule.",
+  "note": "Topic filter (P2-161; P2-175 added the values terms, ids 'v-...': yoga and eastern meditation, the occult, horoscopes, Halloween, horror; en ka ru es zh el sr). A Han (Chinese) pattern is matched without word edges. feedTerms: dark themes that never go into our recommendations (built-in videos, values pool, channel feeds), read with create(data, { feed: true }); pages about them stay open. Read by ext/content/topics.js. terms: [id, pattern, weight, unless]. Patterns are matched on lower-case text as whole words ({L} = any further letters, so a pattern ending in {L} is a prefix). weight 2 = a hit in a search, a title or the address blocks; weight 1 = counts only in descriptions and headings. unless = a pattern that, anywhere in the same text, cancels the term (other meanings). domains: sites mainly about these topics (Android reads this list); valuesDomains: the ones of them for the values terms (block page wording only). helplines: never blocked, by any rule.",
   "terms": [
     ["lgbt", "lgbt{L}|2slgbt{L}|glbt{L}", 2],
     ["queer", "queer{L}", 2, "secret garden|narnia|blyton|dickens|queer (?:fish|feeling|little|old|sort|thing|noise|smell)|a queer (?:man|woman|fellow|place)"],
@@ -70,12 +70,74 @@
     ["ru-latin", "lesbiyank{L}|lesbiyan{L}|lesbiank{L}|gomoseksual{L}|kaming[- ]?aut{L}|odnopol{L} brak{L}|smena pola|netradicionn{L} orientaci{L}|transgendery|gejsk{L}|geiskaya|gey|geys|lezbian{L}|lezbiyan{L}|lesbean{L}|lesbo", 2, "lesbos island|greek island"],
     ["ru-questioning", "тест на (?:сексуальн{L} )?ориентаци{L}|тест на гендер{L}|какой (?:у меня|я) гендер|какого я гендера|как понять,? что я (?:гей|би|бисексуал{L}|транс{L}|лесби{L}|квир|небинар{L}|асексуал{L})|я (?:гей|лесбиянка|бисексуал{L}|трансгендер{L}|небинар{L}) или нет|(?:ftm|mtf) переход{L}", 2],
     ["ru-phobia", "гомофоби{L}|трансфоби{L}", 1],
-    ["ru-intersex", "интерсекс{L}|цисгендер{L}", 1]
+    ["ru-intersex", "интерсекс{L}|цисгендер{L}", 1],
+    ["gender-choice", "(?:choose|choosing|pick|picking|select|selecting|change|changing) (?:your|my|their|his|her) (?:own )?gender|more than two genders|(?:many|\\d+|100|hundreds? of) genders|gender (?:is a spectrum|spectrum|unicorn|bread ?man|gingerbread)|genderbread", 2, "nouns?|grammar|german|french|spanish|latin|russian|polish|languages?|articles?|der die das|masculine|feminine|neuter"],
+    ["el-lgbt", "λοατκι{L}|ομοφυλόφιλ{L}|ομοφυλοφιλ{L}|λεσβί{L}|λεσβι{L}|γκέι|γκει|τρανς (?:άτομ{L}|ατομ{L}|γυναίκ{L}|άνδρ{L}|παιδ{L})|ομόφυλ{L} (?:γάμ{L}|ζευγάρ{L})|ομοφυλ{L} (?:γαμ{L}|ζευγαρ{L})|ταυτότητα φύλου|αλλαγή φύλου|αλλαγη φυλου|μη δυαδικ{L}", 2, "λεσβιακ{L}|λέσβο{L}|λεσβο{L}|νησ{L}|μουσικ{L}"],
+    ["sr-lgbt", "геј|геја|гејев{L}|гејск{L}|gej|geja|gejsk{L}|парад{L} поноса|parad{L} ponosa|истополн{L}|istopoln{L}|трансродн{L}|transrodn{L}|родн{L} идентитет{L}|rodn{L} identitet{L}|промен{L} пола|promen{L} pola", 2],
+
+    ["v-yoga", "yoga{L}|namaste|kundalini|chakras?|surya namaskar|sun salutations?|asanas|pranayama", 2],
+    ["v-yogi", "yogis?|yogic", 2, "yogi bear|yogi berra|adityanath"],
+    ["v-meditation", "meditat{L}", 2, "christian{L}|orthodox{L}|prayer{L}|pray{L}|psalm{L}|scripture{L}|bible|gospel|saints?|church{L}|marcus aurelius|meditations of|descartes|lectio divina|hesychas{L}"],
+    ["v-mindfulness", "mindfulness|mindful (?:breathing|moments?|minutes?|kids|children|meditation|yoga|colou?ring|movement|body|listening|eating)|zen den|vipassana|body scan|guided imagery|breathwork", 2],
+    ["v-mantra", "om chanting|chanting om|om mani padme hum|hare krishna|mantra (?:chanting|meditation|for kids|music)|(?:healing|sanskrit|buddhist|hindu) mantras?", 2],
+    ["v-mantra-word", "mantras?", 1],
+    ["v-newage", "reiki|energy healing|crystal healing|healing crystals|crystal (?:grids?|magic|meanings?|energy)|chakra (?:healing|balancing|cleansing)|aura (?:reading|cleansing|colou?rs?)|third eye|astral projection|spirit guides?|law of attraction|manifesting|manifestation (?:journal{L}|method|techniques?|tips|affirmations?)", 2, "symptoms?|disease{L}|illness{L}|infection{L}|virus{L}|blind"],
+    ["v-occult", "occult{L}|witchcraft|wicca{L}|witchtok|witchy|witch(?:es)? (?:spells?|rituals?|tips|aesthetic|starter|beginners?|crafts?|altars?|tools|guide)|(?:baby|real|modern|green|kitchen|hedge|sea) witch(?:es)?|how to (?:become|be) a witch|(?:love|money|protection|beginners?|easy|real|magic|simple) spells?|spell ?(?:casting|jars?|books?)|cast(?:ing)? (?:a )?spells?|black magic|white magic|voodoo|vodou|hoodoo|devil worship{L}|summon(?:ing)? (?:a )?(?:demons?|spirits?|ghosts?)|ouija|s[eé]ances?|necromanc{L}|pagan rituals?|neo-?pagan{L}|samhain|beltane|sabbats?", 2],
+    ["v-satan", "satanis{L}|satanic|satan worship{L}|church of satan|lucifer{L} worship", 2, "verses|rushdie"],
+    ["v-pentagram", "pentagrams?", 2, "geometr{L}|polygons?|maths?|mathematics|golden ratio|star polygon|numberphile|regular|pentagon{L}"],
+    ["v-astrology", "astrolog{L}|horoscope{L}|zodiac signs?|(?:your|my|each|every|the 12|12) zodiac|star signs?|birth charts?|natal charts?|tarot{L}|fortune[- ]tell{L}|palm reading|palmistry|numerolog{L}|psychic readings?|crystal ball reading|tea leaf reading|angel numbers?|mercury retrograde|(?:aries|taurus|gemini|leo|virgo|libra|scorpio|sagittarius|capricorn|aquarius|pisces) (?:season|horoscope|traits|zodiac|personality|compatibility)", 2, "chinese|lunar new year|great race|zodiac animals?"],
+    ["v-halloween", "hallowe'?en{L}|trick[- ]or[- ]treat{L}|jack[- ]o'?[- ]lanterns?|spooky|spookiest|spooktacular|spookley|d[ií]a de (?:los )?muertos|day of the dead", 2, "action at a distance|quantum|entangle{L}"],
+    ["v-horror", "horror{L}|creepypasta{L}|jump ?scares?|scary (?:stories|story|videos?|movies?|films?|games?|monsters?|clowns?|dolls?|ghosts?|cartoons?|nights?|songs?|faces?)|haunted (?:house{L}|houses|dolls?|places|hotel{L}|asylum{L}|forest{L})|ghost (?:stories|story|hunt{L}|caught on camera|sightings?)|paranormal|poltergeist{L}|werewol{L}|five nights at freddy'?s?|fnaf|poppy playtime|huggy wuggy|siren head|momo challenge|skibidi{L}|slender ?man|garten of banban|banban|smiling critters|backrooms|murder drones|scp[- ]\\d{2,4}", 2, "war|holocaust|slavery|genocide|history|historical|famine|battle{L}|trench{L}|world war|ww1|ww2|wwi|wwii|crimes? against"],
+    ["v-zombie", "zombies?", 2, "ants?|fungus|fungi|cordyceps|snails?|caterpillars?|wasps?|parasit{L}|stars?|cells?|deer|forests?|compan{L}|debt|computers?|process{L}|worms?|crabs?|spiders?|flies|nature|biology"],
+    ["v-vampire", "vampires?", 2, "bats?|squid|finch{L}|moths?|crabs?|fish|deer|snails?|spiders?|nature|biology"],
+    ["v-exorcism", "exorcis{L}|possessed by", 1],
+    ["v-sex", "(?<!same[- ])(?<!opposite[- ])(?:sex|sexes)|sexy|sexual{L}|sexuali{L}", 2, "reproduction|asexual|meiosis|gametes?|chromosom{L}|mitosis|organisms?|plants?|flowers?|botany|botanical|pollen|pollinat{L}|fungi|algae|reptiles?|turtles?|crocodiles?|alligators?|fish|clownfish|temperature-dependent|sex of (?:a|the) (?:baby|turtle|chick|egg)"],
+    ["v-adult", "sext{L}|porn{L}|nsfw|nudes?|nudity|nudist{L}|naked|topless|erotic{L}|orgasm{L}|intercourse|hook ?ups?|one[- ]night stands?|onlyfans|only fans|hentai|xxx|18\\+|fetish{L}|kinky|bdsm|strip ?clubs?|strippers?|striptease|lap ?danc{L}|playboy|lingerie|prostitut{L}|brothels?|sex ?work{L}|escort (?:service|girls?|agency)|seduc{L}|adultery|affairs? with|cheating on|lust|lustful|lusting|horny|thirst traps?|twerk{L}|condoms?|contracepti{L}|birth control|wet dreams?|making out|french kiss{L}|kiss(?:ing)? scenes?|mating|matings|copulat{L}|genital{L}|penis{L}|vagina{L}", 2],
+    ["v-breast", "breasts?|boobs?", 2, "cancer|chicken|turkey|duck|recipes?|cook{L}|grill{L}|roast{L}|bak{L}|feeding|milk|robin"],
+    ["v-ru-sex", "секс{L}|сексуальн{L}", 2, "растени{L}|цвет(?:ок|ки|ков|ы)|опылени{L}|рыб{L}|черепах{L}"],
+    ["v-ru-adult", "порн{L}|эротик{L}|эротич{L}|голая|голые|голых|голышом|обнаж[её]нн{L}|интим{L}|оргазм{L}|проститут{L}|стриптиз{L}|онлифанс|18\\+|измен(?:а|ил|ила|ять) (?:муж{L}|жен{L}|парн{L}|девушк{L})", 2],
+    ["v-ka-adult", "სექს{L}|პორნ{L}|ეროტიკ{L}|ეროტიულ{L}|შიშველ{L}|ინტიმ{L}|პროსტიტუცი{L}|სტრიპტიზ{L}", 2, "მცენარ{L}|ყვავილ{L}|ბოტანიკ{L}"],
+    ["v-es-adult", "sexo|desnud{L}|er[oó]tic{L}|prostituci[oó]n|prostitutas?", 2],
+    ["v-zh-adult", "色情|性爱|做爱|裸体|成人视频|性感|黄片", 2],
+    ["v-el-adult", "σεξ|πορνό|πορνο|γυμνή|γυμνός|γυμνά|γυμνές|γυμνοί|ερωτικ{L}", 2],
+    ["v-sr-adult", "seks{L}|голи|gola|nag(?:a|i|o)", 2, "bicikl{L}|nogom{L}"],
+
+    ["v-ru-yoga", "йога|йоги|йогу|йогой|йоге|йогам|йогами|йог|йогов|йогин{L}|намасте|кундалини|чакр(?:а|ы|у|ой|е|ам|ами|ах)|пранаям{L}", 2],
+    ["v-ru-meditation", "медитаци{L}|медитир{L}|майндфулнес{L}|майндфулнесс{L}", 2, "православн{L}|молитв{L}|христиан{L}|исихаз{L}|святоотеч{L}|святых отцов"],
+    ["v-ru-mindfulness", "осознанност{L}", 1],
+    ["v-ru-mantra", "мантр(?:а|ы|у|ой|ам|ами|ах)|харе кришна|ом мани", 2],
+    ["v-ru-occult", "оккульт{L}|колдовств{L}|ведьмовств{L}|магическ{L} ритуал{L}|ритуал{L} на (?:деньги|любовь|удачу|желание)|заговор{L} на (?:деньги|любовь|удачу|здоровье|желание)|приворот{L}|отворот{L}|сглаз{L}|ч[её]рн{L} маги{L}|бел{L} маги{L}|вуду|сатанизм{L}|сатанист{L}|сатанинск{L}|спиритизм{L}|спиритическ{L}|вызвать (?:дух{L}|демон{L}|призрак{L})|вызов (?:дух{L}|демон{L}|призрак{L})|уиджа|викка{L}|экстрасенс{L}|ясновидящ{L}|гадани{L}|гадалк{L}|снять порчу|навести порчу|порча на", 2],
+    ["v-ru-astrology", "астролог{L}|гороскоп{L}|натальн{L} карт{L}|знак{L} зодиака|зодиак{L}|карты таро|таро|нумеролог{L}|хиромант{L}|ретроградн{L} меркури{L}", 2, "китайск{L}|растени{L}|корнеплод{L}|клубн{L}"],
+    ["v-ru-halloween", "хэллоуин{L}|хеллоуин{L}|хелоуин{L}|хэлоуин{L}|халлоуин{L}|сладость или гадость|день м[её]ртвых|тыквенн{L} фонар{L}", 2],
+    ["v-ru-horror", "ужастик{L}|хоррор{L}|крипипаст{L}|скример{L}|страшилк{L}|страшн{L} истори{L}|паранормальн{L}|полтергейст{L}|оборот(?:ень|ня|ни|ней|нем)|фнаф|поппи плейтайм|хаги ваги|хагги вагги|сиреноголов{L}|скибиди{L}|бэкрумс", 2],
+    ["v-ru-zombie", "зомби", 2, "муравь{L}|гриб{L}|кордицепс{L}|паразит{L}|природ{L}|биологи{L}"],
+    ["v-ru-vampire", "вампир{L}", 2, "летуч{L} мыш{L}|кальмар{L}|природ{L}|биологи{L}"],
+
+    ["v-ka-yoga", "იოგა|იოგას|იოგით|იოგის|იოგაში|იოგაზე|იოგი|იოგები|იოგებ{L}|ნამასტე|ჩაკრ{L}|კუნდალინი", 2],
+    ["v-ka-meditation", "მედიტაცი{L}|მედიტირ{L}|მაინდფულნეს{L}", 2, "ლოცვ{L}|მართლმადიდებ{L}|ქრისტიან{L}|წმიდა მამ{L}"],
+    ["v-ka-occult", "ოკულტ{L}|ჯადოქრობ{L}|მაგიურ{L} რიტუალ{L}|შავი მაგი{L}|თეთრი მაგი{L}|სატანიზმ{L}|სატანისტ{L}|სპირიტიზმ{L}|მკითხაობ{L}|მკითხავ{L}|ექსტრასენს{L}|ვუდუ|შელოცვ{L}|მანტრ{L}", 2],
+    ["v-ka-astrology", "ასტროლოგი{L}|ჰოროსკოპ{L}|ზოდიაქო{L}|ტარო|ტაროს|ნუმეროლოგი{L}|ქირომანტი{L}", 2, "ჩინურ{L}"],
+    ["v-ka-halloween", "ჰელოუინ{L}|ჰალოუინ{L}|ჰელოვინ{L}|ჰალოვინ{L}|ჰელოუვინ{L}", 2],
+    ["v-ka-horror", "საშინელებათა|ჰორორ{L}|ზომბ{L}|ვამპირ{L}|მოჩვენებ{L} ისტორი{L}|საშიშ{L} ისტორი{L}|სკიბიდი{L}", 2, "ღამურ{L}|ჭიანჭველ{L}|სოკო{L}|ბუნებ{L}|ბიოლოგი{L}"],
+
+    ["v-es", "meditaci[oó]n{L}|brujer[ií]a{L}|hechizos?|conjuros?|hor[oó]scopo{L}|astrolog[ií]a|signos? del zod[ií]aco|satanismo|satanistas?|vud[uú]|truco o trato|historias? de terror|pel[ií]culas? de terror|cuentos? de terror|terror para niños", 2, "cristian{L}|oraci[oó]n|biblia|ortodox{L}|chino|año nuevo lunar"],
+    ["v-zh", "瑜伽|冥想|正念|万圣节|萬聖節|塔罗|塔羅|星座运势|星座運勢|占星|算命|巫术|巫術|通灵|通靈|恐怖故事|恐怖片|僵尸|殭屍|吸血鬼|鬼故事", 2],
+    ["v-el", "γιόγκα|γιογκα|γιόγκ{L}|διαλογισμ{L}|χάλοουιν|χαλοουίν|χαλοουιν|χάλογουιν|χαλογουίν|χαλογουιν|ωροσκόπι{L}|ωροσκοπι{L}|ωροσκόπ{L}|αστρολογ{L}|ζώδι{L}|ζωδι{L}|ταρώ|ταρω|μάγισσ{L} (?:ξόρκ{L}|τελετ{L})|ξόρκ{L}|σατανισ{L}|ταινί{L} τρόμου|ιστορί{L} τρόμου", 2, "προσευχ{L}|ορθόδοξ{L}|ορθοδοξ{L}|χριστιαν{L}|κινέζικ{L}"],
+    ["v-sr", "јога|јоге|јогу|јогом|ноћ вештица|noć veštica|noc vestica|хороскоп{L}|horoskop{L}|медитациј{L}|meditacij{L}|вештичарењ{L}|veštičarenj{L}|вјештичарењ{L}|vještičarenj{L}|астрологиј{L}|сатанизам|satanizam|хорор{L}|horor{L}", 2, "молитв{L}|molitv{L}|православ{L}|pravoslav{L}|хришћан{L}|hrišćan{L}"]
+  ],
+  "feedTerms": [
+    ["f-dark", "suicid{L}|self[- ]harm{L}|murder{L}|serial killers?|killing people|kills? people|killed (?:by|in|his|her|their)|massacre{L}|genocide|torture{L}|public executions?|executed (?:by|for)|war crimes?|prison{L}|jail{L}|locked up|drugs?|cocaine|heroin|meth|overdos{L}|addict{L}|psychosis|abuse{L}|kidnap{L}|terroris{L}|bombs?|bombing{L}|shootings?|guns?|gunfire|weapons?|nuclear war|apocalypse|end of the world|dead bod{L}|corpses?|autopsy|gore|gory|crime scenes?|cults?|taboo{L}|original sin", 2],
+    ["f-ru-dark", "самоубийств{L}|суицид{L}|убийств{L}|убийц{L}|маньяк{L}|наркоти{L}|наркоман{L}|тюрьм{L}|теракт{L}|террорист{L}|оружи{L}|расстрел{L}|пытк{L}|апокалипсис{L}", 2],
+    ["f-ka-dark", "თვითმკვლელობ{L}|მკვლელობ{L}|მკვლელ{L}|ნარკოტიკ{L}|ნარკომან{L}|ტერორისტ{L}|იარაღ{L}|წამებ{L}", 2]
   ],
   "domains": [
     "glaad.org", "hrc.org", "pflag.org", "stonewall.org.uk", "transequality.org", "genderspectrum.org", "mermaidsuk.org.uk",
     "ilga.org", "ilga-europe.org", "them.us", "advocate.com", "out.com", "thepinknews.com", "pinknews.co.uk",
-    "lgbtqnation.com", "queerty.com", "autostraddle.com", "parniplus.com", "equality.ge", "tbilisipride.ge"
+    "lgbtqnation.com", "queerty.com", "autostraddle.com", "parniplus.com", "equality.ge", "tbilisipride.ge",
+    "cosmickids.com", "yogajournal.com", "horoscope.com", "astrology.com", "cafeastrology.com", "astro.com", "astrostyle.com", "costarastrology.com", "tarot.com", "biddytarot.com", "labyrinthos.co", "horo.mail.ru", "1001goroskop.ru", "astrohelper.ru"
+  ],
+  "valuesDomains": [
+    "cosmickids.com", "yogajournal.com", "horoscope.com", "astrology.com", "cafeastrology.com", "astro.com", "astrostyle.com", "costarastrology.com", "tarot.com", "biddytarot.com", "labyrinthos.co", "horo.mail.ru", "1001goroskop.ru", "astrohelper.ru"
   ],
   "helplines": [
     "findahelpline.com", "childhelplineinternational.org", "samaritans.org", "befrienders.org", "988lifeline.org",

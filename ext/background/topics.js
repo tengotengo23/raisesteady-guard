@@ -11,12 +11,15 @@ export function helplineHost(host, matcher) {
   return !!host && !!matcher && typeof matcher.isHelpline === 'function' && matcher.isHelpline(host);
 }
 
-/** true when this address is a search (7 engines, YouTube too) on the topic and the filter applies. */
+/** This address is a search (7 engines, YouTube too) on the topic and the filter applies: its kind
+ *  ('topic' or 'values', P2-175; truthy), else false. */
 export function topicSearch(url, cfg, matcher, host) {
   if (!cfg || cfg.topics === false || !matcher) return false;
   if (host && (inDomains(host, cfg.allow || []) || helplineHost(host, matcher))) return false;
   const q = searchQuery(url);
-  return !!q && matcher.matchQuery(q).hit;
+  if (!q) return false;
+  const m = matcher.matchQuery(q);
+  return m.hit ? (m.kind === 'values' ? 'values' : 'topic') : false;
 }
 
 let lastKey = null;

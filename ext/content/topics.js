@@ -1,4 +1,4 @@
-// Topic filter (P2-161, T1): "Sexuality and gender identity topics", on by default under 18.
+// Topic filter (P2-161, T1; P2-175 values terms): "Sensitive topics", on by default under 18.
 // Text only, on the device. Classic script: defines globalThis.KGTopics; also loads in node (tests,
 // tools/update-videos.mjs) and in the background (side-effect import). The words live in data/topics.json.
 //
@@ -74,17 +74,24 @@
     return !!h && list.some((d) => h === d || h.endsWith('.' + d));
   };
 
-  function create(data) {
+  /** opts.feed (P2-175): also the feedTerms, dark themes kept out of what we recommend (never used for blocking pages). */
+  function create(data, opts = {}) {
     const d = data && typeof data === 'object' ? data : {};
     const terms = [];
-    for (const t of Array.isArray(d.terms) ? d.terms : []) {
+    const list = [...(Array.isArray(d.terms) ? d.terms : []), ...(opts && opts.feed && Array.isArray(d.feedTerms) ? d.feedTerms : [])];
+    for (const t of list) {
       if (!Array.isArray(t) || typeof t[0] !== 'string' || typeof t[1] !== 'string') continue;
       try {
-        terms.push({ id: t[0], w: Number(t[2]) === 1 ? 1 : 2, re: new RegExp(B + src(t[1]) + E, 'u'), unless: t[3] ? new RegExp(B + src(t[3]) + E, 'u') : null });
+        // Chinese is written without spaces: a Han pattern is matched without word edges (P2-175).
+        const edge = (x) => (/\p{Script=Han}/u.test(x) ? new RegExp(`(?:${src(x)})`, 'u') : new RegExp(B + src(x) + E, 'u'));
+        terms.push({ id: t[0], w: Number(t[2]) === 1 ? 1 : 2, re: edge(t[1]), unless: t[3] ? edge(t[3]) : null });
       } catch { /* a broken pattern is skipped, never thrown */ }
     }
     const domains = (Array.isArray(d.domains) ? d.domains : []).map((x) => String(x).toLowerCase());
     const helplines = (Array.isArray(d.helplines) ? d.helplines : []).map((x) => String(x).toLowerCase());
+    // P2-175: the values terms (ids 'v-...') and sites get their own block-page wording: kind 'values', else 'topic'.
+    const vdomains = (Array.isArray(d.valuesDomains) ? d.valuesDomains : []).map((x) => String(x).toLowerCase());
+    const kindOf = (ids) => (ids.length && ids.every((id) => String(id).startsWith('v-')) ? 'values' : 'topic');
 
     /** Terms found in one text: [{ id, w }]. */
     function find(text) {
@@ -100,20 +107,21 @@
     /** A search or a title: one clear term is enough. */
     function matchTitle(text) {
       const hits = strongIn(text);
-      return { hit: hits.length > 0, terms: hits.map((x) => x.id) };
+      const ids = hits.map((x) => x.id);
+      return { hit: ids.length > 0, terms: ids, kind: ids.length ? kindOf(ids) : null };
     }
 
     /**
      * A page: { host, path, title, ogTitle, description, ogDescription, keywords, headings: string[] }.
-     * Returns { hit, why: 'helpline'|'domain'|'title'|'path'|'score'|null, terms, score }.
+     * Returns { hit, why: 'helpline'|'domain'|'title'|'path'|'score'|null, terms, score, kind: 'topic'|'values'|null }.
      */
     function matchPage(p) {
       const q = p || {};
-      if (hostIn(q.host, helplines)) return { hit: false, why: 'helpline', terms: [], score: 0 };
-      if (hostIn(q.host, domains)) return { hit: true, why: 'domain', terms: [], score: 0 };
+      if (hostIn(q.host, helplines)) return { hit: false, why: 'helpline', terms: [], score: 0, kind: null };
+      if (hostIn(q.host, domains)) return { hit: true, why: 'domain', terms: [], score: 0, kind: hostIn(q.host, vdomains) ? 'values' : 'topic' };
       for (const [why, text] of [['title', q.title], ['title', q.ogTitle], ['path', pathWords(q.path)]]) {
         const m = matchTitle(text);
-        if (m.hit) return { hit: true, why, terms: m.terms, score: 0 };
+        if (m.hit) return { hit: true, why, terms: m.terms, score: 0, kind: m.kind };
       }
       let score = 0;
       const seen = new Set();
@@ -121,14 +129,16 @@
       for (const text of [[q.description, q.ogDescription].filter(Boolean).join(' · '), q.keywords, heads]) {
         for (const x of find(text)) { score += x.w; seen.add(x.id); }
       }
-      return { hit: score >= PAGE_BLOCK, why: score >= PAGE_BLOCK ? 'score' : null, terms: [...seen], score };
+      const hit = score >= PAGE_BLOCK;
+      return { hit, why: hit ? 'score' : null, terms: [...seen], score, kind: hit ? kindOf([...seen]) : null };
     }
 
     return {
       matchQuery: matchTitle, matchTitle, matchPage,
       isHelpline: (host) => hostIn(host, helplines),
       isTopicDomain: (host) => hostIn(host, domains) && !hostIn(host, helplines),
-      domains: () => domains.slice(), helplines: () => helplines.slice(),
+      domains: () => domains.slice(), valuesDomains: () => vdomains.slice(), helplines: () => helplines.slice(),
+      isValuesDomain: (host) => hostIn(host, vdomains),
       helpLink: typeof d.helpLink === 'string' && /^https:\/\//.test(d.helpLink) ? d.helpLink : 'https://findahelpline.com/',
       size: terms.length,
     };

@@ -31,11 +31,13 @@ async function main() {
   const end = reason === 'homework' ? (status && status.homeworkEnd) || '' : status && status.bedtime ? status.bedtime.end : '';
   const until = (status && status.pausedUntil) || '';
 
-  $('title').textContent = t(`r_${reason}_t`, { end, until });
+  // P2-175: the values topics (yoga, the occult, horoscopes, Halloween, horror) have their own words, without helplines.
+  const words = reason === 'topic' && params.get('kind') === 'values' ? 'values' : reason;
+  $('title').textContent = t(`r_${words}_t`, { end, until });
   document.title = `${$('title').textContent} · ${APP_NAME}`;
-  $('body').textContent = t(`r_${reason}_b`, { end, until });
+  $('body').textContent = t(`r_${words}_b`, { end, until });
   // Topic page (P2-161): under the words, a way to talk to someone. Helplines are never blocked.
-  if (reason === 'topic') $('help').hidden = false;
+  if (words === 'topic') $('help').hidden = false;
   // At night and in a pause, the same way to talk to someone, under the words.
   if (reason === 'bedtime' || reason === 'paused') { $('help').prepend(`${t('r_topic_b')} `); $('help').hidden = false; }
   if (site) { $('site').hidden = false; $('site').replaceChildren(el('span', { class: 'bp-site', text: t('triedSite', { site }) })); }

@@ -57,14 +57,14 @@
   const EN = {
     ytSearchLabel: 'Search YouTube', ytSearchPlaceholder: 'Search for a video', ytSearchBtn: 'Search',
     ytCuratedNote: 'Search shows videos only from the channels picked for your age.', ytCuratedNone: 'No videos from the picked channels match this search. Try another word.',
-    ytVideosTitle: 'Videos for you', ytVideosFrom: 'From channels picked for children of your age.', ytCommentsOff: 'Comments are switched off.',
+    ytVideosTitle: 'Videos for you', ytVideosFrom: 'Picked for children of your age. New stories every day.', ytCommentsOff: 'Comments are switched off.',
     gridLabel: 'Videos picked for you', cardLabel: '{title}, from {channel}', gridEmpty: 'New videos are on their way. Please look again a little later.',
     gridOffline: "The videos need the internet. They'll come back when you're online.", gridSaved: 'Showing saved videos.',
   };
 
   // Optimistic until storage answers: focus on, so the feed never flashes.
   let st = { focusMode: true, ageBand: null, youtubeMode: 'focus', kids: true, lang: 'en' };
-  let known = false, strings = null, curated = null, lastUrl = '', vidsFor = '';
+  let known = false, strings = null, curated = null, curatedVids = new Set(), lastUrl = '', vidsFor = '';
   const t = (k, vars = {}) => String((strings && strings[k]) || EN[k] || k).replace(/\{(\w+)\}/g, (m, x) => (vars[x] != null ? String(vars[x]) : m));
   const ask = (msg) => api.runtime.sendMessage(msg).catch(() => null);
 
@@ -76,8 +76,15 @@
       topicsAllowYt = !!(v && Array.isArray(v.allow) && v.allow.some((d) => d === 'youtube.com' || /\.youtube\.com$/.test(String(d))));
     } catch { topics = null; }
   };
-  const topicHit = (text) => !!topics && !topicsAllowYt && !!text && topics.matchTitle(text).hit;
-  const toTopicPage = () => location.replace(api.runtime.getURL('pages/blocked.html?reason=topic&site=youtube.com'));
+  // The kind of the last hit ('topic' or 'values', P2-175) picks the block page's wording.
+  let topicKind = 'topic';
+  const topicHit = (text) => {
+    if (!topics || topicsAllowYt || !text) return false;
+    const m = topics.matchTitle(text);
+    if (m.hit) topicKind = m.kind === 'values' ? 'values' : 'topic';
+    return m.hit;
+  };
+  const toTopicPage = () => location.replace(api.runtime.getURL(`pages/blocked.html?reason=topic${topicKind === 'values' ? '&kind=values' : ''}&site=youtube.com`));
   const TOPIC_ITEMS = 'ytd-video-renderer, yt-lockup-view-model, ytd-rich-item-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-renderer, ytd-radio-renderer, ytd-channel-renderer, ytd-reel-item-renderer, ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-rich-item-renderer';
   const TITLE_SEL = '#video-title, a#video-title-link, h3, #channel-title, .yt-lockup-metadata-view-model__title, .yt-lockup-metadata-view-model-wiz__title, .media-item-headline, .compact-media-item-headline';
   /** Hide videos, playlists and channels whose title (and channel name) is on the topic list. */
@@ -150,12 +157,14 @@ html.kg-f ytd-grid-video-renderer:has(${SHORTS_LINK}), html.kg-f ytd-compact-vid
 html.kg-f yt-lockup-view-model:has(${SHORTS_LINK}), html.kg-f ytm-video-with-context-renderer:has(${SHORTS_LINK}),
 html.kg-f yt-tab-shape[tab-title="Shorts"], html.kg-f [data-kg-shorts] { display: none !important; }
 html.kg-f.kg-watch #related, html.kg-f.kg-watch ytd-watch-next-secondary-results-renderer,
-html.kg-f.kg-watch ytm-item-section-renderer[section-identifier="related-items"],
-html.kg-f .html5-endscreen, html.kg-f .ytp-endscreen-content, html.kg-f .ytp-ce-element, html.kg-f .ytp-endscreen-previous, html.kg-f .ytp-endscreen-next,
-html.kg-f .ytp-autonav-endscreen, html.kg-f .ytp-autonav-endscreen-countdown-overlay, html.kg-f .ytp-autonav-endscreen-upnext-container,
-html.kg-f .ytp-videowall-still, html.kg-f .ytp-pause-overlay, html.kg-f .ytp-suggestion-set, html.kg-f .ytp-fullscreen-grid,
-html.kg-f .ytp-fullscreen-grid-peeking, html.kg-f .ytp-next-button, html.kg-f .ytp-autonav-toggle-button-container,
-html.kg-f .ytp-button[data-tooltip-target-id="ytp-autonav-toggle-button"], html.kg-f .ytm-autonav-toggle-button-container { display: none !important; }
+html.kg-f.kg-watch ytm-item-section-renderer[section-identifier="related-items"] { display: none !important; }
+/* P2-175: never the player itself. In full screen YouTube puts state classes such as ytp-fullscreen-grid-peeking
+   and ytp-fullscreen-grid-active on #movie_player; hiding by those classes hid the whole player (black screen). */
+html.kg-f :is(.html5-endscreen, .ytp-endscreen-content, .ytp-ce-element, .ytp-endscreen-previous, .ytp-endscreen-next,
+  .ytp-autonav-endscreen, .ytp-autonav-endscreen-countdown-overlay, .ytp-autonav-endscreen-upnext-container,
+  .ytp-videowall-still, .ytp-pause-overlay, .ytp-suggestion-set, .ytp-fullscreen-grid, .ytp-fullscreen-grid-stills-container,
+  .ytp-next-button, .ytp-autonav-toggle-button-container, .ytp-button[data-tooltip-target-id="ytp-autonav-toggle-button"],
+  .ytm-autonav-toggle-button-container):not(.html5-video-player):not(#movie_player):not(:has(video)) { display: none !important; }
 html.kg-f.kg-nocom ytd-comments#comments, html.kg-f.kg-nocom #comment-teaser, html.kg-f.kg-nocom ytd-comments-entry-point-header-renderer,
 html.kg-f.kg-nocom ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"],
 html.kg-f.kg-nocom ytd-item-section-renderer[section-identifier="comment-item-section"],
@@ -351,6 +360,7 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     if (!r || !Array.isArray(r.channels)) return null;
     curated = new Set();
     for (const c of r.channels) { curated.add(c.id.toLowerCase()); if (c.handle) curated.add(c.handle.replace(/^@/, '').toLowerCase()); }
+    curatedVids = new Set(Array.isArray(r.videos) ? r.videos.filter((v) => ID_RE.test(v)) : []); // values videos (P2-175)
     return curated;
   }
   let noneTimer = null;
@@ -410,7 +420,7 @@ img { display: block; width: 100%; height: auto; aspect-ratio: 16 / 9; object-fi
     for (const v of document.querySelectorAll('video')) { try { if (!v.paused) { v.pause(); watchCheck.paused.add(v); } } catch { /* fine */ } }
     const set = await loadCurated();
     if (!set || !watchCheck || watchCheck.vid !== vid) { setTimeout(schedule, 300); return; }
-    const verdict = curatedVerdict({ curated: set, dataCh: dataChannel(vid), domKeys: MOBILE ? [] : domChannelKeys(vid), elapsedMs: Date.now() - watchCheck.start });
+    const verdict = curatedVids.has(vid) ? 'ok' : curatedVerdict({ curated: set, dataCh: dataChannel(vid), domKeys: MOBILE ? [] : domChannelKeys(vid), elapsedMs: Date.now() - watchCheck.start });
     if (verdict === 'ok') {
       watchCheck.done = true; setClass('kg-hold', false);
       for (const v of watchCheck.paused) { try { v.play().catch(() => {}); } catch { /* fine */ } }

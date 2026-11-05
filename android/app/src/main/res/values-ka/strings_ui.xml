@@ -166,9 +166,9 @@
     <string name="lock_closed">პარამეტრების გვერდებს მშობლის PIN-კოდი სჭირდება.</string>
     <string name="pin_current">ამჟამინდელი PIN-კოდი</string>
     <string name="limits_adb">ვისაც USB-ით გამართვა (adb) შეუძლია, დაცვას გამორთავს.</string>
-    <string name="st_topics">სექსუალობისა და გენდერული იდენტობის შესახებ საიტები დაბლოკილია</string>
-    <string name="topics_switch">სექსუალობისა და გენდერული იდენტობის თემები</string>
-    <string name="topics_note">ბლოკავს საიტებს, რომლებიც ძირითადად სექსუალური ორიენტაციის, გენდერული იდენტობისა და სქესის შეცვლის შესახებაა. დახმარების ცხელი ხაზები ღია რჩება.</string>
+    <string name="st_topics">მგრძნობიარე თემების საიტები დაბლოკილია</string>
+    <string name="topics_switch">მგრძნობიარე თემები</string>
+    <string name="topics_note">ბლოკავს საიტებს, რომლებიც ძირითადად სექსუალური ორიენტაციისა და გენდერული იდენტობის, ჰოროსკოპების, ტაროსა და იოგის შესახებაა. დახმარების ცხელი ხაზები ღია რჩება.</string>
     <string name="notif_limits_only">RaiseSteady Guard ჩართულია: მხოლოდ დროის შეზღუდვები</string>
     <plurals name="to_check">
         <item quantity="one">შესამოწმებელია %d პარამეტრი</item>

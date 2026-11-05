@@ -110,7 +110,11 @@ test('searches on the topic (every engine) are found; ordinary ones, allowed sit
   const cfg = { topics: true, allow: [] };
   for (const u of ['https://www.google.com/search?q=lgbt', 'https://www.bing.com/search?q=am+i+gay', 'https://duckduckgo.com/?q=transgender', 'https://search.yahoo.com/search?p=gender+identity',
     'https://www.ecosia.org/search?q=coming+out+as+bi', 'https://yandex.ru/search/?text=%D0%BB%D0%B3%D0%B1%D1%82', 'https://www.youtube.com/results?search_query=pride+month', 'https://www.google.ge/search?q=%E1%83%9A%E1%83%92%E1%83%91%E1%83%A2']) {
-    assert.equal(topicSearch(u, cfg, T, new URL(u).hostname.replace(/^www\./, '')), true, u);
+    assert.equal(topicSearch(u, cfg, T, new URL(u).hostname.replace(/^www\./, '')), 'topic', u);
+  }
+  // P2-175: values searches carry their own kind (the block page wording)
+  for (const u of ['https://www.google.com/search?q=kids+yoga', 'https://www.youtube.com/results?search_query=halloween+songs', 'https://yandex.ru/search/?text=%D0%B3%D0%BE%D1%80%D0%BE%D1%81%D0%BA%D0%BE%D0%BF']) {
+    assert.equal(topicSearch(u, cfg, T, new URL(u).hostname.replace(/^www\./, '')), 'values', u);
   }
   for (const u of ['https://www.google.com/search?q=volcano', 'https://www.google.com/search?q=gay-lussac+law', 'https://www.google.com/maps?q=lgbt', 'https://example.org/?q=lgbt']) {
     assert.equal(topicSearch(u, cfg, T, new URL(u).hostname), false, u);

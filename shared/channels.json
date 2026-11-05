@@ -2,33 +2,6 @@
   "version": 1,
   "channels": [
     {
-      "id": "UCoookXUzPciGrEZEXmh4Jjg",
-      "handle": "@sesamestreet",
-      "name": "Sesame Street",
-      "bands": [
-        "3-5",
-        "6-8"
-      ],
-      "topics": [
-        "early learning"
-      ],
-      "lang": "en"
-    },
-    {
-      "id": "UCrNnk0wFBnCS1awGjq_ijGQ",
-      "handle": "@pbskids",
-      "name": "PBS KIDS",
-      "bands": [
-        "3-5",
-        "6-8"
-      ],
-      "topics": [
-        "early learning",
-        "stories"
-      ],
-      "lang": "en"
-    },
-    {
       "id": "UCLsooMJoIpl_7ux2jvdPB-Q",
       "handle": "@SuperSimpleSongs",
       "name": "Super Simple Songs - Kids Songs",
@@ -84,20 +57,6 @@
       "lang": "en"
     },
     {
-      "id": "UC0fXNmjDoC7ckPyT6qM8Urw",
-      "handle": "@cbeebies",
-      "name": "CBeebies",
-      "bands": [
-        "3-5",
-        "6-8"
-      ],
-      "topics": [
-        "early learning",
-        "stories"
-      ],
-      "lang": "en"
-    },
-    {
       "id": "UCnBdzaRy-Ky9Vh54XJlFz1Q",
       "handle": "@StorylineOnline",
       "name": "StorylineOnline",
@@ -113,32 +72,6 @@
       "lang": "en"
     },
     {
-      "id": "UC574PCE8QOIoXsOGAyL3obQ",
-      "handle": "@HeyDuggee",
-      "name": "Hey Duggee",
-      "bands": [
-        "3-5",
-        "6-8"
-      ],
-      "topics": [
-        "stories"
-      ],
-      "lang": "en"
-    },
-    {
-      "id": "UCG2CL6EUjG8TVT1Tpl9nJdg",
-      "handle": "@MsRachel",
-      "name": "Ms Rachel - Toddler Learning Videos",
-      "bands": [
-        "3-5"
-      ],
-      "topics": [
-        "early learning",
-        "language"
-      ],
-      "lang": "en"
-    },
-    {
       "id": "UC2ri4rEb8abnNwXvTjg5ARw",
       "handle": "@khanacademykids",
       "name": "Khan Academy Kids",
@@ -148,35 +81,6 @@
       ],
       "topics": [
         "early learning"
-      ],
-      "lang": "en"
-    },
-    {
-      "id": "UC5uIZ2KOZZeQDQo_Gsi_qbQ",
-      "handle": "@CosmicKidsYoga",
-      "name": "Cosmic Kids Yoga",
-      "bands": [
-        "3-5",
-        "6-8",
-        "9-12"
-      ],
-      "topics": [
-        "movement",
-        "calm"
-      ],
-      "lang": "en"
-    },
-    {
-      "id": "UC2YBT7HYqCbbvzu3kKZ3wnw",
-      "handle": "@GoNoodle",
-      "name": "GoNoodle | Get Moving",
-      "bands": [
-        "3-5",
-        "6-8",
-        "9-12"
-      ],
-      "topics": [
-        "movement"
       ],
       "lang": "en"
     },
@@ -308,20 +212,6 @@
       "lang": "en"
     },
     {
-      "id": "UCuAAUqEBZhz6XsKzR1dtV2g",
-      "handle": "@bitesize",
-      "name": "bitesize",
-      "bands": [
-        "9-12",
-        "13-15",
-        "16-17"
-      ],
-      "topics": [
-        "school subjects"
-      ],
-      "lang": "en"
-    },
-    {
       "id": "UCLA_DiR1FfKNvjuUpBHmylQ",
       "handle": "@NASA",
       "name": "NASA",
@@ -362,21 +252,6 @@
       "topics": [
         "nature",
         "animals"
-      ],
-      "lang": "en"
-    },
-    {
-      "id": "UCpVm7bg6pXKo1Pr6k5kxG9A",
-      "handle": "@NatGeo",
-      "name": "National Geographic",
-      "bands": [
-        "9-12",
-        "13-15",
-        "16-17"
-      ],
-      "topics": [
-        "nature",
-        "exploration"
       ],
       "lang": "en"
     },
@@ -725,18 +600,6 @@
       "lang": "en"
     },
     {
-      "id": "UCAuUUnT6oDeKwE6v1NGQxug",
-      "handle": "@TED",
-      "name": "TED",
-      "bands": [
-        "16-17"
-      ],
-      "topics": [
-        "ideas"
-      ],
-      "lang": "en"
-    },
-    {
       "id": "UC7_gcs09iThXybpVgjHZ_7g",
       "handle": "@PBSSpaceTime",
       "name": "PBS Space Time",
@@ -807,17 +670,106 @@
       "lang": "ru"
     },
     {
-      "id": "UCSPd93is2UQsd_jZ6yHBfqQ",
-      "handle": "@Postnauka",
-      "name": "ПостНаука",
+      "id": "UCXRPWm72nrs5sK7fNTSXZrw",
+      "handle": "@LittleFoxKids",
+      "name": "Little Fox - Kids Stories and Songs",
       "bands": [
-        "16-17"
+        "3-5",
+        "6-8",
+        "9-12"
       ],
       "topics": [
-        "science",
-        "talks"
+        "stories",
+        "fables",
+        "reading"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCBx2mmZhRBkPC2MK4bqcSHQ",
+      "handle": "@PuffinRock",
+      "name": "Puffin Rock",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "nature",
+        "stories"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCS7H8U-n5mINVJjJsaRtGHg",
+      "handle": "@ShaunTheSheepOfficial",
+      "name": "Shaun the Sheep Official",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "cartoons"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCxEmDFo1yUbbxjEb9RjitVA",
+      "handle": "@WildKratts",
+      "name": "Wild Kratts",
+      "bands": [
+        "3-5",
+        "6-8",
+        "9-12"
+      ],
+      "topics": [
+        "animals",
+        "nature"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCVcQH8A634mauPrGbWs7QlQ",
+      "handle": "@JackHartmann",
+      "name": "Jack Hartmann Kids Music Channel",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "songs",
+        "early learning"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCu59yAFE8fM0sVNTipR4edw",
+      "handle": "@MashaBearEN",
+      "name": "Masha and The Bear",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "cartoons"
+      ],
+      "lang": "en"
+    },
+    {
+      "id": "UCCdRHbJEGEppCJ-pL7qMl1g",
+      "handle": "@tetushkasova",
+      "name": "Уроки Тётушки Совы",
+      "bands": [
+        "3-5",
+        "6-8"
+      ],
+      "topics": [
+        "wise tales",
+        "values",
+        "early learning"
       ],
       "lang": "ru"
     }
-  ]
+  ],
+  "note": "Curated channels (P2-161; P2-175: reviewed against the values bar, see worklog P2-175/channel-vetting.md). bands: age bands; lang: the channel language."
 }

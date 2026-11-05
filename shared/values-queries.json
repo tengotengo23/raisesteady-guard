@@ -1,0 +1,69 @@
+{
+  "version": 1,
+  "note": "P2-175: the searches behind the values videos (shared/values-videos.json), one theme per chapter of the RaiseSteady book Steady: each chapter has one truth and a classic story (fables, parables, Tolstoy, Krylov, Sulkhan-Saba Orbeliani). Read by tools/update-values-videos.mjs. ages: young = 3-5 and 6-8, kids = 3-5 to 9-12, middle = 6-8 and 9-12, teen = 13-15 and 16-17. Universal stories only, no religious channels (the values are the backbone, never a label).",
+  "ages": { "young": ["3-5", "6-8"], "kids": ["3-5", "6-8", "9-12"], "middle": ["6-8", "9-12"], "teen": ["13-15", "16-17"] },
+  "themes": [
+    { "id": "values", "chapter": "Knowing Yourself and Your Values", "queries": [
+      ["en", "kids", "aesop fables for kids"], ["en", "kids", "moral stories for kids animated"], ["en", "middle", "character education for kids"],
+      ["ru", "kids", "басни Крылова мультфильм"], ["ru", "kids", "мультфильм с моралью для детей"],
+      ["ka", "kids", "იგავ-არაკები ბავშვებისთვის"], ["ka", "kids", "სულხან-საბა ორბელიანი იგავები"]
+    ] },
+    { "id": "courage", "chapter": "Standing Tall – Courage and Integrity", "queries": [
+      ["en", "kids", "the boy who cried wolf animated"], ["en", "kids", "honesty story for kids"], ["en", "kids", "courage story for kids"], ["en", "middle", "telling the truth story for kids"],
+      ["en", "teen", "ring of gyges explained"],
+      ["ru", "kids", "мультфильм про честность"], ["ru", "kids", "мультфильм о смелости"],
+      ["ka", "kids", "ზღაპარი სიმამაცეზე"]
+    ] },
+    { "id": "kindness", "chapter": "Strength and Compassion", "queries": [
+      ["en", "kids", "the lion and the mouse fable animated"], ["en", "kids", "the north wind and the sun fable"], ["en", "kids", "kindness story for kids"],
+      ["ru", "kids", "мультфильм о доброте"], ["ru", "kids", "Ушинский рассказы для детей"],
+      ["ka", "kids", "ლომი და თაგვი ზღაპარი"], ["ka", "kids", "ზღაპარი სიკეთეზე"]
+    ] },
+    { "id": "wisdom", "chapter": "From Information to Wisdom", "queries": [
+      ["en", "middle", "the blind men and the elephant story"], ["en", "middle", "fact or opinion for kids"], ["en", "kids", "curious kids science questions why"],
+      ["en", "teen", "critical thinking explained"], ["en", "teen", "how to spot misinformation"],
+      ["ru", "kids", "Лев Толстой рассказы для детей"], ["ru", "middle", "почемучка мультфильм для детей"]
+    ] },
+    { "id": "habits", "chapter": "Habits Over Motivation", "queries": [
+      ["en", "kids", "the tortoise and the hare animated"], ["en", "kids", "the ant and the grasshopper animated"], ["en", "young", "good habits for kids"], ["en", "kids", "patience story for kids"],
+      ["en", "teen", "how habits are formed science"], ["en", "teen", "procrastination explained"],
+      ["ru", "kids", "Стрекоза и Муравей мультфильм"], ["ru", "kids", "мультфильм о трудолюбии"], ["ru", "young", "полезные привычки для детей мультфильм"],
+      ["ka", "kids", "კუ და კურდღელი ზღაპარი"], ["ka", "kids", "ჭიანჭველა და ჭრიჭინა ზღაპარი"]
+    ] },
+    { "id": "work", "chapter": "Work, Wealth, and Real Success", "queries": [
+      ["en", "kids", "the little red hen story"], ["en", "kids", "the goose that laid the golden eggs fable"], ["en", "middle", "money lessons for kids saving"], ["en", "middle", "needs and wants for kids"],
+      ["en", "teen", "how much land does a man need tolstoy"], ["en", "teen", "financial literacy for teenagers"],
+      ["ru", "kids", "сказка о рыбаке и рыбке мультфильм"], ["ru", "middle", "финансовая грамотность для детей мультфильм"], ["ru", "teen", "Толстой Много ли человеку земли нужно"],
+      ["ka", "kids", "ქართული ხალხური ზღაპრები"]
+    ] },
+    { "id": "resilience", "chapter": "Turning Trials into Triumphs", "queries": [
+      ["en", "kids", "the oak and the reed fable"], ["en", "kids", "the crow and the pitcher fable"], ["en", "kids", "never give up story for kids"],
+      ["en", "teen", "stoicism epictetus explained"],
+      ["ru", "kids", "мультфильм не сдавайся для детей"], ["ru", "kids", "Каша из топора мультфильм"],
+      ["ka", "kids", "ზღაპრები ქართულად"]
+    ] },
+    { "id": "relationships", "chapter": "Building Strong Bonds", "queries": [
+      ["en", "young", "saying sorry story for kids"], ["en", "kids", "friendship story for kids"], ["en", "young", "sharing story for kids"], ["en", "young", "good manners for kids"], ["en", "middle", "listening skills for kids"],
+      ["ru", "kids", "мультфильм о дружбе"], ["ru", "young", "мультфильм про вежливость"], ["ru", "kids", "советские мультфильмы о дружбе"],
+      ["ka", "kids", "ზღაპარი მეგობრობაზე"]
+    ] },
+    { "id": "tricks", "chapter": "Guarding Against Toxic Influences", "queries": [
+      ["en", "kids", "the fox and the crow fable"], ["en", "kids", "the wolf and the seven little goats"], ["en", "middle", "peer pressure for kids"], ["en", "young", "stranger danger for kids"],
+      ["ru", "kids", "Ворона и Лисица басня мультфильм"], ["ru", "kids", "Волк и семеро козлят мультфильм"],
+      ["ka", "kids", "მელა და ყვავი იგავი"]
+    ] },
+    { "id": "technology", "chapter": "Welcoming Change", "queries": [
+      ["en", "middle", "internet safety for kids"], ["en", "middle", "screen time story for kids"], ["en", "middle", "digital citizenship for kids"],
+      ["ru", "middle", "безопасный интернет для детей мультфильм"]
+    ] },
+    { "id": "purpose", "chapter": "Discovering Purpose", "queries": [
+      ["en", "kids", "stone soup story"], ["en", "kids", "helping others story for kids"], ["en", "teen", "the three questions tolstoy"],
+      ["ru", "kids", "мультфильм про помощь другим"], ["ru", "teen", "Толстой Три вопроса"]
+    ] },
+    { "id": "gratitude", "chapter": "A Life Well-Lived", "queries": [
+      ["en", "kids", "the town mouse and the country mouse"], ["en", "kids", "gratitude story for kids"], ["en", "kids", "the farmer and his sons fable"],
+      ["ru", "kids", "мультфильм про благодарность"], ["ru", "kids", "Сутеев мультфильмы"],
+      ["ka", "kids", "ქართული მულტფილმები ბავშვებისთვის"]
+    ] }
+  ]
+}

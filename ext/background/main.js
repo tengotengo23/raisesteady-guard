@@ -29,7 +29,7 @@ const AGENT_FRESH_MS = 3 * 60 * 1000; // agent answers older than this are not t
 const K = { usage: 'kg.usage', content: 'kg.contentDay', grants: 'kg.grants', agentState: 'kg.agentState', report: 'kg.report', pinLock: 'kg.pinLock', devManaged: 'kg.devManaged' };
 
 // ---- state ----
-let bands = [], learn = { hosts: [], paths: [] }, topicData = null, topics = globalThis.KGTopics.create(null), cfg = null, agentState = null, usage = null, t = (k) => k;
+let bands = [], learn = { hosts: [], paths: [] }, topicData = null, topics = globalThis.KGTopics.create(null), feedMatcher = topics, cfg = null, agentState = null, usage = null, t = (k) => k;
 let contentDay = { day: '', domains: [], urls: [] }, grants = { day: '', extraMin: 0 }, report = { day: '', blocked: 0, byReason: {} };
 let focused = true, idleState = 'active', lastSync = 0;
 const videoTabs = new Map(); // 'tabId:frameId' -> { playing, at, host }
@@ -64,6 +64,8 @@ const ctx = {
   getConfig: () => (cfg ? publicConfig(cfg) : null),
   // The topic matcher while the topic filter is on (videos.js leaves such titles out), else null.
   topics: () => (cfg && cfg.topics !== false ? topics : null),
+  // The matcher always (P2-175): what we recommend never carries these titles, whatever the switch says.
+  feedTopics: () => feedMatcher,
   onConfig: (cb) => { if (typeof cb === 'function') cfgListeners.push(cb); },
   ready: null,
 };
@@ -138,6 +140,7 @@ function guardState(nowMs = Date.now()) {
     content: contentDay.day === day ? contentDay.domains : [],
     helplines: topics.helplines(),
     topicDomains: cfg.topics !== false ? topics.domains() : [],
+    valuesDomains: cfg.topics !== false ? topics.valuesDomains() : [],
     contentUrls: contentDay.day === day ? contentDay.urls || [] : [],
   };
 }
@@ -234,12 +237,12 @@ async function flagContent(sender, why) {
 
 // The page check found the topic (P2-161): nothing is remembered (the check runs again on every load);
 // the tab goes to the topic page. Helplines and the parent's allowed sites never get here.
-async function flagTopic(sender) {
+async function flagTopic(sender, kind) {
   const tab = sender.tab;
   const host = hostOf(tab && tab.url);
   if (!host || sender.frameId !== 0 || cfg.topics === false || inDomains(host, cfg.allow) || helplineHost(host, topics)) return { ok: false };
   rememberAttempt(tab.id, tab.url);
-  try { await api.tabs.update(tab.id, { url: blockedUrl(api, 'topic', host) }); } catch { /* closed */ }
+  try { await api.tabs.update(tab.id, { url: blockedUrl(api, 'topic', host, kind) }); } catch { /* closed */ }
   return { ok: true };
 }
 
@@ -247,9 +250,10 @@ async function flagTopic(sender) {
 function checkTopicSearch(tabId, url) {
   if (!cfg || tabId < 0) return;
   const host = hostOf(url);
-  if (!topicSearch(url, cfg, topics, host)) return;
+  const kind = topicSearch(url, cfg, topics, host);
+  if (!kind) return;
   rememberAttempt(tabId, url);
-  api.tabs.update(tabId, { url: blockedUrl(api, 'topic', host) }).catch(() => {});
+  api.tabs.update(tabId, { url: blockedUrl(api, 'topic', host, kind) }).catch(() => {});
 }
 
 async function blockedShown(msg, sender) {
@@ -436,7 +440,7 @@ async function handle(msg, sender) {
       return { videoOver: over };
     }
     if (type === 'page-flag' && msg.reason === 'content') return serial(() => flagContent(sender, String(msg.why || 'words')));
-    if (type === 'page-flag' && msg.reason === 'topic') return serial(() => flagTopic(sender));
+    if (type === 'page-flag' && msg.reason === 'topic') return serial(() => flagTopic(sender, msg.kind === 'values' ? 'values' : 'topic'));
     return { error: 'unknown' };
   }
   if (!isExtPage(sender)) return { error: 'forbidden' };
@@ -520,6 +524,7 @@ const ready = (async () => {
   learn = parseLearning(((await loadJSON(api, 'data/learning-domains.json', { domains: [] })) || {}).domains);
   topicData = await loadJSON(api, 'data/topics.json', null);
   topics = globalThis.KGTopics.create(topicData);
+  feedMatcher = globalThis.KGTopics.create(topicData, { feed: true }); // P2-175: our picks also leave out the dark themes
   const st = await api.storage.local.get(Object.values(K));
   usage = st[K.usage] && st[K.usage].pending ? st[K.usage] : emptyUsage(today());
   contentDay = st[K.content] || contentDay;

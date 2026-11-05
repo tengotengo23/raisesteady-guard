@@ -6,6 +6,8 @@ so the packages ship this file: Linux at /usr/lib/raisesteady-guard/raisesteady-
 the agent. The builds (tools/build-linux.sh, tools/build-installer.sh) copy it to dist/raisesteady-guard.xpi.
 
 To sign a new version: raise the version in ext/manifest.json, build, then
-`web-ext sign --channel=unlisted --source-dir dist/firefox` with the maintainer's AMO API key
-(WEB_EXT_API_KEY, WEB_EXT_API_SECRET), and replace the file here. Each version can be signed once.
-Current: 0.4.0.
+`node tools/amo-sign.mjs dist/raisesteady-guard-<version>-firefox.zip <out.xpi>` (our own client of Mozilla's
+API v5, key in ~/.config/nexodyne/amo.json; since 0.4.1) or `web-ext sign --channel=unlisted --source-dir dist/firefox`
+with the maintainer's AMO API key (WEB_EXT_API_KEY, WEB_EXT_API_SECRET), and replace the file here. Each version can be
+signed once.
+Current: 0.4.1 (signed 5 Nov 2026, Mozilla validation 0 errors, 0 warnings).

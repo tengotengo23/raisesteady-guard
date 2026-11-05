@@ -318,15 +318,15 @@ func TestTopicFilterSwitch(t *testing.T) {
 	b := &browser{r: r, t: t, cookies: map[string]*http.Cookie{}}
 	b.login("2468")
 	page := b.send("GET", "/parent?lang=en", nil, "").Body.String()
-	for _, want := range []string{`name="topics" aria-describedby="topics-hint" checked`, "Sexuality and gender identity topics", "Helplines stay open."} {
+	for _, want := range []string{`name="topics" aria-describedby="topics-hint" checked`, "Sensitive topics", "Helplines stay open."} {
 		if !strings.Contains(page, want) {
 			t.Errorf("page lacks %q", want)
 		}
 	}
-	if ka := b.send("GET", "/parent?lang=ka", nil, "").Body.String(); !strings.Contains(ka, "სექსუალობისა და გენდერული იდენტობის თემები") {
+	if ka := b.send("GET", "/parent?lang=ka", nil, "").Body.String(); !strings.Contains(ka, "მგრძნობიარე თემები") {
 		t.Error("Georgian label")
 	}
-	if ru := b.send("GET", "/parent?lang=ru", nil, "").Body.String(); !strings.Contains(ru, "Темы сексуальности и гендерной идентичности") {
+	if ru := b.send("GET", "/parent?lang=ru", nil, "").Body.String(); !strings.Contains(ru, "Деликатные темы") {
 		t.Error("Russian label")
 	}
 	form := url.Values{"a": {"0"}, "band": {"6-8"}, "browseMin": {"90"}, "videoMin": {"45"}, "bedStart": {"20:00"}, "bedEnd": {"07:00"}, "focusMode": {"on"}, "familyDns": {"on"}}

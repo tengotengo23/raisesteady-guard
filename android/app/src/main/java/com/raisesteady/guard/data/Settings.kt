@@ -47,7 +47,7 @@ data class Settings(
     val homework: Homework = Homework(),
     /** AdGuard DNS Family upstream (on by default; off: the network's own DNS). */
     val familyDns: Boolean = true,
-    /** The topic filter (sites about sexuality and gender identity), on for every age; the parent can switch it off. */
+    /** The topic filter ("Sensitive topics": sites about sexuality and gender identity, horoscopes, tarot, yoga), on for every age; the parent can switch it off. */
     val topicFilter: Boolean = true,
     /** The parent's lists (cleaned host names, at most [MAX_SITES] each). */
     val allow: List<String> = emptyList(),

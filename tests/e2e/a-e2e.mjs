@@ -86,6 +86,10 @@ try {
     await p.close();
     return r;
   };
+  // P2-175: the default 9-12 bedtime starts at 21:00, so after nine at night every page went to the bedtime
+  // page and the suite failed by the clock. Bedtime off for the run; the bedtime test below sets its own.
+  await hook({ type: 'kg:core:test', op: 'set-settings', settings: { ageBand: '9-12', bedtime: null } });
+  await new Promise((r) => setTimeout(r, 700));
   const visit = async (url, waitMs = 600) => {
     const p = await browser.newPage();
     try { await p.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 }); } catch (e) { /* the block redirect can abort the first load */ }
@@ -130,7 +134,10 @@ try {
   }
   {
     const { p, final } = await visit('http://health.kgtest.example/', 4000);
-    check('sex-education page passes (also after the 3 s re-check)', final.startsWith('http://health.kgtest.example/'), final);
+    // P2-175: the adult-content check still never flags it (reason 'content'); since the owner's "no sex" rule the
+    // topic filter sends it to the values page ("This page isn't for your age.").
+    check('sex-education page is not flagged as adult content (also after the 3 s re-check)', reasonOf(final) !== 'content', final);
+    check('P2-175: sex-education page goes to the values topic page', reasonOf(final) === 'topic' && new URL(final).searchParams.get('kind') === 'values', final);
     await p.close();
   }
 
@@ -188,7 +195,7 @@ try {
   {
     const opt = await browser.newPage();
     await opt.goto(`${ORIGIN}/pages/options.html`);
-    const saved = await opt.evaluate(() => chrome.runtime.sendMessage({ type: 'kg:core:settings-save', newPin: '2468', settings: { ageBand: '9-12', limits: {}, focusMode: true, adblock: true, allow: [], block: [] } }));
+    const saved = await opt.evaluate(() => chrome.runtime.sendMessage({ type: 'kg:core:settings-save', newPin: '2468', settings: { ageBand: '9-12', limits: {}, bedtime: null, focusMode: true, adblock: true, allow: [], block: [] } })); // bedtime: null (P2-175): not by the clock
     check('first setup saves a PIN', saved && saved.ok && saved.settings && saved.settings.hasPin === true && !('pin' in saved.settings), JSON.stringify(saved && saved.ok));
     await opt.close();
     const { p } = await visit('http://news.kgtest.example/again', 800);

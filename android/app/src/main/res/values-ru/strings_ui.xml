@@ -166,9 +166,9 @@
     <string name="lock_closed">Для страниц настроек нужен PIN-код родителя.</string>
     <string name="pin_current">Текущий PIN-код</string>
     <string name="limits_adb">Тот, кто умеет пользоваться отладкой по USB (adb), может отключить защиту.</string>
-    <string name="st_topics">Сайты о сексуальности и гендерной идентичности заблокированы</string>
-    <string name="topics_switch">Темы сексуальности и гендерной идентичности</string>
-    <string name="topics_note">Блокирует сайты в основном о сексуальной ориентации, гендерной идентичности и смене пола. Телефоны доверия остаются открытыми.</string>
+    <string name="st_topics">Сайты на деликатные темы заблокированы</string>
+    <string name="topics_switch">Деликатные темы</string>
+    <string name="topics_note">Блокирует сайты в основном о сексуальной ориентации и гендерной идентичности, гороскопах, таро и йоге. Телефоны доверия остаются открытыми.</string>
     <string name="notif_limits_only">RaiseSteady Guard включён: только ограничения времени</string>
     <plurals name="to_check">
         <item quantity="one">%d настройку нужно проверить</item>

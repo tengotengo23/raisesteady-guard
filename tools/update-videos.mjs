@@ -3,21 +3,24 @@
 // channels (shared/channels.json). The extension shows it when YouTube's channel feeds do not answer
 // (they answer 404 on and off) and merges it with the feeds when they do (P2-161, Y2).
 //
-// Reuses yt-dlp (https://github.com/yt-dlp/yt-dlp, Unlicense) to read each channel's Videos tab:
+// Reads each channel's public Videos tab with tools/yt-public.mjs (our own reader of the page's data; P2-175),
+// or, with YTDLP set, with yt-dlp (https://github.com/yt-dlp/yt-dlp, Unlicense) as before:
 //   yt-dlp --flat-playlist -J --playlist-end 12 --extractor-args youtubetab:approximate_date \
 //          https://www.youtube.com/channel/<id>/videos
 // Only its JSON output is read (id, title, approximate date, live status). No API key; build time only.
 // The Videos tab lists no Shorts. Titles on the topic list (shared/topics.json) are left out.
 //
-// Usage: YTDLP=/path/to/yt-dlp node tools/update-videos.mjs [--per 12] [--cache dir] [--offline]
+// Usage: node tools/update-videos.mjs [--per 12] [--cache dir] [--offline]   (YTDLP=/path/to/yt-dlp to use yt-dlp)
 //   --cache dir : keep each channel's raw answer there (re-runs read it instead of asking again)
 //   --offline   : build from the cache only
-// A channel that fails is reported and kept from the previous shared/videos.json when it has one.
+// A channel that fails is reported and kept from the previous shared/videos.json when it has one (topic titles
+// left out there too, so a new word on the list also cleans the kept entries).
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
+import { channelVideos, agoToDate } from './yt-public.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const SHARED = path.join(ROOT, 'shared');
@@ -26,7 +29,7 @@ const arg = (name, def) => { const i = process.argv.indexOf(name); return i > 0 
 const PER = Math.max(1, Math.min(30, Number(arg('--per', 12)) || 12));
 const CACHE = arg('--cache', '');
 const OFFLINE = process.argv.includes('--offline');
-const YTDLP = process.env.YTDLP || 'yt-dlp';
+const YTDLP = process.env.YTDLP || '';
 const ID_RE = /^[\w-]{11}$/;
 const CH_RE = /^UC[\w-]{22}$/;
 const CONCURRENCY = 3;
@@ -34,7 +37,8 @@ const CONCURRENCY = 3;
 // The topic matcher (ext/content/topics.js is a classic script that also works under node).
 const require = createRequire(import.meta.url);
 require(path.join(ROOT, 'ext', 'content', 'topics.js'));
-const topics = globalThis.KGTopics.create(JSON.parse(fs.readFileSync(path.join(SHARED, 'topics.json'), 'utf8')));
+// { feed: true }: also the dark themes that never go into our recommendations (P2-175).
+const topics = globalThis.KGTopics.create(JSON.parse(fs.readFileSync(path.join(SHARED, 'topics.json'), 'utf8')), { feed: true });
 
 const channels = (JSON.parse(fs.readFileSync(path.join(SHARED, 'channels.json'), 'utf8')).channels || []).filter((c) => CH_RE.test(c.id));
 let previous = {};
@@ -79,6 +83,12 @@ async function one(c) {
     try { data = JSON.parse(fs.readFileSync(cacheFile, 'utf8')); } catch { data = null; }
     if (!data && OFFLINE) throw new Error('yt-dlp gave no video list (no public Videos tab?)');
   }
+  if (!data && !YTDLP) {
+    // Our reader: the same shape as yt-dlp's answer (entries with id, title, timestamp).
+    const vids = await channelVideos(c.id, c.name);
+    data = { channel: c.name, entries: vids.map((v) => ({ id: v.id, title: v.title, timestamp: v.ago ? Date.parse(agoToDate(v.ago)) / 1000 : 0 })) };
+    if (cacheFile) fs.writeFileSync(cacheFile, JSON.stringify(data));
+  }
   if (!data) {
     data = await runYtdlp(c.id);
     if (cacheFile) fs.writeFileSync(cacheFile, JSON.stringify(data));
@@ -98,7 +108,8 @@ async function worker() {
     try { result[c.id] = await one(c); process.stdout.write('.'); }
     catch (e) {
       failed.push(`${c.id} ${c.name}: ${e.message}`);
-      if (previous[c.id] && previous[c.id].length) result[c.id] = previous[c.id];
+      const kept = (previous[c.id] || []).filter((v) => v && !topics.matchTitle(v.title || '').hit);
+      if (kept.length) result[c.id] = kept;
       process.stdout.write('x');
     }
   }
@@ -109,7 +120,7 @@ process.stdout.write('\n');
 const ordered = {};
 for (const c of channels) if (result[c.id]) ordered[c.id] = result[c.id];
 const total = Object.values(ordered).reduce((n, v) => n + v.length, 0);
-const body = { version: 1, note: 'Built by tools/update-videos.mjs from each channel\'s public Videos tab (yt-dlp). Never edit by hand.', built: new Date().toISOString().slice(0, 10), channels: ordered };
+const body = { version: 1, note: 'Built by tools/update-videos.mjs from each channel\'s public Videos tab. Never edit by hand.', built: new Date().toISOString().slice(0, 10), channels: ordered };
 fs.writeFileSync(OUT, JSON.stringify(body, null, 1) + '\n');
 console.log(`[update-videos] ${Object.keys(ordered).length}/${channels.length} channels, ${total} videos -> shared/videos.json`);
 if (failed.length) console.log(`[update-videos] failed (${failed.length}):\n  ${failed.join('\n  ')}`);
