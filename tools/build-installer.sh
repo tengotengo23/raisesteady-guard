@@ -21,7 +21,8 @@ fi
 winpath() { if command -v cygpath >/dev/null; then cygpath -w "$1"; else echo "$1"; fi; }
 # The Firefox add-on signed by Mozilla (signed/README.md) goes next to the agent, where the
 # Firefox policy installs it from, unless the build already made one.
-if [ ! -f "$DIST/raisesteady-guard.xpi" ] && [ -f "$ROOT/signed/raisesteady-guard-firefox.xpi" ]; then
+# The signed file is copied when dist/ has none or an older one (a new signature must reach the installer).
+if [ -f "$ROOT/signed/raisesteady-guard-firefox.xpi" ] && { [ ! -f "$DIST/raisesteady-guard.xpi" ] || [ "$ROOT/signed/raisesteady-guard-firefox.xpi" -nt "$DIST/raisesteady-guard.xpi" ]; }; then
   mkdir -p "$DIST" && cp "$ROOT/signed/raisesteady-guard-firefox.xpi" "$DIST/raisesteady-guard.xpi"
 fi
 echo "Firefox add-on in the installer: $([ -f "$DIST/raisesteady-guard.xpi" ] && echo yes || echo none)"

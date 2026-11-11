@@ -13,6 +13,7 @@ export function browserName() {
   if (/Edg\//.test(ua) || /Microsoft Edge/.test(brands)) return 'edge';
   if (globalThis.navigator && navigator.brave) return 'brave';
   if (/Vivaldi/.test(ua) || /Vivaldi/.test(brands)) return 'vivaldi';
+  if (/YaBrowser\//.test(ua) || /Yandex/.test(brands)) return 'yandex';
   return 'chrome';
 }
 

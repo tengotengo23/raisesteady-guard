@@ -113,6 +113,7 @@ func Load(sys System, data *core.Data, p Paths, now func() time.Time) (*Agent, e
 	if err := a.cfg.Validate(&data.Bands); err != nil {
 		return nil, fmt.Errorf("config: %w", err)
 	}
+	a.refresh()
 	if err := core.LoadJSON(p.State, &a.st); err != nil && !errors.Is(err, os.ErrNotExist) {
 		return nil, fmt.Errorf("read state: %w", err)
 	}
@@ -135,6 +136,38 @@ func Load(sys System, data *core.Data, p Paths, now func() time.Time) (*Agent, e
 	a.Guard.Apps = data.Apps.Apps
 	a.Guard.Rules = appRules{a}
 	return a, nil
+}
+
+// refresh brings a stored configuration in line with this program (P2-194).
+// The extension ids always come from the program's own data, so a package
+// update that carries a new store id reaches the policies and the API at
+// once. Where the Firefox add-on comes from the store (Linux), a file:
+// address written by an older package is dropped, unless the person who
+// installed asked for the file (a PC without internet).
+func (a *Agent) refresh() {
+	a.cfg.ExtIDs = a.Data.ExtIDs
+	if a.firefoxFromStore() && !a.cfg.FirefoxFromFile && strings.HasPrefix(a.cfg.FirefoxInstallURL, "file:") {
+		a.cfg.FirefoxInstallURL = ""
+	}
+}
+
+func (a *Agent) firefoxFromStore() bool {
+	l, ok := a.Sys.(interface{ FirefoxFromStore() bool })
+	return ok && l.FirefoxFromStore()
+}
+
+// inputs are the policy inputs for a configuration: the system's own list of
+// browsers when it has one (Linux adds Yandex Browser) and the Firefox
+// add-on's store address where that is the default.
+func (a *Agent) inputs(cfg core.Config) policy.Inputs {
+	in := policy.Inputs{Cfg: cfg, Data: a.Data}
+	if l, ok := a.Sys.(interface{ PolicyBrowsers() []policy.Browser }); ok {
+		in.Browsers = l.PolicyBrowsers()
+	}
+	if a.firefoxFromStore() {
+		in.FirefoxURL = a.Data.ExtIDs.FirefoxStoreURL()
+	}
+	return in
 }
 
 // appRules gives the guard each account's PC-app rules (P2-160).
@@ -268,7 +301,7 @@ func (a *Agent) Desired() []policy.Entry {
 	a.applyMu.Lock()
 	defer a.applyMu.Unlock()
 	cfg := a.Config()
-	return policy.Build(policy.Inputs{Cfg: cfg, Data: a.Data}, a.targets(cfg))
+	return policy.Build(a.inputs(cfg), a.targets(cfg))
 }
 
 // Apply writes the policies. With offline set, the hives of signed-out
@@ -278,7 +311,7 @@ func (a *Agent) Apply(offline bool) policy.Result {
 	a.applyMu.Lock()
 	defer a.applyMu.Unlock()
 	cfg := a.Config()
-	desired := policy.Build(policy.Inputs{Cfg: cfg, Data: a.Data}, a.targets(cfg))
+	desired := policy.Build(a.inputs(cfg), a.targets(cfg))
 	return a.applyLocked(desired, offline)
 }
 

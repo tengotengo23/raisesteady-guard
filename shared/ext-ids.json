@@ -1,11 +1,5 @@
 {
-  "chromium": {
-    "devId": "jihggkhiiiinnflomjjnpomgeijgfnlg",
-    "chromeStoreId": null,
-    "edgeStoreId": null
-  },
-  "firefox": {
-    "id": "guard@raisesteady.com"
-  },
-  "note": "devId comes from the public key in ext/manifest.json 'key' (dev builds only; store builds strip it). The private key is kept outside the repository."
+  "chromium": { "devId": "jihggkhiiiinnflomjjnpomgeijgfnlg", "chromeStoreId": "kjfgpfhdfdilbkibcegclnbnlfkokcke", "edgeStoreId": null },
+  "firefox": { "id": "guard@raisesteady.com", "amoSlug": "raisesteady-guard" },
+  "note": "chromeStoreId is the id of the published Chrome Web Store item (chromewebstore.google.com/detail/kjfgpfhdfdilbkibcegclnbnlfkokcke): every policy names it, and this file is the only place it is written (a test in agent/internal/core fails when it changes). devId comes from the public key in ext/manifest.json 'key' (dev builds only; store builds strip it); it is used only when chromeStoreId is null. The private key is kept outside the repository. amoSlug is the add-on's name in its addons.mozilla.org address."
 }

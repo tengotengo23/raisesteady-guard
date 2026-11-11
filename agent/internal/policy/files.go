@@ -32,6 +32,11 @@ type FileTarget struct {
 	Paths   []string // always written (relative to the root)
 	// IfPresent maps a path to write to a path that must exist first.
 	IfPresent map[string]string
+	// Sandboxed maps a Firefox policy file to the places that show a snap or
+	// Flatpak Firefox reads it ("" = always). Such a Firefox cannot open a
+	// file of our package, so in that file a file: install_url is replaced by
+	// StoreURL (see FileRegistry.StoreURL).
+	Sandboxed map[string][]string
 }
 
 func flatpakArch() string {
@@ -51,13 +56,26 @@ func LinuxTargets() []FileTarget {
 		}},
 		{Key: `Software\Policies\Microsoft\Edge`, Paths: []string{m("etc/opt/edge")}},
 		{Key: `Software\Policies\BraveSoftware\Brave`, Paths: []string{m("etc/brave")}},
+		{Key: YandexKey, Paths: []string{m("etc/opt/yandex/browser")}},
 		{Key: `Software\Policies\Mozilla\Firefox`, Firefox: true,
-			Paths: []string{"etc/firefox/policies/policies.json"},
+			Paths: []string{FirefoxMainFile},
 			IfPresent: map[string]string{
 				"etc/firefox-esr/policies/policies.json": "usr/lib/firefox-esr",
-				filepath.Join("var/lib/flatpak/extension/org.mozilla.firefox.systemconfig", flatpakArch(), "stable/policies/policies.json"): "var/lib/flatpak/app/org.mozilla.firefox",
+				flatpakFirefoxFile():                     "var/lib/flatpak/app/org.mozilla.firefox",
+			},
+			Sandboxed: map[string][]string{
+				// The snap reads /etc/firefox/policies like the deb and rpm packages do.
+				FirefoxMainFile:      {"snap/firefox", "var/lib/snapd/snap/firefox", "snap/bin/firefox"},
+				flatpakFirefoxFile(): {""},
 			}},
 	}
+}
+
+// FirefoxMainFile is the policies.json of deb, rpm and snap Firefox.
+const FirefoxMainFile = "etc/firefox/policies/policies.json"
+
+func flatpakFirefoxFile() string {
+	return filepath.Join("var/lib/flatpak/extension/org.mozilla.firefox.systemconfig", flatpakArch(), "stable/policies/policies.json")
 }
 
 // JSON types of the DWORD policies (everything else is a number). A name
@@ -68,7 +86,7 @@ var boolNames = map[string]bool{
 	"ForceGoogleSafeSearch": true, "AllowDeletingBrowserHistory": true, "BookmarkBarEnabled": true,
 	"FavoritesBarEnabled": true, "SmartScreenEnabled": true, "PreventSmartScreenPromptOverride": true,
 	"PreventSmartScreenPromptOverrideForFiles": true, "HubsSidebarEnabled": true, "TorDisabled": true,
-	"BraveVPNDisabled": true, "BraveAIChatEnabled": true,
+	"BraveVPNDisabled": true, "BraveAIChatEnabled": true, "YandexProtectedMode": true,
 	// Firefox
 	"DisablePrivateBrowsing": true, "BlockAboutConfig": true, "DisableSafeMode": true,
 	"DisableForgetButton": true, "DisableDeveloperTools": true, "Locked": true, "Enabled": true,
@@ -247,7 +265,10 @@ type FileRegistry struct {
 	Root    string // "/" in use; a temporary folder in tests
 	Image   string // the saved image (in the data folder)
 	Targets []FileTarget
-	img     imageFile
+	// StoreURL is the add-on's addons.mozilla.org address: a snap or Flatpak
+	// Firefox gets it in place of a file: address. "" = no replacement.
+	StoreURL string
+	img      imageFile
 }
 
 // OpenFileRegistry loads the saved image, if any.
@@ -519,7 +540,11 @@ func (r *FileRegistry) Flush() error {
 			var err error
 			switch {
 			case t.Firefox:
-				err = r.mergeFirefox(p, doc)
+				d := doc
+				if r.sandboxed(t, p) {
+					d = withStoreURL(doc, r.StoreURL)
+				}
+				err = r.mergeFirefox(p, d)
 			case len(doc) == 0:
 				err = r.removeFile(p)
 			default:
@@ -556,6 +581,46 @@ func (r *FileRegistry) Flush() error {
 		return errors.New(strings.Join(errs, "; "))
 	}
 	return nil
+}
+
+// sandboxed reports whether a snap or Flatpak Firefox reads the policy file p.
+func (r *FileRegistry) sandboxed(t FileTarget, p string) bool {
+	for _, need := range t.Sandboxed[p] {
+		if need == "" || r.exists(need) {
+			return true
+		}
+	}
+	return false
+}
+
+// withStoreURL returns doc with every file: install_url of ExtensionSettings
+// replaced by storeURL. doc itself is not changed (other files share it).
+func withStoreURL(doc map[string]any, storeURL string) map[string]any {
+	es, ok := doc["ExtensionSettings"].(map[string]any)
+	if !ok || storeURL == "" {
+		return doc
+	}
+	out := make(map[string]any, len(doc))
+	for k, v := range doc {
+		out[k] = v
+	}
+	nes := make(map[string]any, len(es))
+	for id, v := range es {
+		m, ok := v.(map[string]any)
+		u, _ := m["install_url"].(string)
+		if !ok || !strings.HasPrefix(u, "file:") {
+			nes[id] = v
+			continue
+		}
+		nm := make(map[string]any, len(m))
+		for k, x := range m {
+			nm[k] = x
+		}
+		nm["install_url"] = storeURL
+		nes[id] = nm
+	}
+	out["ExtensionSettings"] = nes
+	return out
 }
 
 // Written returns the policy files we wrote: relative path -> SHA-256.

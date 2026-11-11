@@ -10,6 +10,7 @@ if [ -x "$D/raisesteady-guard" ]; then
 fi
 rm -f /etc/systemd/system/raisesteady-guard.service /usr/local/bin/raisesteady-guard \
   /usr/local/share/applications/raisesteady-guard.desktop \
+  /etc/xdg/autostart/raisesteady-guard-setup.desktop \
   /usr/local/share/icons/hicolor/128x128/apps/raisesteady-guard.png
 systemctl daemon-reload || true
 rm -rf "$D"

@@ -1,9 +1,18 @@
 # RaiseSteady Guard on real Linux: build and test the program, the .deb, .rpm
-# and .tar.gz; on Ubuntu install the .deb, run setup in a terminal, check the
-# service, the policy files, the localhost API, that Chrome and Firefox apply
-# the policies, that the guard closes other browsers (also one hiding our
-# files in a private mount), then remove and check that nothing is left; on
-# Fedora the same with the .rpm in a systemd container.
+# and .tar.gz, and ask the two stores for the ids the policies name. On Ubuntu
+# install the .deb with no question and no terminal step; check that the
+# protection is on at once (service, policy files for six browsers, sign-in
+# entry, app-menu shortcut); finish the first-run setup on the parent page;
+# check the localhost API, the guard, an upgrade and the removal; then the
+# terminal setup (advanced use), the .tar.gz, and real browsers: Chrome,
+# Firefox, snap Firefox, snap Chromium and Yandex Browser must install the
+# extension from their store by themselves, switched on, with its managed
+# settings. A second job installs the published 0.4.0 and updates it (the
+# wrong-id bug of P2-194). On Fedora the .rpm in a systemd container.
+#
+# Not shown here (no desktop on a runner): the double-click in App Center and
+# the page opening by itself on GNOME Wayland. Those steps are a by-hand list
+# in the P2-194 session file.
 name: linux
 
 on:
@@ -33,17 +42,42 @@ jobs:
       - name: Build and test (vet for amd64 and arm64, tests on Linux, packages)
         run: NFPM="$(go env GOPATH)/bin/nfpm" bash tools/build-linux.sh
 
-      - name: Shell scripts pass shellcheck
-        run: shellcheck linux/*.sh linux/open-parent-page tools/build-linux.sh
+      - name: Shell scripts pass shellcheck, desktop entries are valid
+        run: |
+          shellcheck linux/*.sh linux/open-parent-page tools/build-linux.sh tests/linux/*.sh
+          command -v desktop-file-validate >/dev/null || sudo apt-get install -y desktop-file-utils >/dev/null
+          desktop-file-validate linux/*.desktop
 
-      - name: Package contents
+      # P2-194: a policy that names an id the store does not publish installs nothing and switches
+      # off the copy a parent installed by hand. The ids are pinned in the Go tests; here the two
+      # stores are asked themselves.
+      - name: The stores publish the ids the policies name
+        working-directory: agent
+        run: KG_ONLINE=1 go test ./internal/core -run TestStoresPublishTheseIDs -count=1 -v
+
+      - name: Do the stores serve this version yet? (a warning until it is published)
+        working-directory: agent
+        run: |
+          v="$(jq -r .version ../ext/manifest.json)"
+          KG_ONLINE=1 KG_EXPECT_EXT_VERSION="$v" go test ./internal/core -run TestStoresPublishTheseIDs -count=1 \
+            || echo "::warning::a store serves an older extension than $v: publish it before the release (docs/DEVELOPING.md, Release rule)"
+
+      - name: Package contents (and no question in any install script)
         run: |
           cd dist/linux
           dpkg-deb --info raisesteady-guard_*_amd64.deb
           dpkg-deb --contents raisesteady-guard_*_amd64.deb
+          dpkg-deb --contents raisesteady-guard_*_amd64.deb | grep -q '/etc/xdg/autostart/raisesteady-guard-setup.desktop$'
+          dpkg-deb --contents raisesteady-guard_*_amd64.deb | grep -q '/usr/share/applications/raisesteady-guard.desktop$'
+          mkdir /tmp/ctl && dpkg-deb -e raisesteady-guard_*_amd64.deb /tmp/ctl && ls -la /tmp/ctl
+          test ! -e /tmp/ctl/config && test ! -e /tmp/ctl/templates
+          if grep -rlE 'db_input|db_go|debconf' /tmp/ctl; then echo "an install script asks through debconf"; exit 1; fi
+          # The sign-in entry must go away with the package: not a configuration file.
+          if [ -f /tmp/ctl/conffiles ] && grep -q autostart /tmp/ctl/conffiles; then echo "the sign-in entry is a configuration file"; exit 1; fi
           file raisesteady-guard-linux-amd64 raisesteady-guard-linux-arm64
           file raisesteady-guard-linux-amd64 | grep -q "statically linked"
           tar -tzf raisesteady-guard-*-linux-amd64.tar.gz
+          tar -tzf raisesteady-guard-*-linux-amd64.tar.gz | grep -q 'raisesteady-guard-setup.desktop$'
 
       - uses: actions/upload-artifact@v4
         with:
@@ -57,11 +91,16 @@ jobs:
   ubuntu:
     needs: build
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    timeout-minutes: 45
     env:
       KG_URL: http://127.0.0.1:47615
       CHROME_POL: /etc/opt/chrome/policies/managed/raisesteady-guard.json
+      YANDEX_POL: /etc/opt/yandex/browser/policies/managed/raisesteady-guard.json
       FF_POL: /etc/firefox/policies/policies.json
+      AMO_XPI: https://addons.mozilla.org/firefox/downloads/latest/raisesteady-guard/latest.xpi
+      # The id the Chrome Web Store publishes the extension under, written out on purpose (P2-194).
+      STORE_ID: kjfgpfhdfdilbkibcegclnbnlfkokcke
+      DEV_ID: jihggkhiiiinnflomjjnpomgeijgfnlg
     steps:
       - uses: actions/checkout@v4
 
@@ -74,48 +113,143 @@ jobs:
           name: linux-dist
           path: dist
 
-      - name: The child's account, and the browsers on this runner
+      - name: A child's and a parent's account, and the browsers on this runner
         run: |
           sudo useradd -m -s /bin/bash kgkid
-          id kgkid
+          # The parent is an administrator, as on a home computer.
+          sudo useradd -m -s /bin/bash -G sudo kgparent
+          id kgkid; id kgparent
           for b in google-chrome firefox microsoft-edge chromium; do
             p="$(command -v $b || true)"; [ -n "$p" ] && echo "$b: $(readlink -f "$p")" || echo "$b: not installed"
           done
           readlink -f /opt/google/chrome/chrome || true
           ls -la /usr/lib/firefox/firefox /opt/firefox/firefox 2>/dev/null || true
+          command -v desktop-file-validate >/dev/null || sudo apt-get install -y desktop-file-utils >/dev/null
           # What the runner has before we install (put back after removal).
-          sudo find /etc/opt /etc/chromium /etc/chromium-browser /etc/brave /etc/firefox -maxdepth 4 2>/dev/null | sort > /tmp/etc-before.txt || true
+          sudo find /etc/opt /etc/chromium /etc/chromium-browser /etc/brave /etc/firefox /etc/xdg/autostart /usr/share/applications -maxdepth 6 2>/dev/null | sort > /tmp/etc-before.txt || true
           sudo sha256sum "$FF_POL" 2>/dev/null > /tmp/ff-before.txt || echo "no $FF_POL before" | tee /tmp/ff-before.txt
-          cat /tmp/etc-before.txt
+          grep -v '^/usr/share/applications/' /tmp/etc-before.txt
 
-      - name: Install the .deb (nothing starts before setup)
+      - name: Install the .deb (no question, no terminal step, protection on at once)
         run: |
-          out="$(sudo apt-get install -y ./dist/raisesteady-guard_*_amd64.deb 2>&1)"; echo "$out"
-          echo "$out" | grep -q "sudo raisesteady-guard setup"
+          # Nothing can be typed: a question would stop the install.
+          out="$(sudo apt-get install -y ./dist/raisesteady-guard_*_amd64.deb 2>&1 < /dev/null)"; echo "$out"
+          if echo "$out" | grep -q "raisesteady-guard setup"; then echo "the install still sends the parent to a terminal"; exit 1; fi
+          echo "$out" | grep -q "Finish the setup on the parent page"
           test -x /usr/lib/raisesteady-guard/raisesteady-guard
           test -L /usr/bin/raisesteady-guard
           raisesteady-guard version
-          if systemctl is-active --quiet raisesteady-guard.service; then echo "service runs before setup"; exit 1; fi
-          test -f /usr/share/applications/raisesteady-guard.desktop
-          desktop-file-validate /usr/share/applications/raisesteady-guard.desktop || true
+          systemctl is-enabled raisesteady-guard.service
+          systemctl is-active raisesteady-guard.service
+          # The app-menu shortcut is there and visible; the sign-in entry is there and not in the menu.
+          m=/usr/share/applications/raisesteady-guard.desktop; a=/etc/xdg/autostart/raisesteady-guard-setup.desktop
+          test -f "$m"; test -f "$a"
+          desktop-file-validate "$m" "$a"
+          if grep -Eiq '^(Hidden|NoDisplay)=true' "$m"; then echo "the app-menu shortcut is hidden"; exit 1; fi
+          grep -q '^NoDisplay=true' "$a"
+          grep -q '^Exec=/usr/lib/raisesteady-guard/raisesteady-guard open-page --login$' "$a"
+          if dpkg-query -W -f='${Conffiles}\n' raisesteady-guard | grep -q autostart; then echo "the sign-in entry is a configuration file: removal would leave it"; exit 1; fi
           test -f /usr/share/doc/raisesteady-guard/THIRD-PARTY-NOTICES.txt
 
-      - name: Setup in a terminal (terms, age, a mistyped PIN, family filter)
+      - name: Before the setup the browsers are protected, and no limit runs
         run: |
-          # yes to the terms; age 3 (9 to 12); PINs that differ; then 1234 twice; family filter on.
-          # One answer a second, as a person types after each question (input sent earlier
-          # is echoed by the terminal before setup can hide it).
-          answers() { sleep 2; for a in yes 3 1234 9999 1234 1234 y; do echo "$a"; sleep 1; done; }
-          answers | sudo script -qec "raisesteady-guard setup" /dev/null | tee /tmp/setup.txt
-          grep -q "made with AI" /tmp/setup.txt
-          grep -q "every account on this computer" /tmp/setup.txt
-          grep -q "both must be the same" /tmp/setup.txt
-          grep -q "Done." /tmp/setup.txt
-          if grep -q "1234" /tmp/setup.txt; then echo "the PIN was shown"; exit 1; fi
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
+          curl -s "$KG_URL/parent/state" | jq -e '.app == "RaiseSteady Guard" and .setup == true'
+          [ "$(jq -r '.chromium.chromeStoreId' shared/ext-ids.json)" = "$STORE_ID" ]
+          for f in "$CHROME_POL" /etc/chromium/policies/managed/raisesteady-guard.json /etc/chromium-browser/policies/managed/raisesteady-guard.json /etc/opt/edge/policies/managed/raisesteady-guard.json /etc/brave/policies/managed/raisesteady-guard.json "$YANDEX_POL"; do
+            jq -e --arg c "$STORE_ID" '.ForceGoogleSafeSearch == true and .DnsOverHttpsMode == "secure" and .ExtensionInstallForcelist == [$c + ";https://clients2.google.com/service/update2/crx"] and .ExtensionInstallAllowlist == [$c] and .ExtensionInstallBlocklist == ["*"] and (.["3rdparty"].extensions | keys) == [$c] and .["3rdparty"].extensions[$c].agentPort == 47615' "$f" >/dev/null \
+              || { sed -E 's/[0-9a-f]{64}/<token>/g' "$f"; echo "$f is wrong"; exit 1; }
+          done
+          if sudo grep -rl "$DEV_ID" /etc/opt /etc/chromium /etc/chromium-browser /etc/brave 2>/dev/null; then echo "a policy file names the development id"; exit 1; fi
+          jq -e '.IncognitoModeAvailability == 1' "$CHROME_POL" >/dev/null
+          jq -e '.InPrivateModeAvailability == 1' /etc/opt/edge/policies/managed/raisesteady-guard.json >/dev/null
+          jq -e '.YandexProtectedMode == false and .IncognitoModeAvailability == 1' "$YANDEX_POL" >/dev/null
+          if jq -e 'has("YandexProtectedMode")' "$CHROME_POL" >/dev/null; then echo "Chrome got a Yandex policy"; exit 1; fi
+          # Firefox takes the add-on from addons.mozilla.org (a snap Firefox cannot read a file of the system).
+          jq -e --arg u "$AMO_XPI" '.policies.DisablePrivateBrowsing == true and .policies.DNSOverHTTPS.Locked == true and .policies.ExtensionSettings["guard@raisesteady.com"].installation_mode == "force_installed" and .policies.ExtensionSettings["guard@raisesteady.com"].install_url == $u and .policies["3rdparty"].Extensions["guard@raisesteady.com"].agentPort == 47615' "$FF_POL" >/dev/null \
+            || { sed -E 's/[0-9a-f]{64}/<token>/g' "$FF_POL"; exit 1; }
+          # The parent page is the first-run setup and nothing else.
+          page="$(curl -s "$KG_URL/parent")"
+          echo "$page" | grep -q 'action="/parent/setup"'
+          echo "$page" | grep -q 'Your browser is managed by your organization'
+          if echo "$page" | grep -q 'action="/parent/login"'; then echo "a PIN form before any PIN exists"; exit 1; fi
+          # What the extension is told: no bedtime, no limit reached.
+          tok="$(sudo jq -r --arg c "$STORE_ID" '.["3rdparty"].extensions[$c].agentToken' "$CHROME_POL")"
+          st="$(curl -s -H "X-KG-Token: $tok" "$KG_URL/v1/state")"
+          echo "$st" | jq -e '.limits.browseMin == 1440 and .limits.videoMin == 1440 and .bedtime == null and .schedule.school.bedtime == null and .bedtimeActive == false and .paused == false and .setup == true' >/dev/null \
+            || { echo "$st"; echo "a limit runs before the setup"; exit 1; }
+          echo "$tok" | sha256sum > /tmp/tok-before.txt
+          echo "protected before the setup, no limits"
+
+      # No desktop on a runner: xdg-open is a stand-in that writes down the address it was given.
+      - name: The shortcut opens the parent page; the sign-in entry only for a parent, and it keeps the shortcut visible
+        run: |
+          mkdir -p /tmp/stub && chmod 1777 /tmp/stub
+          printf '#!/bin/sh\necho "$1" >> "/tmp/stub/opened-$(id -un)"\n' > /tmp/stub/xdg-open && chmod 755 /tmp/stub/xdg-open
+          as() { u="$1"; shift; sudo -u "$u" -H env DISPLAY=:99 PATH=/tmp/stub:/usr/bin:/bin "$@"; }
+          menu="$(sed -n 's/^Exec=//p' /usr/share/applications/raisesteady-guard.desktop)"
+          login="$(sed -n 's/^Exec=//p' /etc/xdg/autostart/raisesteady-guard-setup.desktop)"
+          # The app-menu shortcut works for any person.
+          as kgkid $menu
+          grep -qx "$KG_URL/parent" /tmp/stub/opened-kgkid
+          rm -f /tmp/stub/opened-*
+          # At sign-in, while the setup waits: the parent gets the page, the child does not.
+          as kgparent $login; as kgkid $login
+          grep -qx "$KG_URL/parent" /tmp/stub/opened-kgparent
+          if [ -e /tmp/stub/opened-kgkid ]; then echo "a child's sign-in was handed the setup"; exit 1; fi
+          # A copy in a home folder that hides the shortcut (bug 4) is moved aside at sign-in.
+          sudo -u kgparent -H mkdir -p /home/kgparent/.local/share/applications
+          printf '[Desktop Entry]\nType=Application\nName=RaiseSteady Guard\nHidden=true\n' | sudo -u kgparent -H tee /home/kgparent/.local/share/applications/raisesteady-guard.desktop >/dev/null
+          as kgparent $login
+          sudo test ! -e /home/kgparent/.local/share/applications/raisesteady-guard.desktop
+          sudo test -f /home/kgparent/.local/share/applications/raisesteady-guard.desktop.hidden
+          rm -f /tmp/stub/opened-*
+          echo "shortcut and sign-in entry ok"
+
+      - name: First-run setup on the parent page (terms, age, PIN, family filter), no terminal
+        run: |
+          jar=/tmp/kg-jar.txt
+          csrf() { curl -s -b "$jar" -c "$jar" "$KG_URL/parent" | grep -o 'name="csrf" value="[0-9a-f]*"' | head -1 | sed 's/.*value="//; s/"$//'; }
+          send() { curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -b "$jar" -c "$jar" -H "Origin: $KG_URL" --data-urlencode "csrf=$(csrf)" -d lang=en "$@" "$KG_URL/parent/setup"; }
+          [ -n "$(csrf)" ]
+          # Refused: no agreement; no age; PINs that differ; a web page that sends the form.
+          r="$(send -d band=9-12 -d pinNew=1234 -d pinAgain=1234 -d dns=on)"; echo "$r"; echo "$r" | grep -q "setup_agree"
+          r="$(send -d agree=yes -d pinNew=1234 -d pinAgain=1234 -d dns=on)"; echo "$r"; echo "$r" | grep -q "setup_age"
+          r="$(send -d agree=yes -d band=9-12 -d pinNew=1234 -d pinAgain=9999 -d dns=on)"; echo "$r"; echo "$r" | grep -q "setup_pin"
+          [ "$(curl -s -o /dev/null -w '%{http_code}' -b "$jar" -H 'Origin: https://example.com' --data-urlencode "csrf=$(csrf)" -d lang=en -d agree=yes -d band=9-12 -d pinNew=1234 -d pinAgain=1234 "$KG_URL/parent/setup")" = 403 ]
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == true' >/dev/null
+          # The parent finishes: 9 to 12, PIN 1234, family filter on.
+          r="$(send -d agree=yes -d band=9-12 -d pinNew=1234 -d pinAgain=1234 -d dns=on)"; echo "$r"; echo "$r" | grep -q "^303 .*ok=setup_done"
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == false' >/dev/null
+          curl -s -b "$jar" "$KG_URL/parent?ok=setup_done&sec=setup" | grep -q "The setup is finished and the limits apply now."
+          # Anyone else now gets the PIN form, and the setup cannot be sent again.
+          page="$(curl -s "$KG_URL/parent")"
+          echo "$page" | grep -q 'action="/parent/login"'
+          if echo "$page" | grep -q 'action="/parent/setup"'; then echo "the setup is still offered"; exit 1; fi
+          r="$(curl -s -o /dev/null -w '%{http_code} %{redirect_url}' -H "Origin: $KG_URL" -d lang=en -d agree=yes -d band=3-5 -d pinNew=9999 -d pinAgain=9999 "$KG_URL/parent/setup")"; echo "$r"
+          if echo "$r" | grep -q "setup_done"; then echo "the setup ran a second time"; exit 1; fi
+          # The chosen age's limits apply, and the browsers keep the token they already have.
+          tok="$(sudo jq -r --arg c "$STORE_ID" '.["3rdparty"].extensions[$c].agentToken' "$CHROME_POL")"
+          [ "$(echo "$tok" | sha256sum)" = "$(cat /tmp/tok-before.txt)" ] || { echo "the setup changed the browsers' token"; exit 1; }
+          st="$(curl -s -H "X-KG-Token: $tok" "$KG_URL/v1/state")"
+          echo "$st" | jq -e '.band == "9-12" and .limits.browseMin == 120' >/dev/null || { echo "$st"; exit 1; }
+          ok=""
+          for i in $(seq 1 20); do
+            if jq -e --arg c "$STORE_ID" '.["3rdparty"].extensions[$c].ageBand == "9-12"' "$CHROME_POL" >/dev/null && jq -e --arg c "$STORE_ID" '.["3rdparty"].extensions[$c].ageBand == "9-12"' "$YANDEX_POL" >/dev/null; then ok=1; break; fi
+            sleep 1
+          done
+          [ -n "$ok" ] || { echo "the policy files do not carry the chosen age"; exit 1; }
           sudo test -f /var/lib/raisesteady-guard/config.json
-          # A second setup changes nothing.
+          # The terminal setup (advanced use) sees that it is done.
           sudo script -qec "raisesteady-guard setup" /dev/null < /dev/null | tee /tmp/setup2.txt
           grep -q "already set up" /tmp/setup2.txt
+          # The sign-in entry is quiet from now on; the shortcut still opens the page.
+          as() { u="$1"; shift; sudo -u "$u" -H env DISPLAY=:99 PATH=/tmp/stub:/usr/bin:/bin "$@"; }
+          as kgparent $(sed -n 's/^Exec=//p' /etc/xdg/autostart/raisesteady-guard-setup.desktop)
+          if [ -e /tmp/stub/opened-kgparent ]; then echo "the sign-in entry opened the page after the setup"; exit 1; fi
+          as kgparent $(sed -n 's/^Exec=//p' /usr/share/applications/raisesteady-guard.desktop)
+          grep -qx "$KG_URL/parent" /tmp/stub/opened-kgparent
+          echo "setup done on the page"
 
       - name: Service runs, starts at boot and restarts after a crash
         run: |
@@ -131,39 +265,42 @@ jobs:
           [ "$n" != "$pid" ] && [ "$n" != "0" ] || { echo "not restarted"; exit 1; }
           echo "restarted: $pid -> $n"
 
-      - name: Policy files for Chrome, Chromium, Edge, Brave and Firefox, with the managed config
+      - name: Policy files for Chrome, Chromium, Edge, Brave, Yandex Browser and Firefox, with the managed config
         run: |
-          cid="$(jq -r '.chromium.chromeStoreId // .chromium.devId' shared/ext-ids.json)"
+          cid="$STORE_ID"
           fid="$(jq -r '.firefox.id' shared/ext-ids.json)"
-          for f in "$CHROME_POL" /etc/chromium/policies/managed/raisesteady-guard.json /etc/chromium-browser/policies/managed/raisesteady-guard.json /etc/opt/edge/policies/managed/raisesteady-guard.json /etc/brave/policies/managed/raisesteady-guard.json; do
-            jq -e '.ForceGoogleSafeSearch == true and .BrowserGuestModeEnabled == false and .DownloadRestrictions == 1 and .DnsOverHttpsMode == "secure" and (.ExtensionInstallBlocklist == ["*"])' "$f" >/dev/null || { cat "$f"; exit 1; }
+          for f in "$CHROME_POL" /etc/chromium/policies/managed/raisesteady-guard.json /etc/chromium-browser/policies/managed/raisesteady-guard.json /etc/opt/edge/policies/managed/raisesteady-guard.json /etc/brave/policies/managed/raisesteady-guard.json "$YANDEX_POL"; do
+            jq -e '.ForceGoogleSafeSearch == true and .BrowserGuestModeEnabled == false and .DownloadRestrictions == 1 and .DnsOverHttpsMode == "secure" and (.ExtensionInstallBlocklist == ["*"])' "$f" >/dev/null || { sed -E 's/[0-9a-f]{64}/<token>/g' "$f"; exit 1; }
             [ "$(stat -c '%U:%G %a' "$f")" = "root:root 644" ] || { stat "$f"; exit 1; }
           done
           jq -e '.IncognitoModeAvailability == 1 and .ForceYouTubeRestrict == 2 and .ProxySettings.ProxyMode == "direct"' "$CHROME_POL" >/dev/null
           jq -e --arg c "$cid" '(.ExtensionInstallForcelist[0] | startswith($c + ";")) and .["3rdparty"].extensions[$c].agentPort == 47615 and .["3rdparty"].extensions[$c].ageBand == "9-12" and (.["3rdparty"].extensions[$c].agentToken | test("^[0-9a-f]{64}$"))' "$CHROME_POL" >/dev/null
+          jq -e --arg c "$cid" '.YandexProtectedMode == false and .IncognitoModeAvailability == 1 and .ForceYouTubeRestrict == 2 and .["3rdparty"].extensions[$c].ageBand == "9-12"' "$YANDEX_POL" >/dev/null
           jq -e '.InPrivateModeAvailability == 1 and .ForceBingSafeSearch == 2' /etc/opt/edge/policies/managed/raisesteady-guard.json >/dev/null
           jq -e '.TorDisabled == true' /etc/brave/policies/managed/raisesteady-guard.json >/dev/null
-          jq -e --arg f "$fid" '.policies.DisablePrivateBrowsing == true and .policies.DNSOverHTTPS.Locked == true and .policies.ExtensionSettings[$f].installation_mode == "force_installed" and .policies["3rdparty"].Extensions[$f].agentPort == 47615' "$FF_POL" >/dev/null || { cat "$FF_POL"; exit 1; }
-          for d in /etc/opt/chrome /etc/opt/chrome/policies /etc/opt/chrome/policies/managed; do
+          jq -e --arg f "$fid" '.policies.DisablePrivateBrowsing == true and .policies.DNSOverHTTPS.Locked == true and .policies.ExtensionSettings[$f].installation_mode == "force_installed" and .policies["3rdparty"].Extensions[$f].agentPort == 47615' "$FF_POL" >/dev/null || { sed -E 's/[0-9a-f]{64}/<token>/g' "$FF_POL"; exit 1; }
+          for d in /etc/opt/chrome /etc/opt/chrome/policies /etc/opt/chrome/policies/managed /etc/opt/yandex /etc/opt/yandex/browser/policies/managed; do
             [ "$(stat -c '%a' "$d")" = "755" ] || { stat "$d"; exit 1; }
           done
           [ "$(sudo stat -c '%U %a' /var/lib/raisesteady-guard)" = "root 700" ]
           # The child cannot change or delete them.
           if sudo -u kgkid sh -c "echo '{}' > $CHROME_POL" 2>/dev/null; then echo "the child changed a policy file"; exit 1; fi
           if sudo -u kgkid rm -f "$CHROME_POL" 2>/dev/null && [ ! -f "$CHROME_POL" ]; then echo "the child deleted a policy file"; exit 1; fi
+          if sudo -u kgkid rm -f "$YANDEX_POL" 2>/dev/null && [ ! -f "$YANDEX_POL" ]; then echo "the child deleted a policy file"; exit 1; fi
           echo "policies ok"
 
-      # P2-159: the package ships the Mozilla-signed add-on where the Firefox policy points.
-      - name: The signed Firefox add-on is in the package and named in the Firefox policy
+      # P2-159: the package ships the Mozilla-signed add-on. Since P2-194 it is for a PC without
+      # internet only (chosen with --firefox-xpi); the policy names the store.
+      - name: The signed Firefox add-on is in the package, and the Firefox policy names the store
         run: |
           x=/usr/lib/raisesteady-guard/raisesteady-guard.xpi
           unzip -l "$x" | grep -q META-INF/mozilla.rsa || { echo "$x is missing or not signed"; exit 1; }
           fid="$(jq -r '.firefox.id' shared/ext-ids.json)"
-          jq -e --arg id "$fid" --arg u "file://$x" '.policies.ExtensionSettings[$id].install_url == $u' "$FF_POL"
+          jq -e --arg id "$fid" --arg u "$AMO_XPI" '.policies.ExtensionSettings[$id].install_url == $u' "$FF_POL"
 
       - name: Localhost API answers the token and refuses web origins
         run: |
-          cid="$(jq -r '.chromium.chromeStoreId // .chromium.devId' shared/ext-ids.json)"
+          cid="$STORE_ID"
           tok="$(sudo jq -r --arg c "$cid" '.["3rdparty"].extensions[$c].agentToken' "$CHROME_POL")"
           for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent" && break; sleep 1; done
           st="$(curl -s -H "X-KG-Token: $tok" "$KG_URL/v1/state")"
@@ -171,6 +308,8 @@ jobs:
           [ "$(curl -s -o /dev/null -w '%{http_code}' -H "X-KG-Token: $tok" -H 'Origin: https://example.com' "$KG_URL/v1/state")" = 403 ]
           [ "$(curl -s -o /dev/null -w '%{http_code}' "$KG_URL/v1/state")" = 401 ]
           [ "$(curl -s -o /dev/null -w '%{http_code}' -H "X-KG-Token: $tok" -H "Origin: chrome-extension://$cid" "$KG_URL/v1/state")" = 200 ]
+          # Another extension's id is refused even with the token.
+          [ "$(curl -s -o /dev/null -w '%{http_code}' -H "X-KG-Token: $tok" -H "Origin: chrome-extension://abcdefghijklmnopabcdefghijklmnop" "$KG_URL/v1/state")" = 403 ]
           curl -s "$KG_URL/parent" | grep -q "Parent settings"
           out="$(sudo raisesteady-guard status)"
           if echo "$out" | grep -q "$tok"; then echo "status prints a token"; exit 1; fi
@@ -182,16 +321,16 @@ jobs:
       - name: The guard closes other browsers, copies and a browser that hides our files
         run: |
           sudo -u kgkid mkdir -p /tmp/kg/tor-browser/Browser
-          for n in opera firefox notabrowser; do sudo -u kgkid cp /bin/sleep /tmp/kg/$n; done
+          for n in opera vivaldi-bin firefox notabrowser; do sudo -u kgkid cp /bin/sleep /tmp/kg/$n; done
           sudo -u kgkid cp /bin/sleep /tmp/kg/tor-browser/Browser/firefox.real
-          sudo -u kgkid /tmp/kg/opera 300 & sudo -u kgkid /tmp/kg/firefox 300 &
+          sudo -u kgkid /tmp/kg/opera 300 & sudo -u kgkid /tmp/kg/vivaldi-bin 300 & sudo -u kgkid /tmp/kg/firefox 300 &
           sudo -u kgkid /tmp/kg/tor-browser/Browser/firefox.real 300 & sudo -u kgkid /tmp/kg/notabrowser 300 &
           # Chrome in a private mount where our policy file is hidden.
           sudo sysctl -w kernel.apparmor_restrict_unprivileged_userns=0 || true
           sudo -u kgkid -H unshare -rm sh -c 'mount -t tmpfs none /etc/opt/chrome/policies/managed && touch /tmp/kg/hidden.started && exec /opt/google/chrome/chrome --headless=new --no-sandbox --disable-gpu --user-data-dir=/tmp/kgchrome2 about:blank' >/tmp/hidden.log 2>&1 &
           sleep 10
           sudo raisesteady-guard guard-list --all | grep -E "person=true|kg/" | head -40 || true
-          for n in opera firefox firefox.real; do
+          for n in opera vivaldi-bin firefox firefox.real; do
             if pgrep -u kgkid -x "$n" >/dev/null; then echo "$n was not closed"; exit 1; fi
           done
           pgrep -u kgkid -x notabrowser >/dev/null || { echo "a program that is not a browser was closed"; exit 1; }
@@ -205,46 +344,108 @@ jobs:
           sudo raisesteady-guard status | jq '.closed // .browsers'
           sudo journalctl -u raisesteady-guard.service --no-pager | tail -20
 
-      - name: An upgrade keeps the settings
+      - name: An upgrade keeps the settings and does not bring the setup back
         run: |
           before="$(sudo sha256sum /var/lib/raisesteady-guard/config.json)"
-          sudo apt-get install -y --reinstall ./dist/raisesteady-guard_*_amd64.deb
+          out="$(sudo apt-get install -y --reinstall ./dist/raisesteady-guard_*_amd64.deb 2>&1 < /dev/null)"; echo "$out"
+          if echo "$out" | grep -q "Finish the setup on the parent page"; then echo "an update asked for the first-run setup again"; exit 1; fi
           [ "$(sudo sha256sum /var/lib/raisesteady-guard/config.json)" = "$before" ]
           sleep 2
           systemctl is-active raisesteady-guard.service
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == false' >/dev/null
+          jq -e --arg c "$STORE_ID" '.["3rdparty"].extensions[$c].ageBand == "9-12"' "$CHROME_POL" >/dev/null
 
       - name: Removal leaves nothing
         run: |
           sudo apt-get remove -y raisesteady-guard
           if systemctl list-unit-files raisesteady-guard.service | grep -q raisesteady; then echo "unit left"; exit 1; fi
           sudo test ! -e /var/lib/raisesteady-guard
-          sudo find /etc/opt /etc/chromium /etc/chromium-browser /etc/brave /etc/firefox -maxdepth 4 2>/dev/null | sort > /tmp/etc-after.txt || true
+          test ! -e "$CHROME_POL"; test ! -e "$YANDEX_POL"; test ! -e /etc/opt/yandex
+          test ! -e /etc/xdg/autostart/raisesteady-guard-setup.desktop
+          test ! -e /usr/share/applications/raisesteady-guard.desktop
+          sudo find /etc/opt /etc/chromium /etc/chromium-browser /etc/brave /etc/firefox /etc/xdg/autostart /usr/share/applications -maxdepth 6 2>/dev/null | sort > /tmp/etc-after.txt || true
           diff /tmp/etc-before.txt /tmp/etc-after.txt
           sudo sha256sum "$FF_POL" 2>/dev/null > /tmp/ff-after.txt || echo "no $FF_POL before" > /tmp/ff-after.txt
           diff /tmp/ff-before.txt /tmp/ff-after.txt
           if curl -s -o /dev/null "$KG_URL/parent"; then echo "still listening"; exit 1; fi
 
-      - name: The .tar.gz with install.sh, setup for 13 to 15 without questions
+      # Nothing needs the terminal any more; it stays for people who prefer it. A second, new
+      # install: the setup waits, and the terminal finishes it.
+      - name: The terminal setup still works (terms, age, a mistyped PIN, family filter, add-on from the file)
+        run: |
+          sudo apt-get install -y ./dist/raisesteady-guard_*_amd64.deb < /dev/null
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == true' >/dev/null
+          # yes to the terms; age 3 (9 to 12); PINs that differ; then 1234 twice; family filter on.
+          # One answer a second, as a person types after each question (input sent earlier
+          # is echoed by the terminal before setup can hide it).
+          x=/usr/lib/raisesteady-guard/raisesteady-guard.xpi
+          answers() { sleep 2; for a in yes 3 1234 9999 1234 1234 y; do echo "$a"; sleep 1; done; }
+          answers | sudo script -qec "raisesteady-guard setup --firefox-xpi file://$x" /dev/null | tee /tmp/setup.txt
+          grep -q "made with AI" /tmp/setup.txt
+          grep -q "every account on this computer" /tmp/setup.txt
+          grep -q "both must be the same" /tmp/setup.txt
+          grep -q "Done." /tmp/setup.txt
+          if grep -q "1234" /tmp/setup.txt; then echo "the PIN was shown"; exit 1; fi
+          sudo test -f /var/lib/raisesteady-guard/config.json
+          systemctl is-active raisesteady-guard.service
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == false' >/dev/null
+          jq -e --arg c "$STORE_ID" '.["3rdparty"].extensions[$c].ageBand == "9-12"' "$CHROME_POL" >/dev/null
+          # The file was chosen on purpose (a PC without internet). A snap or Flatpak Firefox cannot
+          # read it, so with one of those on the computer the policy names the store all the same.
+          if [ -e /snap/firefox ] || [ -e /snap/bin/firefox ] || [ -e /var/lib/snapd/snap/firefox ]; then want="$AMO_XPI"; else want="file://$x"; fi
+          jq -e --arg u "$want" '.policies.ExtensionSettings["guard@raisesteady.com"].install_url == $u' "$FF_POL"
+          # A second setup changes nothing.
+          sudo script -qec "raisesteady-guard setup" /dev/null < /dev/null | tee /tmp/setup2.txt
+          grep -q "already set up" /tmp/setup2.txt
+          # And away again, with nothing left.
+          sudo apt-get remove -y raisesteady-guard
+          sudo test ! -e /var/lib/raisesteady-guard
+          sudo find /etc/opt /etc/chromium /etc/chromium-browser /etc/brave /etc/firefox /etc/xdg/autostart /usr/share/applications -maxdepth 6 2>/dev/null | sort > /tmp/etc-after.txt || true
+          diff /tmp/etc-before.txt /tmp/etc-after.txt
+
+      - name: The .tar.gz with install.sh (no question), then setup for 13 to 15 in one line
+        id: tarball
         run: |
           mkdir /tmp/tgz && tar -xzf dist/raisesteady-guard-*-linux-amd64.tar.gz -C /tmp/tgz
           cd /tmp/tgz/raisesteady-guard-*
-          sudo ./install.sh
+          sudo ./install.sh < /dev/null
+          systemctl is-active raisesteady-guard.service
+          grep -q '^Exec=/opt/raisesteady-guard/raisesteady-guard open-page --login$' /etc/xdg/autostart/raisesteady-guard-setup.desktop
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == true' >/dev/null
           KG_PIN=4321 sudo -E raisesteady-guard setup --yes --band 13-15 --pin-env KG_PIN --family-dns off
           systemctl is-active raisesteady-guard.service
           jq -e '.DeveloperToolsAvailability == 0 and (has("DnsOverHttpsTemplates") | not)' "$CHROME_POL" >/dev/null
-      - name: Chrome and Firefox apply the policies (and the guard leaves them open)
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == false' >/dev/null
+          jq -e --arg u "$AMO_XPI" '.policies.ExtensionSettings["guard@raisesteady.com"].install_url == $u' "$FF_POL"
+
+      # Done-test 3 of P2-194: in every browser the extension is installed by the browser itself
+      # from its store, switched on, and has its managed settings (it reaches the agent).
+      # From here each browser reports by itself: when one browser's step fails, the
+      # steps after it still run (the job fails all the same).
+      - name: Chrome and Firefox apply the policies and install the extension from their stores
         run: |
+          mask() { sed -E 's/[0-9a-f]{64}/<token>/g'; }
           check() { # name, text file, wanted words...
             n="$1"; t="$2"; shift 2
-            for w in "$@"; do grep -q "$w" "$t" || { head -c 3000 "$t"; echo; echo "$n policy page lacks $w"; exit 1; }; done
+            for w in "$@"; do grep -q "$w" "$t" || { mask < "$t" | head -c 3000; echo; echo "$n policy page lacks $w"; exit 1; }; done
             echo "$n applies the policies"
           }
+          # Whether the agent heard from a browser's extension is asked of the running service
+          # (its parent page, PIN 4321 from the step before): the status command is a program
+          # of its own and cannot know it.
           checked=0
           if [ -x /opt/google/chrome/chrome ]; then
             /opt/google/chrome/chrome --headless=new --no-sandbox --disable-gpu --no-first-run --no-default-browser-check \
-              --remote-debugging-port=9334 --user-data-dir=/tmp/kgchrome about:blank >/tmp/chrome.log 2>&1 &
+              --remote-debugging-port=9334 --user-data-dir=/tmp/kgchrome --log-net-log=/tmp/kgchrome/netlog.json about:blank >/tmp/chrome.log 2>&1 &
             if node tests/linux/read-policy-page.mjs cdp 9334 chrome://policy > /tmp/chrome-policy.txt; then
               check Chrome /tmp/chrome-policy.txt IncognitoModeAvailability ExtensionInstallForcelist ForceGoogleSafeSearch DownloadRestrictions Machine
+              bash tests/linux/ext-evidence.sh "Chrome" /tmp/kgchrome 9334 chrome://policy "$STORE_ID" || { tail -20 /tmp/chrome.log; exit 1; }
+              bash tests/linux/agent-hears.sh "Google Chrome" 4321
               pgrep -f "user-data-dir=/tmp/kgchrome" >/dev/null || { echo "the guard closed Chrome"; exit 1; }
               checked=$((checked+1))
             else
@@ -257,42 +458,41 @@ jobs:
           echo "firefox: ${ff:-none}"
           if [ -n "$ff" ]; then
             mkdir -p /tmp/kgff
-            # WebDriver BiDi may not open about:policies (run 41663300128); Firefox's own log shows it
-            # applying ExtensionSettings (it fetches our add-on) and any policy it rejects.
+            # WebDriver BiDi may not open about:policies (run 41663300128); Firefox's own log shows
+            # any policy it rejects.
             "$ff" --headless --remote-debugging-port=9335 --profile /tmp/kgff about:blank >/tmp/ff.log 2>&1 &
             sleep 15
             grep -i "polic" /tmp/ff.log | head -10 || true
-            # Firefox prints "Policies:" and the reason on the next line for a policy it rejects; since
-            # 0.2.2 the add-on file is there, so none is allowed (P2-159).
+            # Firefox prints "Policies:" and the reason on the next line for a policy it rejects.
             if grep -q "Policies:" /tmp/ff.log; then grep -A1 "Policies:" /tmp/ff.log; echo "Firefox rejects one of our policies"; exit 1; fi
             pgrep -f "profile /tmp/kgff" >/dev/null || { echo "the guard closed Firefox"; exit 1; }
-            # The .tar.gz puts the signed add-on next to the program; Firefox installs it by itself
-            # (which also shows it applied ExtensionSettings).
-            # Firefox writes extensions.json a little after the install: wait up to 60 s.
+            # Firefox installs the add-on from addons.mozilla.org by itself (which also shows it
+            # applied ExtensionSettings). It writes extensions.json a little later: wait up to 90 s.
             ok=""
-            for i in $(seq 1 30); do
+            for i in $(seq 1 45); do
               if jq -e '.addons[] | select(.id == "guard@raisesteady.com" and .active == true)' /tmp/kgff/extensions.json >/dev/null 2>&1; then ok=1; break; fi
               sleep 2
             done
             if [ -n "$ok" ]; then
-              echo "Firefox installed the signed add-on: $(jq -c '.addons[] | select(.id == "guard@raisesteady.com") | {version, active, signedState}' /tmp/kgff/extensions.json)"
+              echo "Firefox installed the add-on from the store: $(jq -c '.addons[] | select(.id == "guard@raisesteady.com") | {version, active, signedState, sourceURI}' /tmp/kgff/extensions.json)"
+              bash tests/linux/agent-hears.sh "Firefox" 4321
               checked=$((checked+1))
             else
               echo "Firefox did not install our add-on. Evidence:"
               echo "policy: $(jq -c '.policies.ExtensionSettings' "$FF_POL")"
-              u="$(jq -r '.policies.ExtensionSettings["guard@raisesteady.com"].install_url' "$FF_POL")"; f="${u#file://}"
-              ls -la "$f" || true; unzip -l "$f" 2>/dev/null | grep -c META-INF || true
+              curl -sIL -o /dev/null -w 'the store address answers %{http_code}\n' "$AMO_XPI" || true
               ls -la /tmp/kgff | head -30; jq -c '.addons[]? | {id, active, location}' /tmp/kgff/extensions.json 2>/dev/null | head
               tail -30 /tmp/ff.log; exit 1
             fi
             pkill -f "profile /tmp/kgff" || true
           fi
-          echo "browsers whose applied policies were read as the child: $checked"
-          [ "$checked" -ge 1 ]
+          echo "browsers whose applied policies and extension were checked: $checked"
+          [ "$checked" -ge 2 ]
 
       # The installed agent's parent page in real browsers, with our policies applied to this account (as on
       # a home computer: Linux policies cover every account). P2-157: Firefox got "forbidden" for the right PIN.
       - name: The parent page takes the PIN in Chrome and Firefox (installed agent)
+        if: ${{ !cancelled() && steps.tarball.outcome == 'success' }}
         env:
           PUPPETEER_SKIP_DOWNLOAD: "true"
           KG_PIN: "4321"
@@ -307,26 +507,38 @@ jobs:
           echo "browsers checked: $n"
           [ "$n" -ge 2 ]
 
-      - name: Snap Firefox (Ubuntu's own) applies the policies and the guard leaves it open
+      # Bug 2 of P2-194: Ubuntu's own Firefox is a snap and cannot read a file of the system.
+      - name: Snap Firefox (Ubuntu's own) installs the add-on from the store, and the guard leaves it open
+        if: ${{ !cancelled() && steps.tarball.outcome == 'success' }}
         run: |
           if ! sudo snap install firefox; then echo "::warning::snap install firefox failed: snap Firefox NOT checked"; exit 0; fi
           sudo loginctl enable-linger kgkid
           sleep 3
           uid="$(id -u kgkid)"
+          # The service forgets who reported when it restarts: after this, a Firefox row that
+          # says "active" can only come from snap Firefox's own add-on.
+          sudo systemctl restart raisesteady-guard.service
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
           closed0="$(sudo grep -c 'closed' /var/lib/raisesteady-guard/agent.log || true)"
           sudo -u kgkid -H mkdir -p /home/kgkid/snapff
           sudo -u kgkid -H env XDG_RUNTIME_DIR=/run/user/$uid /snap/bin/firefox --headless --remote-debugging-port=9336 --profile /home/kgkid/snapff about:blank >/tmp/snapff.log 2>&1 &
-          sleep 25
-          if grep -q "raisesteady-guard.xpi" /tmp/snapff.log; then
-            echo "snap Firefox applies the policies (it fetches the add-on named in ExtensionSettings)"
+          started=""
+          for i in $(seq 1 30); do sudo test -f /home/kgkid/snapff/prefs.js && { started=1; break; }; sleep 2; done
+          if [ -z "$started" ]; then echo "::warning::snap Firefox did not start on this runner: NOT verified"; tail -20 /tmp/snapff.log; exit 0; fi
+          if grep -q "Policies:" /tmp/snapff.log; then grep -A1 "Policies:" /tmp/snapff.log; echo "snap Firefox rejects one of our policies"; exit 1; fi
+          ok=""
+          for i in $(seq 1 60); do
+            if sudo jq -e '.addons[] | select(.id == "guard@raisesteady.com" and .active == true)' /home/kgkid/snapff/extensions.json >/dev/null 2>&1; then ok=1; break; fi
+            sleep 2
+          done
+          if [ -n "$ok" ]; then
+            echo "snap Firefox installed the add-on from the store: $(sudo jq -c '.addons[] | select(.id == "guard@raisesteady.com") | {version, active, signedState}' /home/kgkid/snapff/extensions.json)"
+            bash tests/linux/agent-hears.sh "Firefox" 4321
           else
-            echo "::warning::snap Firefox's log does not show our policies: NOT verified"; tail -20 /tmp/snapff.log
-          fi
-          # P2-159: whether a snap (sandboxed) Firefox can read the add-on file outside its sandbox
-          if sudo jq -e '.addons[] | select(.id == "guard@raisesteady.com" and .active == true)' /home/kgkid/snapff/extensions.json >/dev/null 2>&1; then
-            echo "snap Firefox installed the signed add-on"
-          else
-            echo "::warning::snap Firefox did not install our add-on: NOT working in snap Firefox"; sudo jq -c '.addons[]? | {id, active}' /home/kgkid/snapff/extensions.json 2>/dev/null | head -5
+            echo "snap Firefox did not install our add-on. Evidence:"
+            echo "policy: $(jq -c '.policies.ExtensionSettings' "$FF_POL")"
+            sudo jq -c '.addons[]? | {id, active, location}' /home/kgkid/snapff/extensions.json 2>/dev/null | head -5
+            tail -30 /tmp/snapff.log; exit 1
           fi
           sleep 6
           closed1="$(sudo grep -c 'closed' /var/lib/raisesteady-guard/agent.log || true)"
@@ -334,14 +546,176 @@ jobs:
           pgrep -u kgkid -f /snap/firefox >/dev/null && echo "snap Firefox still open" || echo "::warning::snap Firefox is not running (it may not have started)"
           sudo pkill -u kgkid -f /snap/firefox || true
 
+      - name: Snap Chromium (Ubuntu's own) reads /etc/chromium-browser and installs the extension from the store
+        if: ${{ !cancelled() && steps.tarball.outcome == 'success' }}
+        run: |
+          if ! sudo snap install chromium; then echo "::warning::snap install chromium failed: snap Chromium NOT checked"; exit 0; fi
+          d="$HOME/snap/chromium/common/kgprofile"; mkdir -p "$d"
+          /snap/bin/chromium --headless=new --no-sandbox --disable-gpu --no-first-run --no-default-browser-check \
+            --remote-debugging-port=9337 --user-data-dir="$d" --log-net-log="$d/netlog.json" about:blank >/tmp/snapcr.log 2>&1 &
+          if ! node tests/linux/read-policy-page.mjs cdp 9337 chrome://policy > /tmp/snapcr-policy.txt; then
+            echo "::warning::snap Chromium did not answer on its debugging port on this runner: NOT verified"; tail -20 /tmp/snapcr.log; exit 0
+          fi
+          for w in IncognitoModeAvailability ExtensionInstallForcelist ForceGoogleSafeSearch DownloadRestrictions Machine; do
+            grep -q "$w" /tmp/snapcr-policy.txt || { sed -E 's/[0-9a-f]{64}/<token>/g' /tmp/snapcr-policy.txt | head -c 3000; echo; echo "snap Chromium's policy page lacks $w: it does not read /etc/chromium-browser/policies"; exit 1; }
+          done
+          echo "snap Chromium applies the policies"
+          bash tests/linux/ext-evidence.sh "snap Chromium" "$d" 9337 chrome://policy "$STORE_ID" || { tail -20 /tmp/snapcr.log; exit 1; }
+          pgrep -f "user-data-dir=$d" >/dev/null || { echo "the guard closed snap Chromium"; exit 1; }
+          pkill -f "user-data-dir=$d" || true
+
+      # The brief asks whether Edge takes the extension from the Chrome Web Store's address.
+      # GitHub's runner has Edge; where it is missing the step only warns.
+      - name: Edge reads /etc/opt/edge and installs the extension from the Chrome Web Store
+        if: ${{ !cancelled() && steps.tarball.outcome == 'success' }}
+        run: |
+          edge=/opt/microsoft/msedge/msedge
+          if [ ! -x "$edge" ]; then echo "::warning::Edge is not on this runner: NOT checked"; exit 0; fi
+          "$edge" --version || true
+          jq -e --arg c "$STORE_ID" '.ExtensionInstallForcelist[0] == $c + ";https://clients2.google.com/service/update2/crx"' /etc/opt/edge/policies/managed/raisesteady-guard.json >/dev/null
+          "$edge" --headless=new --no-sandbox --disable-gpu --no-first-run --no-default-browser-check \
+            --remote-debugging-port=9339 --user-data-dir=/tmp/kgedge --log-net-log=/tmp/kgedge/netlog.json about:blank >/tmp/edge.log 2>&1 &
+          if ! node tests/linux/read-policy-page.mjs cdp 9339 edge://policy > /tmp/edge-policy.txt; then
+            echo "::warning::Edge did not answer on its debugging port on this runner: NOT verified"; tail -20 /tmp/edge.log; exit 0
+          fi
+          for w in InPrivateModeAvailability ExtensionInstallForcelist ForceGoogleSafeSearch; do
+            grep -q "$w" /tmp/edge-policy.txt || { sed -E 's/[0-9a-f]{64}/<token>/g' /tmp/edge-policy.txt | head -c 3000; echo; echo "Edge's policy page lacks $w: it does not read /etc/opt/edge/policies"; exit 1; }
+          done
+          echo "Edge applies the policies"
+          bash tests/linux/ext-evidence.sh "Edge" /tmp/kgedge 9339 edge://policy "$STORE_ID" || { tail -20 /tmp/edge.log; exit 1; }
+          bash tests/linux/agent-hears.sh "Microsoft Edge" 4321
+          pgrep -f "user-data-dir=/tmp/kgedge" >/dev/null || { echo "the guard closed Edge"; exit 1; }
+          pkill -f "user-data-dir=/tmp/kgedge" || true
+
+      # Yandex Browser is protected since P2-194 (it was closed before). Its policy folder is
+      # /etc/opt/yandex/browser/policies; the extension comes from the Chrome Web Store.
+      - name: Yandex Browser reads its policy folder and installs the extension from the store
+        if: ${{ !cancelled() && steps.tarball.outcome == 'success' }}
+        run: |
+          key=/usr/share/keyrings/yandex-browser.gpg
+          if ! curl -fsSL https://repo.yandex.ru/yandex-browser/YANDEX-BROWSER-KEY.GPG | sudo gpg --dearmor -o "$key"; then echo "::warning::Yandex's package key could not be downloaded: Yandex Browser NOT checked"; exit 0; fi
+          echo "deb [arch=amd64 signed-by=$key] https://repo.yandex.ru/yandex-browser/deb stable main" | sudo tee /etc/apt/sources.list.d/kg-yandex.list >/dev/null
+          if ! sudo apt-get update -o Dir::Etc::sourcelist=sources.list.d/kg-yandex.list -o Dir::Etc::sourceparts=- -o APT::Get::List-Cleanup=0 >/tmp/ya-apt.log 2>&1 || ! sudo apt-get install -y yandex-browser-stable >>/tmp/ya-apt.log 2>&1; then
+            tail -15 /tmp/ya-apt.log; echo "::warning::Yandex Browser could not be installed on this runner: NOT checked"; exit 0
+          fi
+          ya=/opt/yandex/browser/yandex_browser
+          test -x "$ya" || { ls -la /opt/yandex/browser | head -20; echo "Yandex Browser is not where the guard expects it ($ya)"; exit 1; }
+          "$ya" --version || true
+          # The package did not replace our policy file.
+          jq -e --arg c "$STORE_ID" '.YandexProtectedMode == false and (.ExtensionInstallForcelist[0] | startswith($c + ";"))' "$YANDEX_POL" >/dev/null
+          closed0="$(sudo grep -c 'closed' /var/lib/raisesteady-guard/agent.log || true)"
+          "$ya" --headless=new --no-sandbox --disable-gpu --no-first-run --no-default-browser-check \
+            --remote-debugging-port=9338 --user-data-dir=/tmp/kgya --log-net-log=/tmp/kgya/netlog.json about:blank >/tmp/ya.log 2>&1 &
+          if ! node tests/linux/read-policy-page.mjs cdp 9338 browser://policy > /tmp/ya-policy.txt; then
+            echo "::warning::Yandex Browser did not answer on its debugging port on this runner: NOT verified"; tail -20 /tmp/ya.log; exit 0
+          fi
+          # What Yandex Browser says about each policy (the look P2-194 asked for), token masked.
+          sed -E 's/[0-9a-f]{64}/<token>/g' /tmp/ya-policy.txt | head -c 9000; echo
+          for w in IncognitoModeAvailability ExtensionInstallForcelist ExtensionInstallBlocklist; do
+            grep -q "$w" /tmp/ya-policy.txt || { echo "Yandex Browser's policy page lacks $w: it does not read /etc/opt/yandex/browser/policies"; exit 1; }
+          done
+          for w in YandexProtectedMode ForceGoogleSafeSearch ForceYouTubeRestrict BrowserGuestModeEnabled DnsOverHttpsMode DownloadRestrictions; do
+            grep -q "$w" /tmp/ya-policy.txt || echo "::warning::Yandex Browser's policy page does not list $w"
+          done
+          echo "Yandex Browser applies the policies"
+          bash tests/linux/ext-evidence.sh "Yandex Browser" /tmp/kgya 9338 browser://policy "$STORE_ID" || { tail -20 /tmp/ya.log; exit 1; }
+          # The agent gives Yandex Browser its own line (the store's 0.4.1 says "chrome"; the agent
+          # knows it from the browser's own name).
+          bash tests/linux/agent-hears.sh "Yandex Browser" 4321 90 || echo "::warning::the parent page does not show Yandex Browser as active (a headless run may not send the browser's own name)"
+          closed1="$(sudo grep -c 'closed' /var/lib/raisesteady-guard/agent.log || true)"
+          if [ "$closed1" != "$closed0" ]; then sudo tail -5 /var/lib/raisesteady-guard/agent.log; echo "the guard closed something while Yandex Browser ran"; exit 1; fi
+          pgrep -f "user-data-dir=/tmp/kgya" >/dev/null || { echo "Yandex Browser is not running any more"; exit 1; }
+          pkill -f "user-data-dir=/tmp/kgya" || true
+
       - name: uninstall.sh leaves nothing
+        if: ${{ !cancelled() && steps.tarball.outcome == 'success' }}
         run: |
           sudo /opt/raisesteady-guard/uninstall.sh
           sudo test ! -e /opt/raisesteady-guard
           sudo test ! -e /var/lib/raisesteady-guard
-          test ! -e "$CHROME_POL"
-          sudo find /etc/opt /etc/chromium /etc/chromium-browser /etc/brave /etc/firefox -maxdepth 4 2>/dev/null | sort > /tmp/etc-after2.txt || true
-          diff /tmp/etc-before.txt /tmp/etc-after2.txt
+          test ! -e "$CHROME_POL"; test ! -e "$YANDEX_POL"
+          test ! -e /etc/xdg/autostart/raisesteady-guard-setup.desktop
+          # Browsers installed by this run added their own entries: compare our folders only.
+          sudo find /etc/opt/chrome /etc/opt/edge /etc/opt/yandex /etc/chromium /etc/chromium-browser /etc/brave -maxdepth 6 2>/dev/null | sort > /tmp/pol-after2.txt || true
+          grep -E '^/etc/(opt/chrome|opt/edge|opt/yandex|chromium|chromium-browser|brave)(/|$)' /tmp/etc-before.txt > /tmp/pol-before.txt || true
+          diff /tmp/pol-before.txt /tmp/pol-after2.txt
+          if sudo grep -rl "raisesteady" /etc/firefox /etc/xdg/autostart 2>/dev/null; then echo "something of ours is left"; exit 1; fi
+
+      - name: Agent log (on failure)
+        if: failure()
+        run: |
+          sudo journalctl -u raisesteady-guard.service --no-pager | tail -80 || true
+          sudo cat /var/lib/raisesteady-guard/agent.log 2>/dev/null | tail -80 || true
+
+  # The computer where P2-194 was found had 0.4.0 installed and set up. The same package from the
+  # public release, then this build over it: the ids heal by themselves, the settings stay.
+  upgrade:
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      KG_URL: http://127.0.0.1:47615
+      CHROME_POL: /etc/opt/chrome/policies/managed/raisesteady-guard.json
+      FF_POL: /etc/firefox/policies/policies.json
+      AMO_XPI: https://addons.mozilla.org/firefox/downloads/latest/raisesteady-guard/latest.xpi
+      STORE_ID: kjfgpfhdfdilbkibcegclnbnlfkokcke
+      DEV_ID: jihggkhiiiinnflomjjnpomgeijgfnlg
+      OLD: https://github.com/tengotengo23/raisesteady-guard/releases/download/v0.4.0
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: linux-dist
+          path: dist
+
+      - name: The published 0.4.0, set up in a terminal as it was then
+        run: |
+          n=raisesteady-guard_0.4.0-1_amd64.deb
+          if ! curl -fsSL -o "/tmp/$n" "$OLD/$n" || ! curl -fsSL -o /tmp/SHA256SUMS.txt "$OLD/SHA256SUMS.txt"; then
+            echo "::warning::the 0.4.0 package could not be downloaded: the update from 0.4.0 was NOT checked"; echo "KG_SKIP=1" >> "$GITHUB_ENV"; exit 0
+          fi
+          (cd /tmp && grep " \*\?$n\$" SHA256SUMS.txt | sha256sum -c -)
+          sudo apt-get install -y "/tmp/$n"
+          KG_PIN=2468 sudo -E raisesteady-guard setup --yes --band 9-12 --pin-env KG_PIN --family-dns on
+          systemctl is-active raisesteady-guard.service
+          # What was found on the real computer: an id the store does not publish, and a file for Firefox.
+          echo "0.4.0 force-installs: $(jq -r '.ExtensionInstallForcelist[0]' "$CHROME_POL")"
+          echo "0.4.0 Firefox add-on from: $(jq -r '.policies.ExtensionSettings["guard@raisesteady.com"].install_url' "$FF_POL")"
+          jq -e --arg d "$DEV_ID" '.ExtensionInstallForcelist[0] | startswith($d + ";")' "$CHROME_POL" >/dev/null || echo "::warning::0.4.0 does not name the development id here: this job no longer shows the bug"
+          sudo jq -r '.["3rdparty"].extensions | to_entries[0].value.agentToken' "$CHROME_POL" | sha256sum > /tmp/tok-before.txt
+
+      - name: This build over it (the ids heal, the settings and the PIN stay, nothing is asked)
+        if: env.KG_SKIP != '1'
+        run: |
+          out="$(sudo apt-get install -y ./dist/raisesteady-guard_*_amd64.deb 2>&1 < /dev/null)"; echo "$out"
+          if echo "$out" | grep -q "Finish the setup on the parent page"; then echo "an update asked for the first-run setup again"; exit 1; fi
+          systemctl is-active raisesteady-guard.service
+          systemctl is-enabled raisesteady-guard.service
+          for i in $(seq 1 30); do curl -s -o /dev/null "$KG_URL/parent/state" && break; sleep 1; done
+          curl -s "$KG_URL/parent/state" | jq -e '.setup == false' >/dev/null
+          for f in "$CHROME_POL" /etc/chromium/policies/managed/raisesteady-guard.json /etc/chromium-browser/policies/managed/raisesteady-guard.json /etc/opt/edge/policies/managed/raisesteady-guard.json /etc/brave/policies/managed/raisesteady-guard.json /etc/opt/yandex/browser/policies/managed/raisesteady-guard.json; do
+            jq -e --arg c "$STORE_ID" '.ExtensionInstallForcelist == [$c + ";https://clients2.google.com/service/update2/crx"] and .ExtensionInstallAllowlist == [$c] and (.["3rdparty"].extensions | keys) == [$c] and .["3rdparty"].extensions[$c].ageBand == "9-12"' "$f" >/dev/null \
+              || { sed -E 's/[0-9a-f]{64}/<token>/g' "$f"; echo "$f was not healed"; exit 1; }
+          done
+          if sudo grep -rl "$DEV_ID" /etc/opt /etc/chromium /etc/chromium-browser /etc/brave 2>/dev/null; then echo "a policy file still names the development id"; exit 1; fi
+          jq -e --arg u "$AMO_XPI" '.policies.ExtensionSettings["guard@raisesteady.com"].install_url == $u' "$FF_POL"
+          # The browsers' token, the age and the PIN are the parent's: unchanged.
+          tok="$(sudo jq -r --arg c "$STORE_ID" '.["3rdparty"].extensions[$c].agentToken' "$CHROME_POL")"
+          [ "$(echo "$tok" | sha256sum)" = "$(cat /tmp/tok-before.txt)" ] || { echo "the update changed the browsers' token"; exit 1; }
+          st="$(curl -s -H "X-KG-Token: $tok" "$KG_URL/v1/state")"
+          echo "$st" | jq -e '.band == "9-12" and .limits.browseMin == 120' >/dev/null || { echo "$st"; exit 1; }
+          curl -s -H "X-KG-Token: $tok" -H 'Content-Type: application/json' -d '{"pin":"2468"}' "$KG_URL/v1/pin" | jq -e '.ok == true'
+          test -f /etc/xdg/autostart/raisesteady-guard-setup.desktop
+          if grep -Eiq '^(Hidden|NoDisplay)=true' /usr/share/applications/raisesteady-guard.desktop; then echo "the app-menu shortcut is hidden"; exit 1; fi
+          echo "updated from 0.4.0: ids healed, settings kept"
+
+      - name: Removal after the update leaves nothing
+        if: env.KG_SKIP != '1'
+        run: |
+          sudo apt-get remove -y raisesteady-guard
+          sudo test ! -e /var/lib/raisesteady-guard
+          test ! -e "$CHROME_POL"; test ! -e /etc/opt/yandex
+          test ! -e /etc/xdg/autostart/raisesteady-guard-setup.desktop
+          if sudo grep -rl "raisesteady" /etc/opt /etc/chromium /etc/chromium-browser /etc/brave /etc/firefox /etc/xdg/autostart 2>/dev/null; then echo "something of ours is left"; exit 1; fi
 
       - name: Agent log (on failure)
         if: failure()
@@ -363,7 +737,7 @@ jobs:
         run: |
           cat > Containerfile <<'EOF'
           FROM registry.fedoraproject.org/fedora:44
-          RUN dnf -y install systemd procps-ng jq util-linux && dnf clean all
+          RUN dnf -y install systemd procps-ng jq util-linux curl && dnf clean all
           CMD ["/usr/sbin/init"]
           EOF
           sudo podman build -q -t kgfedora .
@@ -372,13 +746,23 @@ jobs:
           sudo podman exec kgf sh -c 'for i in $(seq 1 30); do s=$(systemctl is-system-running 2>/dev/null); case "$s" in running|degraded) exit 0;; esac; sleep 1; done; echo "systemd: $s"; exit 1'
           sudo podman exec kgf cat /etc/os-release | head -3
 
-      - name: Install the .rpm, setup without questions, check
+      - name: Install the .rpm (no question, protection on at once), then setup in one line, check
         run: |
           x() { sudo podman exec kgf "$@"; }
-          x sh -c 'dnf -y install /dist/raisesteady-guard-*-1.x86_64.rpm'   # any version (0.2.0 was written here)
+          x sh -c 'dnf -y install /dist/raisesteady-guard-*-1.x86_64.rpm < /dev/null'   # any version (0.2.0 was written here)
+          # Before any setup: the service runs, the policies are there, the setup waits.
+          x systemctl is-active raisesteady-guard.service
+          x systemctl is-enabled raisesteady-guard.service
+          x sh -c 'for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:47615/parent/state && break; sleep 1; done; curl -s http://127.0.0.1:47615/parent/state | jq -e ".setup == true"'
+          x jq -e '.ExtensionInstallForcelist == ["kjfgpfhdfdilbkibcegclnbnlfkokcke;https://clients2.google.com/service/update2/crx"]' /etc/opt/chrome/policies/managed/raisesteady-guard.json
+          x jq -e '.ExtensionInstallForcelist == ["kjfgpfhdfdilbkibcegclnbnlfkokcke;https://clients2.google.com/service/update2/crx"] and .YandexProtectedMode == false' /etc/opt/yandex/browser/policies/managed/raisesteady-guard.json
+          x jq -e '.policies.ExtensionSettings["guard@raisesteady.com"].install_url == "https://addons.mozilla.org/firefox/downloads/latest/raisesteady-guard/latest.xpi"' /etc/firefox/policies/policies.json
+          x test -f /etc/xdg/autostart/raisesteady-guard-setup.desktop
+          x test -f /usr/share/applications/raisesteady-guard.desktop
           x useradd -m kgkid
           x sh -c 'KG_PIN=2468 raisesteady-guard setup --yes --band 6-8 --pin-env KG_PIN --family-dns off'
           x systemctl is-active raisesteady-guard.service
+          x sh -c 'for i in $(seq 1 30); do curl -s -o /dev/null http://127.0.0.1:47615/parent/state && break; sleep 1; done; curl -s http://127.0.0.1:47615/parent/state | jq -e ".setup == false"'
           x jq -e '.ForceGoogleSafeSearch == true and .DeveloperToolsAvailability == 2 and (has("DnsOverHttpsTemplates") | not)' /etc/opt/chrome/policies/managed/raisesteady-guard.json
           x jq -e '.policies.DisablePrivateBrowsing == true and (.policies | has("DNSOverHTTPS") | not)' /etc/firefox/policies/policies.json
           x jq -e '[.. | objects | select(has("ageBand")) | .ageBand] == ["6-8"]' /etc/chromium/policies/managed/raisesteady-guard.json
@@ -391,7 +775,7 @@ jobs:
         run: |
           x() { sudo podman exec kgf "$@"; }
           x dnf -y remove raisesteady-guard
-          x sh -c 'test ! -e /var/lib/raisesteady-guard && test ! -e /etc/opt/chrome && test ! -e /etc/firefox/policies/policies.json && test ! -e /etc/chromium && ! systemctl list-unit-files raisesteady-guard.service | grep -q raisesteady'
+          x sh -c 'test ! -e /var/lib/raisesteady-guard && test ! -e /etc/opt/chrome && test ! -e /etc/opt/yandex && test ! -e /etc/firefox/policies/policies.json && test ! -e /etc/chromium && test ! -e /etc/xdg/autostart/raisesteady-guard-setup.desktop && ! systemctl list-unit-files raisesteady-guard.service | grep -q raisesteady'
           echo "nothing left"
 
       - name: Logs (on failure)

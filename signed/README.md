@@ -10,4 +10,4 @@ To sign a new version: raise the version in ext/manifest.json, build, then
 API v5, key in ~/.config/nexodyne/amo.json; since 0.4.1) or `web-ext sign --channel=unlisted --source-dir dist/firefox`
 with the maintainer's AMO API key (WEB_EXT_API_KEY, WEB_EXT_API_SECRET), and replace the file here. Each version can be
 signed once.
-Current: 0.4.1 (signed 5 Nov 2026, Mozilla validation 0 errors, 0 warnings).
+Current: 0.4.2 (signed 11 Nov 2026, listed on addons.mozilla.org, version id 6692770; Mozilla validation 0 errors, 0 warnings).

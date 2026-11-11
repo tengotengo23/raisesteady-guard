@@ -25,7 +25,10 @@ type InstallOptions struct {
 	Pin        string
 	Port       int
 	ExePath    string
-	FirefoxXPI string // install_url for Firefox; "" = default path
+	FirefoxXPI string // install_url for Firefox; "" = the platform's default
+	// FirefoxFromFile records that FirefoxXPI is a file the installing person
+	// asked for (Linux, --firefox-xpi): it is kept across updates.
+	FirefoxFromFile bool
 	// FamilyDNSOff starts new accounts without the AdGuard DNS Family resolver.
 	// Accounts kept from an earlier install keep their own choice.
 	FamilyDNSOff bool
@@ -95,8 +98,9 @@ func Install(sys System, svc Services, data *core.Data, p Paths, o InstallOption
 	}
 	var old core.Config
 	haveOld := core.LoadJSON(p.Config, &old) == nil
-	if haveOld {
-		// Reinstall or update: only with the PIN already set.
+	if haveOld && !old.SetupPending {
+		// Reinstall or update: only with the PIN already set. A configuration
+		// that still waits for its first-run setup has no PIN to ask for.
 		if err := VerifyPin(p, o.Pin, now); err != nil {
 			return none, err
 		}
@@ -126,7 +130,7 @@ func Install(sys System, svc Services, data *core.Data, p Paths, o InstallOption
 	}
 	cfg := core.Config{
 		Version: 1, InstallID: core.RandomHex(16), Port: o.Port, Mode: mode, Pin: hash,
-		ExtIDs: data.ExtIDs, FirefoxInstallURL: o.FirefoxXPI, SettingsVersion: 1,
+		ExtIDs: data.ExtIDs, FirefoxInstallURL: o.FirefoxXPI, FirefoxFromFile: o.FirefoxFromFile, SettingsVersion: 1,
 		UTCOffsetMin: core.SystemOffsetMin(clock()),
 	}
 	// On a reinstall or update every account that stays keeps its settings,
@@ -140,7 +144,7 @@ func Install(sys System, svc Services, data *core.Data, p Paths, o InstallOption
 			cfg.UTCOffsetMin = old.UTCOffsetMin
 		}
 		if cfg.FirefoxInstallURL == "" {
-			cfg.FirefoxInstallURL = old.FirefoxInstallURL
+			cfg.FirefoxInstallURL, cfg.FirefoxFromFile = old.FirefoxInstallURL, old.FirefoxFromFile
 		}
 		cfg.SettingsVersion = old.SettingsVersion + 1
 		for _, a := range old.Accounts {
@@ -155,6 +159,12 @@ func Install(sys System, svc Services, data *core.Data, p Paths, o InstallOption
 		if a, ok := kept[strings.ToUpper(sid)]; ok && a.Settings.Validate(&data.Bands) == nil {
 			if name != "" {
 				a.Name = name
+			}
+			if old.SetupPending {
+				// The waiting settings were never the parent's choice: the
+				// account keeps its token (the browsers already have it) and
+				// takes the chosen age band.
+				a.Settings = st
 			}
 			return a
 		}
@@ -196,10 +206,99 @@ func Install(sys System, svc Services, data *core.Data, p Paths, o InstallOption
 	return res, nil
 }
 
+// PackageInstall is what a Linux package runs after its files are in place
+// (root, no question asked, P2-194). It returns fresh = true when this is a
+// new installation.
+//
+// Without a configuration it writes one that waits for the parent's first-run
+// setup: the browser protection applies at once (the policies, the extension,
+// the family DNS filter), there is no PIN yet, and no daily limit, bedtime or
+// game limit runs until the parent picks the child's age on the parent page.
+// With a configuration (a package update) nothing in it changes; the policies
+// are written again so that new extension ids and addresses reach the
+// browsers. Either way the service is installed, enabled and started.
+func PackageInstall(sys System, svc Services, data *core.Data, p Paths, exePath string, now func() time.Time) (res policy.Result, fresh bool, err error) {
+	var old core.Config
+	switch err := core.LoadJSON(p.Config, &old); {
+	case err == nil:
+	case errors.Is(err, os.ErrNotExist):
+		fresh = true
+	default:
+		// A configuration we cannot read is the parent's: never replace it.
+		return res, false, fmt.Errorf("read config: %w", err)
+	}
+	if fresh {
+		cfg, err := PendingConfig(data, now)
+		if err != nil {
+			return res, true, err
+		}
+		if err := os.MkdirAll(p.Dir, 0o700); err != nil {
+			return res, true, err
+		}
+		if err := sys.SecureDir(p.Dir); err != nil {
+			return res, true, fmt.Errorf("protect %s: %w", p.Dir, err)
+		}
+		if err := core.SaveJSON(p.Config, cfg); err != nil {
+			return res, true, err
+		}
+	}
+	// Read the configuration before the service is stopped: when an update
+	// cannot use it, the service that runs now keeps running and protecting.
+	a, err := Load(sys, data, p, now)
+	if err != nil {
+		return res, fresh, err
+	}
+	if !fresh {
+		_ = svc.Stop() // the new program writes the policies, then starts again
+	}
+	res = a.Apply(true)
+	if err := svc.Install(exePath); err != nil {
+		if !fresh {
+			_ = svc.Start()
+		}
+		return res, fresh, fmt.Errorf("install service: %w", err)
+	}
+	if err := svc.Start(); err != nil {
+		return res, fresh, fmt.Errorf("start service: %w", err)
+	}
+	return res, fresh, nil
+}
+
+// PendingConfig is the configuration between the package install and the
+// first-run setup: every person's account, the oldest age band's content
+// rules (the child's age is not known yet), no limits, no PIN.
+func PendingConfig(data *core.Data, now func() time.Time) (core.Config, error) {
+	if len(data.Bands.List) == 0 {
+		return core.Config{}, errors.New("no age bands in this build")
+	}
+	oldest := data.Bands.List[0]
+	for _, b := range data.Bands.List {
+		if b.MinAge > oldest.MinAge {
+			oldest = b
+		}
+	}
+	clock := now
+	if clock == nil {
+		clock = time.Now
+	}
+	cfg := core.Config{
+		Version: 1, InstallID: core.RandomHex(16), Port: core.DefaultPort, Mode: core.ModeAll,
+		ExtIDs: data.ExtIDs, SettingsVersion: 1, UTCOffsetMin: core.SystemOffsetMin(clock()),
+		SetupPending: true,
+		Accounts:     []core.Account{{SID: core.AllSID, Name: "*", Token: core.NewToken(), Settings: core.PendingSettings(oldest)}},
+	}
+	return cfg, cfg.Validate(&data.Bands)
+}
+
 // Uninstall checks the PIN, stops the service, removes every policy the agent
-// wrote, deletes the service and the data folder.
+// wrote, deletes the service and the data folder. An installation that still
+// waits for its first-run setup has no PIN: an administrator removes it.
 func Uninstall(sys System, svc Services, data *core.Data, p Paths, pin string, now func() time.Time) (policy.Result, error) {
 	var none policy.Result
+	var cfg core.Config
+	if err := core.LoadJSON(p.Config, &cfg); err == nil && cfg.SetupPending {
+		return removeAll(sys, svc, data, p, now)
+	}
 	if _, err := os.Stat(p.Config); err == nil {
 		if err := VerifyPin(p, pin, now); err != nil {
 			return none, err
@@ -258,6 +357,9 @@ type Status struct {
 	Browsers        []api.BrowserStatus `json:"browsers,omitempty"`
 	MissingData     []string            `json:"missingData,omitempty"`
 	SettingsVersion int                 `json:"settingsVersion,omitempty"`
+	// SetupPending: the package is installed and protects the browsers; the
+	// parent has not finished the first-run setup (age, PIN) yet.
+	SetupPending bool `json:"setupPending,omitempty"`
 }
 
 // StatusAccount is one protected account in the status.
@@ -276,6 +378,7 @@ func GetStatus(sys System, svc Services, data *core.Data, p Paths, now func() ti
 	}
 	cfg := a.Config()
 	s.Installed, s.Mode, s.Port, s.SettingsVersion = true, cfg.Mode, cfg.Port, cfg.SettingsVersion
+	s.SetupPending = cfg.SetupPending
 	for _, acct := range cfg.Accounts {
 		s.Accounts = append(s.Accounts, StatusAccount{SID: acct.SID, Name: acct.Name, Band: acct.Band})
 	}

@@ -23,6 +23,23 @@ var Browsers = []Browser{
 	{"firefox", "Firefox", `Software\Policies\Mozilla\Firefox`},
 }
 
+// YandexKey is the policy key of Yandex Browser (Linux only, P2-194).
+const YandexKey = `Software\Policies\YandexBrowser`
+
+// LinuxBrowsers are the browsers protected on Linux: the common ones and
+// Yandex Browser, which reads Chromium managed policies from its own folder
+// (/etc/opt/yandex/browser/policies/managed). Firefox stays last.
+func LinuxBrowsers() []Browser {
+	out := make([]Browser, 0, len(Browsers)+1)
+	for _, b := range Browsers {
+		if b.ID == "firefox" {
+			out = append(out, Browser{"yandex", "Yandex Browser", YandexKey})
+		}
+		out = append(out, b)
+	}
+	return out
+}
+
 // Target is one place to write policies: HKLM (mode all) or HKU\<SID>.
 type Target struct {
 	Root    string
@@ -37,6 +54,18 @@ func RootForSID(sid string) string { return `HKU\` + sid }
 type Inputs struct {
 	Cfg  core.Config
 	Data *core.Data
+	// Browsers are the browsers to write policies for; nil = Browsers.
+	Browsers []Browser
+	// FirefoxURL is the add-on address when the configuration names none;
+	// "" = core.DefaultFirefoxXPI (the file the Windows installer puts in place).
+	FirefoxURL string
+}
+
+func (in Inputs) browsers() []Browser {
+	if in.Browsers != nil {
+		return in.Browsers
+	}
+	return Browsers
 }
 
 // ChromiumExtension returns the id and update URL to force-install for a browser.
@@ -118,7 +147,7 @@ func Build(in Inputs, targets []Target) []Entry {
 		if !ok {
 			band = in.Data.Bands.List[0]
 		}
-		for _, b := range Browsers {
+		for _, b := range in.browsers() {
 			if b.ID == "firefox" {
 				out = append(out, firefox(in, t, b, band)...)
 			} else {
@@ -216,6 +245,13 @@ func chromium(in Inputs, t Target, b Browser, band core.Band) []Entry {
 			e = append(e, s("BraveAIChatEnabled", DW(0)))
 		}
 	}
+	if b.ID == "yandex" {
+		// Yandex Browser's protected mode opens a page with every extension
+		// switched off, and a person can turn it on for a page by hand. False
+		// keeps pages in normal mode and locks the switch (Yandex's policy
+		// page yandex-protected-mode, P2-194).
+		e = append(e, s("YandexProtectedMode", DW(0)))
+	}
 	if tree := bookmarkTree(in.Data.Bookmarks, t.Account.Band, t.Lang); tree != "" {
 		e = append(e, s(alt("ManagedBookmarks", "ManagedFavorites"), Str(tree)))
 	}
@@ -230,6 +266,9 @@ func firefox(in Inputs, t Target, b Browser, band core.Band) []Entry {
 	k := b.Key
 	id := in.Cfg.ExtIDs.FirefoxID
 	url := in.Cfg.FirefoxInstallURL
+	if url == "" {
+		url = in.FirefoxURL
+	}
 	if url == "" {
 		url = core.DefaultFirefoxXPI
 	}

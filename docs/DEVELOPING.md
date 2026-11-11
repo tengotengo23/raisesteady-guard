@@ -20,7 +20,7 @@ tools/build-installer.sh --skip-agent    # reuse the built agents
 - The installer ships `THIRD-PARTY-NOTICES.txt` and `agent/NOTICE-go.txt` (Go, x/sys, x/crypto, NSIS licences) into the install folder; the build stops with a message if the first is missing.
 - Go module `agent/`, dependencies only `golang.org/x/sys` and `golang.org/x/crypto` (pinned in `go.mod`/`go.sum`).
 - Put a Mozilla-signed `dist/raisesteady-guard.xpi` before building the installer and it ships next to the agent; Firefox then force-installs it from `file:///C:/Program%20Files/RaiseSteadyGuard/raisesteady-guard.xpi`. Release Firefox installs only signed add-ons. Another location: `install --firefox-xpi <url>` (for example an addons.mozilla.org download URL).
-- Chrome, Edge and Brave force-install only store extensions on a home PC. Until `shared/ext-ids.json` has `chromeStoreId` / `edgeStoreId`, the policies name the development id; the stores do not know it, so the extension cannot install on a PC that is not joined to a domain. All other policies work without the store.
+- Chrome, Edge and Brave force-install only store extensions on a home PC. The policies name `chromeStoreId` from `shared/ext-ids.json` (the Chrome Web Store item, set in 0.4.2; Edge uses `edgeStoreId` when it is set, otherwise the Chrome Web Store item). Only a build without a store id names the development id, which the stores do not know. `agent/internal/core/store_test.go` and `agent/internal/policy/store_test.go` fail when the policy id is not the published one. All other policies work without the store.
 
 ### Install options
 
@@ -71,6 +71,59 @@ Endpoints: `/v1/state`, `/v1/usage`, `/v1/event`, `/v1/grant`, `/v1/pin`, `/v1/r
 
 - `go test ./...` in `agent/` (fake registry, fake processes, httptest): policy maps per band and browser, the family DNS switch, per-user versus HKLM, rewrite only on change, uninstall removes only ours, install and uninstall flows, API token, origin, preflight, caps, PIN lockout, parent-page CSRF and cookies.
 - `.github/workflows/windows.yml` (in the Nexodyne repository: `kidguard-windows.yml`), on windows-latest: build, silent install for everyone, service and recovery, Chrome, Edge and Firefox policies and managed config, ACL of the data folder, API with the token, web origin refused, wrong PIN refused, uninstall, HKLM\SOFTWARE\Policies equal to before; then per-user mode with `/DNS=off` for a new standard user, owner and ACL of the keys, that user failing to change, create or delete policy keys, and Edge (and Chrome) started as that user showing the policies on edge://policy / chrome://policy (reported as not verified when the runner cannot start a browser as that user).
+
+## Linux packages
+
+### Build
+
+```
+go install github.com/goreleaser/nfpm/v2/cmd/nfpm@v2.47.0   # once
+NFPM="$(go env GOPATH)/bin/nfpm" tools/build-linux.sh       # vet, go test, programs, .deb, .rpm, .tar.gz in dist/linux/
+tools/build-linux.sh --no-packages                          # programs only (no nFPM needed)
+```
+
+`KG_VERSION=0.4.2` sets the version (default 0.4.2). The Mozilla-signed add-on in `signed/` (or `dist/raisesteady-guard.xpi`) ships in the packages as `/usr/lib/raisesteady-guard/raisesteady-guard.xpi`; it is used only where a parent asks for it (see Firefox below).
+
+### Install with no terminal (0.4.2, P2-194)
+
+- The package asks nothing (no debconf, no terminal questions). `linux/postinstall.sh` runs `raisesteady-guard package-install` and never fails the package manager.
+- `package-install` on a new install writes a waiting configuration (`setupPending`: every account, the oldest age band's content rules, no time limits, no PIN), writes the browser policies, enables and starts `raisesteady-guard.service`, and opens the parent page for the person at the screen. On an update it keeps the settings, rewrites the policies with the current ids and restarts the service. Where systemd is not running (an image being built) the unit is only enabled.
+- Opening the page: root asks logind for the active graphical session, then starts `raisesteady-guard open-page --wait` in that person's own systemd user manager (it holds the desktop's environment on GNOME, Wayland and X11). `open-page` tries `xdg-open`, `gio open`, the desktop portal (`OpenURI`), and last shows a notification with the address.
+- `/etc/xdg/autostart/raisesteady-guard-setup.desktop` runs `open-page --login` at sign-in: it opens the page only while the setup waits and only for an administrator, and it makes the app-menu shortcut visible again if a copy in the person's own folder hides it (`Hidden=true` or `NoDisplay=true` in `~/.local/share/applications/raisesteady-guard.desktop`; the copy is renamed, not deleted). No code of ours writes such a copy.
+- First-run setup on the parent page: while `setupPending` is set, `/parent` shows only the setup (terms, age, PIN twice, family DNS filter). `POST /parent/setup` sets the PIN and the chosen age's limits for every account; the account token does not change, so the browsers keep working. `GET /parent/state` answers `{"app":"RaiseSteady Guard","setup":true|false}`. Until the PIN is set, anyone at the computer can finish the setup.
+- `sudo raisesteady-guard setup` (terminal) still works, before or after the page; nothing needs it.
+
+### Browsers and policy files
+
+| Browser | Policy file | Extension from |
+|---|---|---|
+| Google Chrome | `/etc/opt/chrome/policies/managed/raisesteady-guard.json` | Chrome Web Store |
+| Chromium (deb, rpm) | `/etc/chromium/policies/managed/raisesteady-guard.json` | Chrome Web Store |
+| Chromium (Ubuntu, snap) | `/etc/chromium-browser/policies/managed/raisesteady-guard.json` | Chrome Web Store |
+| Microsoft Edge | `/etc/opt/edge/policies/managed/raisesteady-guard.json` | Chrome Web Store (`edgeStoreId` when set) |
+| Brave | `/etc/brave/policies/managed/raisesteady-guard.json` | Chrome Web Store |
+| Yandex Browser | `/etc/opt/yandex/browser/policies/managed/raisesteady-guard.json` | Chrome Web Store |
+| Firefox (deb, rpm, snap), Firefox ESR | `/etc/firefox/policies/policies.json`, `/etc/firefox-esr/policies/policies.json` (merged, other tools' values kept) | addons.mozilla.org |
+| Firefox (Flatpak, all users) | `/var/lib/flatpak/extension/org.mozilla.firefox.systemconfig/<arch>/stable/policies/policies.json` | addons.mozilla.org |
+
+- Chromium family: `ExtensionInstallForcelist` is `<chromeStoreId>;https://clients2.google.com/service/update2/crx`, the allowlist and the managed settings (`3rdparty.extensions.<id>`) use the same id, the blocklist is `*`.
+- Yandex Browser (Linux only): `YandexProtectedMode` is false, because protected mode opens pages with extensions switched off and a person can turn it on by hand. The store's extension up to 0.4.1 reports itself as `chrome`; the agent reads `YaBrowser/` in the request's User-Agent and counts it as `yandex`. The beta (`/opt/yandex/browser-beta/`) and copies elsewhere are closed.
+- Vivaldi and Opera stay closed: nothing shows that they honour these policies at run time, both have a built-in VPN without a documented policy, and Vivaldi's own settings can ignore Chromium policies. Tor Browser and the rest of `shared/unsupported-browsers.json` stay closed too.
+- Firefox: `install_url` is `https://addons.mozilla.org/firefox/downloads/latest/raisesteady-guard/latest.xpi` for every Firefox. A snap or Flatpak Firefox cannot read a file of the system, so it never gets a `file:` address. For a PC without internet and a deb or rpm Firefox: `sudo raisesteady-guard setup --firefox-xpi file:///usr/lib/raisesteady-guard/raisesteady-guard.xpi`; the choice is kept across updates.
+
+### Release rule: the stores first
+
+The package installs whatever the stores serve, so the stores must have the package's extension version before a release:
+
+```
+cd agent && KG_ONLINE=1 KG_EXPECT_EXT_VERSION=0.4.2 go test ./internal/core -run TestStoresPublishTheseIDs -v
+```
+
+It asks the Chrome Web Store and addons.mozilla.org for the ids in `shared/ext-ids.json` and fails when an id is not public or a store serves an older version. addons.mozilla.org version numbers can be used once: a version signed as unlisted cannot be listed later, so a listed release takes a new number.
+
+### Check on a real desktop
+
+The Linux workflow (`.github/workflows/kidguard-linux.yml`) installs the .deb with no questions and checks the service, the policy files, the browsers and the removal. It has no desktop session, so one check stays by hand, on Ubuntu with GNOME on Wayland: double-click the .deb, type the password, and the parent page must open by itself; then finish the setup on the page, look at the extension in each browser, and sign out and in again to see the app-menu shortcut. The steps are in the P2-194 session file.
 
 ## Extension
 

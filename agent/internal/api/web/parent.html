@@ -18,7 +18,58 @@
 </header>
 <main class="wrap">
   <h1 class="kg-enter">{{.Title}}</h1>
-{{if not .LoggedIn}}
+{{if .Setup}}
+  <p class="lead setup-lead kg-enter">{{t .Lang "setup_lead"}}</p>
+  <form method="post" action="/parent/setup" class="kg-enter">
+    <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}">
+    <section class="card" aria-labelledby="terms-h">
+      <h2 id="terms-h">{{t .Lang "setup_terms_h"}}</h2>
+      <div class="terms" tabindex="0" role="group" aria-labelledby="terms-h">
+        {{range .Terms}}{{if .Head}}<h3>{{.Text}}</h3>{{else}}<p>{{.Text}}</p>{{end}}{{end}}
+      </div>
+      <label class="check"><input type="checkbox" name="agree" value="yes" required{{if .SetupAgree}} checked{{end}}> <span>{{t .Lang "setup_agree"}}</span></label>
+    </section>
+    <section class="card" aria-labelledby="age-h">
+      <h2 id="age-h">{{t .Lang "setup_age_h"}}</h2>
+      <div class="stack">
+        <label for="band">{{t .Lang "age"}}</label>
+        <select id="band" name="band" required>
+          <option value="">{{t .Lang "setup_age_pick"}}</option>
+          {{range .Bands}}<option value="{{.ID}}"{{if .Selected}} selected{{end}}>{{.Label}}</option>{{end}}
+        </select>
+        <p class="hint">{{t .Lang "setup_age_hint"}}</p>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="newpin-h">
+      <h2 id="newpin-h">{{t .Lang "setup_pin_h"}}</h2>
+      <div class="stack">
+        <label for="pinNew">{{t .Lang "setup_pin1"}}</label>
+        <input id="pinNew" name="pinNew" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required>
+        <label for="pinAgain">{{t .Lang "setup_pin2"}}</label>
+        <input id="pinAgain" name="pinAgain" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required>
+        <p class="hint">{{t .Lang "setup_pin_hint"}}</p>
+      </div>
+    </section>
+    <section class="card" aria-labelledby="dns-h">
+      <h2 id="dns-h">{{t .Lang "setup_dns_h"}}</h2>
+      <label class="check"><input type="checkbox" name="dns" value="on"{{if .SetupDNS}} checked{{end}}> <span>{{t .Lang "family_dns"}}</span></label>
+      <p class="hint">{{t .Lang "family_dns_note"}}</p>
+    </section>
+    <div class="setup-end">
+      <button type="submit" class="btn">{{t .Lang "setup_submit"}}</button>
+      {{if .Msg}}<p id="msg" class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}
+    </div>
+  </form>
+  <section class="card" aria-labelledby="know-h">
+    <h2 id="know-h">{{t .Lang "setup_know_h"}}</h2>
+    <ul class="notes">
+      {{if .WholeComputer}}<li>{{t .Lang "setup_whole"}}</li>{{end}}
+      <li>{{t .Lang "managed_note"}}</li>
+      {{if .SetupAdmins}}<li>{{tf .Lang "setup_admins" .SetupAdmins}}</li>{{end}}
+      <li>{{t .Lang "privacy_out"}}</li>
+    </ul>
+  </section>
+{{else if not .LoggedIn}}
   <section class="card kg-enter" aria-labelledby="login-h">
     <h2 id="login-h">{{t .Lang "login_lead"}}</h2>
     <form method="post" action="/parent/login" class="stack">
@@ -37,6 +88,7 @@
       <button type="submit" class="btn ghost">{{t .Lang "logout"}}</button>
     </form>
   </div>
+  {{if eq .MsgSec "setup"}}{{if .Msg}}<p class="msg {{.MsgKind}} after-setup" role="status">{{.Msg}}</p>{{end}}{{end}}
   {{if .Tabs}}<nav class="tabs" aria-label="{{t .Lang "account"}}">{{range .Tabs}}<a href="/parent?a={{.Index}}&amp;lang={{$.Lang}}"{{if .Current}} aria-current="page"{{end}}>{{.Name}}</a>{{end}}</nav>{{end}}
 
   {{if or .Requests (eq .MsgSec "requests")}}
@@ -184,6 +236,7 @@
   <section class="card" aria-labelledby="browsers-h">
     <h2 id="browsers-h">{{t .Lang "sec_browsers"}}</h2>
     {{if .Browsers}}<ul class="list">{{range .Browsers}}<li><span>{{.Name}}{{if .Account}} <span class="muted">· {{.Account}}</span>{{end}}</span> <span class="state {{.State}}">{{.Text}}</span></li>{{end}}</ul>{{else}}<p class="muted">{{t .Lang "no_browsers"}}</p>{{end}}
+    <p class="hint after">{{t .Lang "managed_note"}}</p>
   </section>
 
   {{if .WholeComputer}}

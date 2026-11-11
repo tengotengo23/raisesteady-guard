@@ -1,0 +1,10 @@
+[Desktop Entry]
+Type=Application
+Name=RaiseSteady Guard: first-run setup
+Comment=Opens the parent page at sign-in while the setup is not finished
+Exec=/usr/lib/raisesteady-guard/raisesteady-guard open-page --login
+TryExec=/usr/lib/raisesteady-guard/raisesteady-guard
+Icon=raisesteady-guard
+Terminal=false
+NoDisplay=true
+X-GNOME-Autostart-Delay=5

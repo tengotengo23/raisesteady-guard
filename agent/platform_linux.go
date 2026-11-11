@@ -6,10 +6,13 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"fmt"
+	"io"
 	"os"
 
 	"raisesteady-guard/agent/internal/agent"
 	"raisesteady-guard/agent/internal/api"
+	"raisesteady-guard/agent/internal/core"
 	"raisesteady-guard/agent/internal/linuxsys"
 
 	"golang.org/x/sys/unix"
@@ -19,8 +22,38 @@ type accountLine = api.LocalAccount
 
 func supported() bool { return true }
 
-func platform() (agent.System, agent.Services) {
-	return linuxsys.New(dataDir()), linuxsys.Services{}
+func platform(data *core.Data) (agent.System, agent.Services) {
+	s := linuxsys.New(dataDir())
+	// A snap or Flatpak Firefox cannot read a file of ours: its policy file
+	// always names the add-on's addons.mozilla.org address.
+	s.StoreURL = data.ExtIDs.FirefoxStoreURL()
+	return s, linuxsys.Services{}
+}
+
+// openForDesktopUsers opens the parent page for the people at the screen
+// (after a new install: the first-run setup is there) and returns how many.
+func openForDesktopUsers(sys agent.System, exe string) int {
+	s, ok := sys.(*linuxsys.Sys)
+	if !ok {
+		return 0
+	}
+	n := 0
+	for _, u := range s.DesktopUsers() {
+		if s.OpenPageFor(u, exe) == nil {
+			n++
+		}
+	}
+	return n
+}
+
+// openPage is `raisesteady-guard open-page`: an ordinary user's command
+// behind the app-menu shortcut and the sign-in entry.
+func openPage(_ agent.System, wait, login bool, stderr io.Writer) int {
+	if err := linuxsys.NewOpener().Open(wait, login); err != nil {
+		fmt.Fprintln(stderr, err)
+		return exitError
+	}
+	return exitOK
 }
 
 func isAdmin() bool { return os.Geteuid() == 0 }

@@ -47,7 +47,7 @@ var setupText = map[string]map[string]string{
 	"admins": {
 		"en": "These accounts are administrators and can turn the protection off: %s. Your child must not use them or know their passwords.",
 		"ka": "ეს ანგარიშები ადმინისტრატორებია და დაცვის გამორთვა შეუძლიათ: %s. ბავშვმა არ უნდა გამოიყენოს ისინი და არ უნდა იცოდეს მათი პაროლები.",
-		"ru": "Эти учётные записи — администраторы, они могут отключить защиту: %s. Ребёнок не должен ими пользоваться и знать их пароли.",
+		"ru": "Эти учётные записи — администраторы, они могут отключить защиту: %s. Ребёнок не должен ни пользоваться ими, ни знать их пароли.",
 	},
 	"found": {
 		"en": "Browsers that get the safe settings: %s.",
@@ -175,15 +175,17 @@ type setupFlags struct {
 	familyDNS string
 	port      int
 	xpi       string
+	// xpiFromFile: --firefox-xpi named a file (kept across updates).
+	xpiFromFile bool
 }
 
 // runSetup asks the questions and installs (all accounts mode).
 func runSetup(sio *setupIO, f setupFlags, sys agent.System, svcs agent.Services, data *core.Data, paths agent.Paths) int {
 	l := sio.lang
 	out := sio.out
-	if core.LoadJSON(paths.Config, &core.Config{}) == nil {
-		var cfg core.Config
-		_ = core.LoadJSON(paths.Config, &cfg)
+	// A package install that still waits for its first-run setup can be
+	// finished here as well as on the parent page.
+	if cfg := (core.Config{}); core.LoadJSON(paths.Config, &cfg) == nil && !cfg.SetupPending {
 		port := cfg.Port
 		if port == 0 {
 			port = core.DefaultPort
@@ -306,7 +308,7 @@ func runSetup(sio *setupIO, f setupFlags, sys agent.System, svcs agent.Services,
 	fmt.Fprintln(out, st(l, "applying"))
 	_, err := agent.Install(sys, svcs, data, paths, agent.InstallOptions{
 		Accounts: "all", Band: band, Pin: pin, Port: port, ExePath: sio.exePath, FirefoxXPI: f.xpi,
-		FamilyDNSOff: dns == "off",
+		FirefoxFromFile: f.xpiFromFile, FamilyDNSOff: dns == "off",
 	}, nil)
 	if err != nil {
 		fmt.Fprintf(out, st(l, "failed")+"\n", err)

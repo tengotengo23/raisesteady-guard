@@ -4,7 +4,7 @@ Free, open-source child-safe browsing for Windows and Linux computers: one insta
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
-Status: early (version 0.4.1). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. In Firefox the extension installs by itself (signed by Mozilla). It is not in the Chrome, Edge and Brave stores yet, so in those browsers only part of it works for now (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Status: early (version 0.4.2 on Linux, 0.4.1 on Windows). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. On Linux every protected browser installs the extension by itself from its store. On Windows, Firefox installs it by itself; Chrome, Edge and Brave do not yet (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 
@@ -71,8 +71,9 @@ Video time is part of browsing time, not added to it. The defaults are based on 
 
 On a home PC, Chrome, Edge and Brave install a required extension only from their own stores, and Firefox only one signed by Mozilla.
 
-- **Firefox:** the extension is signed by Mozilla and comes with the installer and the Linux packages (from 0.2.2). Firefox installs it by itself the next time it starts.
-- **Chrome, Edge and Brave:** until the extension is published in their stores, the installer sets the browser settings above, but the extension (time limits, page check, YouTube without the feed, ad blocker) does not install.
+- **Linux (from 0.4.2):** Chrome, Chromium, Edge, Brave and Yandex Browser install the extension from the Chrome Web Store, and Firefox from addons.mozilla.org. Nothing is left to do by hand.
+- **Windows, Firefox:** the extension is signed by Mozilla and comes with the installer. Firefox installs it by itself the next time it starts.
+- **Windows, Chrome, Edge and Brave:** the installer sets the browser settings above, but the extension (time limits, page check, YouTube without the feed, ad blocker) does not install yet. This follows in the next Windows version.
 
 ## Install on Windows
 
@@ -88,13 +89,19 @@ Keep the PIN safe: changing the settings, updating and removing all need it, and
 
 For 64-bit Linux with systemd (Intel and AMD, or ARM: take the files marked arm64 or aarch64). From [Releases](../../releases):
 
-- **Ubuntu, Debian, Linux Mint:** `raisesteady-guard_<version>-1_amd64.deb`, then `sudo apt install ./raisesteady-guard_<version>-1_amd64.deb`
-- **Fedora and other RPM systems:** `raisesteady-guard-<version>-1.x86_64.rpm`, then `sudo dnf install ./raisesteady-guard-<version>-1.x86_64.rpm`
+- **Ubuntu, Debian, Linux Mint:** download `raisesteady-guard_<version>-1_amd64.deb`, double-click it, choose Install and type your password. No terminal is needed. (In a terminal: `sudo apt install ./raisesteady-guard_<version>-1_amd64.deb`.)
+- **Fedora and other RPM systems:** `raisesteady-guard-<version>-1.x86_64.rpm`: double-click it, or `sudo dnf install ./raisesteady-guard-<version>-1.x86_64.rpm`
 - **Other Linux (Arch and others):** `raisesteady-guard-<version>-linux-amd64.tar.gz`, unpack it, then `sudo ./install.sh` in that folder
 
-Then run `sudo raisesteady-guard setup`: it shows the terms and asks for the child's age, a PIN and the family DNS filter. The parent page opens from the app menu ("RaiseSteady Guard") or at http://127.0.0.1:47615/parent.
+That is the whole install. The browsers are protected at once: safe search, the family DNS filter, no private windows, and the extension, which each browser installs by itself from its store the next time it starts (this needs an internet connection).
 
-On Linux, browsers read these settings for the whole computer, so they apply to every account on it, including the parent's. It works best on a computer the child uses. Protected browsers: Chrome, Chromium, Edge, Brave and Firefox from their deb, rpm or snap packages, and the Firefox Flatpak installed for all users. Other browsers, and copies of these elsewhere, are closed. A browser that cannot see the settings (a trick some advanced users try) is closed too. Setup and the parent page are in English, Georgian or Russian, from the system language.
+Then the parent page opens in your browser. Read the terms, choose your child's age and a PIN, and keep or switch off the family DNS filter. The time limits start when you finish this. If the page does not open, choose "RaiseSteady Guard" in the app menu, or go to http://127.0.0.1:47615/parent. Until you choose the PIN, anyone at the computer can finish the setup, so do it straight after the install.
+
+Chrome and browsers like it then show "Your browser is managed by your organization". That is RaiseSteady Guard: it is how the safe settings stay locked.
+
+On Linux, browsers read these settings for the whole computer, so they apply to every account on it, including the parent's. It is made for the computer the child uses. Protected browsers: Chrome, Chromium, Edge, Brave, Yandex Browser and Firefox from their deb, rpm or snap packages, and the Firefox Flatpak installed for all users. Other browsers (Vivaldi, Opera, Tor Browser and more), and copies of the protected ones elsewhere, are closed. A browser that cannot see the settings (a trick some advanced users try) is closed too. In Yandex Browser, protected mode is switched off, because it turns extensions off. The parent page is in English, Georgian or Russian.
+
+For advanced users, `sudo raisesteady-guard setup` in a terminal still does the same setup (see [docs/DEVELOPING.md](docs/DEVELOPING.md)).
 
 ## Android
 
@@ -134,13 +141,13 @@ Remove: open the app, For the parent (PIN), Turn protection off; then Settings, 
 
 Windows: Settings, Apps, "RaiseSteady Guard", Uninstall. An administrator and the PIN are needed. Everything it set is removed, and settings that were there before are put back.
 
-Linux: `sudo apt remove raisesteady-guard` or `sudo dnf remove raisesteady-guard` (from the .tar.gz: `sudo /opt/raisesteady-guard/uninstall.sh`). An administrator is needed. Everything it set is removed; Firefox policies set by another tool are put back.
+Linux: for now this needs one line in a terminal: `sudo apt remove raisesteady-guard` or `sudo dnf remove raisesteady-guard` (from the .tar.gz: `sudo /opt/raisesteady-guard/uninstall.sh`). Removing it from the App Center is not checked yet. An administrator is needed. Everything it set is removed; Firefox policies set by another tool are put back. One file can stay: where the app found a hidden copy of its shortcut in a home folder, it renamed that copy to `raisesteady-guard.desktop.hidden`, and the copy does nothing.
 
 ## Privacy
 
 On Android, the same holds: the site filter runs on the device and looks only at site names; with the family DNS filter on, the names go to AdGuard DNS over an encrypted connection; minutes per app are kept on the device for 30 days, without site names.
 
-This program does not send information to other networked systems unless the person installing or operating it chooses it. The two cases below are shown at install, and both can be switched off on the parent page:
+This program does not send information to other networked systems unless the person installing or operating it chooses it. The two cases below are shown in the installer (Windows) or on the first-run page (Linux, where they start with the install), and both can be switched off on the parent page:
 - **Family DNS filter** (on unless the parent switches it off): the child's browsers look up site names through [AdGuard DNS](https://adguard-dns.io/en/privacy.html), a free public service. AdGuard sees the site names and your internet address, as any DNS service does. If AdGuard DNS cannot be reached (an outage, or a network that blocks it), sites do not open until it is back or a parent switches the filter off.
 - **Chosen YouTube videos** (with Focus mode on): the new tab page and the YouTube start page show videos from the chosen learning channels. To list them, the child's browser fetches each channel's public feed from youtube.com (kept for 6 hours) and the thumbnails from YouTube's image server. YouTube sees your internet address, as when the child opens youtube.com. No account or key is used.
 

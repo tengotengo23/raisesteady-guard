@@ -87,16 +87,21 @@
   const toTopicPage = () => location.replace(api.runtime.getURL(`pages/blocked.html?reason=topic${topicKind === 'values' ? '&kind=values' : ''}&site=youtube.com`));
   const TOPIC_ITEMS = 'ytd-video-renderer, yt-lockup-view-model, ytd-rich-item-renderer, ytd-compact-video-renderer, ytd-grid-video-renderer, ytd-playlist-renderer, ytd-radio-renderer, ytd-channel-renderer, ytd-reel-item-renderer, ytm-video-with-context-renderer, ytm-compact-video-renderer, ytm-rich-item-renderer';
   const TITLE_SEL = '#video-title, a#video-title-link, h3, #channel-title, .yt-lockup-metadata-view-model__title, .yt-lockup-metadata-view-model-wiz__title, .media-item-headline, .compact-media-item-headline';
-  /** Hide videos, playlists and channels whose title (and channel name) is on the topic list. */
+  // The description line YouTube shows under a result (P2-201): the block page reads the description too.
+  const DESC_SEL = '#description-text, .metadata-snippet-text, .metadata-snippet-container, .yt-lockup-metadata-view-model__description';
+  const META_SEL = 'yt-content-metadata-view-model';
+  /** Hide videos, playlists and channels whose title, channel name or description line is on the topic list. */
   function sweepTopics() {
     if (!topics || topicsAllowYt) { for (const e of document.querySelectorAll('[data-kg-topic]')) e.removeAttribute('data-kg-topic'); return; }
     for (const item of document.querySelectorAll(TOPIC_ITEMS)) {
       const ti = item.querySelector(TITLE_SEL);
       const text = [ti && (ti.getAttribute('title') || ti.textContent), ...[...item.querySelectorAll('ytd-channel-name a, .ytd-channel-name a, a[href^="/@"]')].slice(0, 2).map((a) => a.textContent)].filter(Boolean).join(' ');
-      const key = text.slice(0, 300);
+      // The description line, and a new-style card's metadata row, which can show the channel name as plain text.
+      const desc = [item.querySelector(DESC_SEL), item.querySelector(META_SEL)].map((e) => (e ? String(e.textContent || '') : '')).join(' ').trim().slice(0, 600);
+      const key = `${text.slice(0, 300)}|${desc}`;
       if (item.__kgTopicKey === key) continue;
       item.__kgTopicKey = key;
-      if (topicHit(text)) item.setAttribute('data-kg-topic', ''); else item.removeAttribute('data-kg-topic');
+      if (topicHit(text) || (desc && topicHit(desc))) item.setAttribute('data-kg-topic', ''); else item.removeAttribute('data-kg-topic');
     }
   }
   /** Watch and results pages: the video's title, or the search words, on the topic list: the topic page. */

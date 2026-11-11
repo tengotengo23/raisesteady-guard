@@ -37,6 +37,10 @@ const (
 	PlaceholderFirefoxID  = "guard@raisesteady.com"
 	// DefaultFirefoxXPI is where the installer puts the signed Firefox package.
 	DefaultFirefoxXPI = "file:///C:/Program%20Files/RaiseSteadyGuard/raisesteady-guard.xpi"
+	// FirefoxStoreBase and FirefoxStoreFile make the addons.mozilla.org address of
+	// the newest listed version: base + slug + file (ExtIDs.FirefoxStoreURL).
+	FirefoxStoreBase = "https://addons.mozilla.org/firefox/downloads/latest/"
+	FirefoxStoreFile = "/latest.xpi"
 )
 
 // Bedtime is a daily window in local time, "HH:MM"; it may cross midnight.
@@ -120,7 +124,23 @@ type ExtIDs struct {
 	ChromeStoreID string `json:"chromeStoreId,omitempty"`
 	EdgeStoreID   string `json:"edgeStoreId,omitempty"`
 	FirefoxID     string `json:"firefoxId"`
-	Placeholder   bool   `json:"placeholder,omitempty"`
+	// FirefoxSlug is the add-on's name in its addons.mozilla.org address.
+	FirefoxSlug string `json:"firefoxSlug,omitempty"`
+	Placeholder bool   `json:"placeholder,omitempty"`
+}
+
+var slugRe = regexp.MustCompile(`^[a-z0-9][a-z0-9-]{0,63}$`)
+
+// ValidSlug reports whether s can be an addons.mozilla.org add-on name.
+func ValidSlug(s string) bool { return slugRe.MatchString(s) }
+
+// FirefoxStoreURL is where Firefox downloads the newest listed version from
+// addons.mozilla.org, or "" when the add-on's name there is not known.
+func (e ExtIDs) FirefoxStoreURL() string {
+	if !ValidSlug(e.FirefoxSlug) {
+		return ""
+	}
+	return FirefoxStoreBase + e.FirefoxSlug + FirefoxStoreFile
 }
 
 // Config is C:\ProgramData\RaiseSteadyGuard\config.json (ACL: SYSTEM and Administrators).
@@ -135,6 +155,16 @@ type Config struct {
 	ExtIDs          ExtIDs    `json:"extIds"`
 	// FirefoxInstallURL is the signed XPI (file:// or https://addons.mozilla.org/...).
 	FirefoxInstallURL string `json:"firefoxInstallUrl"`
+	// FirefoxFromFile (Linux) records that the person who installed chose the
+	// packaged file with --firefox-xpi (a PC without internet). Without it a
+	// file address is replaced by the addons.mozilla.org one when the
+	// configuration is loaded: snap and Flatpak Firefox cannot read our file.
+	FirefoxFromFile bool `json:"firefoxFromFile,omitempty"`
+	// SetupPending is true from the moment the package is installed until the
+	// parent finishes the first-run setup (terms, age, PIN) on the parent page
+	// or in the terminal. The browser policies already apply; the PIN is not
+	// set and the time limits and bedtime have not started.
+	SetupPending bool `json:"setupPending,omitempty"`
 	// DevUpdateURL is used with the dev id when no store id is known.
 	DevUpdateURL string `json:"devUpdateUrl,omitempty"`
 	// UTCOffsetMin is the fixed clock of the agent (minutes east of UTC),
@@ -246,6 +276,20 @@ func SettingsForBand(b Band) Settings {
 		Bedtime: Bedtime{Start: b.Bedtime.Start, End: b.Bedtime.End},
 		Allow:   []string{}, Block: []string{}, FocusMode: true, Adblock: true,
 	}
+}
+
+// PendingSettings are the settings between the package install and the
+// first-run setup: the content rules of band b (the caller passes the oldest
+// band, because the child's age is not known yet), no daily limit (24 hours),
+// no bedtime (an empty window) and no game limit. The browser policies, the
+// family DNS filter and the extension's filters apply in full.
+func PendingSettings(b Band) Settings {
+	s := SettingsForBand(b)
+	s.BrowseMin, s.VideoMin = 1440, 1440
+	s.Bedtime = Bedtime{Start: "00:00", End: "00:00"}
+	all := 1440
+	s.GameMin = &all
+	return s
 }
 
 // Validate checks a configuration before it is saved or used.

@@ -28,6 +28,7 @@ var LinuxSupported = []struct{ Prefix, ID string }{
 	{"/opt/brave.com/brave/", "brave"},
 	{"/opt/brave.com/brave-beta/", "brave"},
 	{"/opt/brave.com/brave-nightly/", "brave"},
+	{"/opt/yandex/browser/", "yandex"}, // reads /etc/opt/yandex/browser/policies (P2-194)
 	{"/usr/lib/firefox/", "firefox"},
 	{"/usr/lib64/firefox/", "firefox"},
 	{"/usr/lib/firefox-esr/", "firefox"},
@@ -61,7 +62,7 @@ func ClassifyLinux(list core.UnsupportedList, p, _ string) Match {
 	}
 	if inner, ok := strings.CutPrefix(p, "unverified:"); ok {
 		// A supported browser that cannot see our policy files.
-		want := map[string]string{"chrome": "chrome-other", "chromium": "chromium", "edge": "edge-other", "brave": "brave-other", "firefox": "firefox-other"}[LinuxSupportedID(inner)]
+		want := map[string]string{"chrome": "chrome-other", "chromium": "chromium", "edge": "edge-other", "brave": "brave-other", "yandex": "yandex", "firefox": "firefox-other"}[LinuxSupportedID(inner)]
 		for i := range list.Browsers {
 			if list.Browsers[i].ID == want {
 				return Match{Unsupported: &list.Browsers[i]}

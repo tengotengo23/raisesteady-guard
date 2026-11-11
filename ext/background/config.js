@@ -57,6 +57,9 @@ export function resolveConfig({ bands, managed, local, agent, uiLang, localExtra
     browseMin: pick(num(src.browseMin), bandEntry.browseMin ?? null),
     videoMin: pick(num(src.videoMin), bandEntry.videoMin ?? null),
   };
+  // The parent has not finished the first-run setup (agent 0.4.2 and later say so): no limit runs yet,
+  // so the child gets no "time for a break" reminder either.
+  const waiting = !!(a && a.setup === true);
   const btSrc = m ? a?.bedtime : s.bedtime;
   const bedtime = btSrc === null || btSrc === false ? null : (normBedtime(btSrc) || normBedtime(bandEntry.bedtime));
   const focusMode = pick(bool(m ? a?.focusMode : s.focusMode), bool(m?.focusMode), true);
@@ -65,7 +68,7 @@ export function resolveConfig({ bands, managed, local, agent, uiLang, localExtra
   const topics = pick(bool(m ? a?.topics : s.topics), bool(m?.topics), true);
   return {
     ageBand: bandEntry.id || ageBand,
-    band: { ...bandEntry, browseMin: limits.browseMin, videoMin: limits.videoMin, bedtime },
+    band: { ...bandEntry, browseMin: limits.browseMin, videoMin: limits.videoMin, bedtime, ...(waiting ? { breakEveryMin: 0 } : {}) },
     focusMode, adblock, topics,
     standalone: !m,
     lang: pickLang(uiLang),

@@ -42,6 +42,13 @@ func TestClassifyLinux(t *testing.T) {
 		{"flatpak-claim:x:flatpak:org.mozilla.firefox", "", ""},
 		{"unverified:/usr/lib/chromium/chromium", "", "chromium"},
 		{"unverified:/snap/firefox/1/usr/lib/firefox/firefox", "", "firefox-other"},
+		// Yandex Browser from its package is protected (P2-194); its beta, a
+		// copy elsewhere and one that cannot see our policies are closed.
+		{"/opt/yandex/browser/yandex_browser", "yandex", ""},
+		{"/opt/yandex/browser/chrome_crashpad_handler", "yandex", ""},
+		{"/opt/yandex/browser-beta/yandex_browser-beta", "", "yandex"},
+		{"/home/kid/y/yandex_browser", "", "yandex"},
+		{"unverified:/opt/yandex/browser/yandex_browser", "", "yandex"},
 	}
 	for _, c := range cases {
 		m := ClassifyLinux(d.Unsupported, c.path, "")

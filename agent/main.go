@@ -47,8 +47,12 @@ const usage = `raisesteady-guard: the Windows and Linux service of ` + core.AppN
   status                          show the state as JSON (no PIN, no tokens)
   list-accounts [--ini PATH]      list this PC's accounts (for the installer)
   setup [--yes --band ID (--pin PIN | --pin-env NAME) --family-dns on|off]
-                                  Linux: terms, age, PIN and family filter, then install (sudo)
+                                  Linux: terms, age, PIN and family filter in the terminal (sudo);
+                                  the parent page asks the same after a package install
+  package-install                 Linux: what the package runs after install or update (root, asks
+                                  nothing): protects the browsers, starts the service, opens the parent page
   package-remove                  Linux: what the package manager runs on removal (root, no PIN)
+  open-page [--wait] [--login]    Linux: open the parent page in your browser (the app menu does this)
   guard-list                      what the browser guard sees now and what it would close (administrators)
   version
 
@@ -133,6 +137,8 @@ func run(args []string, stdout, stderr io.Writer) int {
 	familyDNS := fs.String("family-dns", "on", "on or off: the AdGuard DNS Family resolver for new accounts")
 	ini := fs.String("ini", "", "write an INI file")
 	yes := fs.Bool("yes", false, "setup: ask nothing (give --band and the PIN)")
+	wait := fs.Bool("wait", false, "open-page: wait until the service answers")
+	login := fs.Bool("login", false, "open-page: at sign-in, only while the first-run setup waits")
 	all := fs.Bool("all", false, "guard-list: every process, not only browsers")
 	if err := fs.Parse(rest); err != nil {
 		return exitUsage
@@ -155,7 +161,14 @@ func run(args []string, stdout, stderr io.Writer) int {
 		return exitError
 	}
 	paths := agent.PathsIn(dataDir())
-	sys, svcs := platform()
+	sys, svcs := platform(data)
+	// Linux: Firefox takes the add-on from addons.mozilla.org unless
+	// --firefox-xpi names a file (a PC without internet).
+	fromStore := false
+	if l, ok := sys.(interface{ FirefoxFromStore() bool }); ok {
+		fromStore = l.FirefoxFromStore()
+	}
+	xpiFromFile := fromStore && strings.HasPrefix(*xpi, "file:")
 	needAdmin := func() bool {
 		if isAdmin() {
 			return true
@@ -195,7 +208,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if err != nil {
 			return codeFor(err, stderr)
 		}
-		if *xpi == "" {
+		if *xpi == "" && !fromStore {
 			*xpi = defaultXPIURL(exe)
 		}
 		acc, err := checkAccounts(*accounts)
@@ -205,7 +218,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		}
 		res, err := agent.Install(sys, svcs, data, paths, agent.InstallOptions{
 			Accounts: acc, Band: *band, Pin: p, Port: *port, ExePath: exe, FirefoxXPI: *xpi,
-			FamilyDNSOff: *familyDNS == "off",
+			FirefoxFromFile: xpiFromFile, FamilyDNSOff: *familyDNS == "off",
 		}, nil)
 		lg := &logger{path: paths.Log}
 		if err == nil {
@@ -220,7 +233,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 		if !needAdmin() {
 			return exitNotAdmin
 		}
-		f := setupFlags{yes: *yes, band: *band, port: *port, xpi: *xpi}
+		f := setupFlags{yes: *yes, band: *band, port: *port, xpi: *xpi, xpiFromFile: xpiFromFile}
 		fs.Visit(func(fl *flag.Flag) {
 			if fl.Name == "family-dns" {
 				f.familyDNS = *familyDNS
@@ -234,7 +247,7 @@ func run(args []string, stdout, stderr io.Writer) int {
 			}
 			f.pin = p
 		}
-		if f.xpi == "" {
+		if f.xpi == "" && !fromStore {
 			// the add-on next to the program first: the .tar.gz puts both in /opt/raisesteady-guard
 			// (P2-159; setup used only the packages' /usr/lib path)
 			exe, _ := os.Executable()
@@ -264,6 +277,31 @@ func run(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stdout, l)
 		}
 		return exitOK
+	case "package-install":
+		if !needAdmin() {
+			return exitNotAdmin
+		}
+		exe, err := os.Executable()
+		if err != nil {
+			return codeFor(err, stderr)
+		}
+		res, fresh, err := agent.PackageInstall(sys, svcs, data, paths, exe, nil)
+		lg := &logger{path: paths.Log}
+		if err != nil {
+			lg.logf("package install %s: %v", version, err)
+			return codeFor(err, stderr)
+		}
+		lg.logf("package install %s (new: %v): %d policy values written, %d errors", version, fresh, res.Written, len(res.Errors))
+		if fresh {
+			// A new installation: the parent page with the first-run setup
+			// opens in the browser of the person at the screen.
+			n := openForDesktopUsers(sys, exe)
+			lg.logf("parent page opened for %d signed-in person(s)", n)
+			fmt.Fprintln(stdout, "RaiseSteady Guard is installed and protects the browsers. Finish the setup on the parent page: RaiseSteady Guard in the app menu.")
+		}
+		return exitOK
+	case "open-page":
+		return openPage(sys, *wait, *login, stderr)
 	case "package-remove":
 		if !needAdmin() {
 			return exitNotAdmin

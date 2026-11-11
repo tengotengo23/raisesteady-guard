@@ -148,7 +148,9 @@ func TestInstallPerUserAndUninstall(t *testing.T) {
 	}
 	tokOff := cfg.Accounts[1].Token
 	// Policies: in the signed-in hive and in the mounted hive, none in HKLM, none for the parent.
-	mk := chrome + `\3rdparty\extensions\` + d.ExtIDs.ChromiumDevID + `\policy`
+	// The managed settings sit under the id the policy force-installs.
+	extID, _ := policy.ChromiumExtension(d.ExtIDs, "chrome", "")
+	mk := chrome + `\3rdparty\extensions\` + extID + `\policy`
 	if v, _ := sys.reg.Get(`HKU\`+kidOn, mk, "agentToken"); v.S != cfg.Accounts[0].Token {
 		t.Error("signed-in kid: managed token missing")
 	}

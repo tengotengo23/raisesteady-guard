@@ -56,5 +56,16 @@ thead th { font-size: var(--kg-size-s); color: var(--kg-text-2); }
 .app label { font-weight: 600; }
 td a, th a { color: var(--kg-text); }
 th a[aria-current="date"] { font-weight: 700; text-decoration-thickness: 3px; }
+/* First-run setup (P2-194) */
+.setup-lead { margin-bottom: var(--kg-gap); }
+.terms { max-height: 18rem; overflow-y: auto; border: 2px solid var(--kg-line); border-radius: var(--kg-radius-s); background: var(--kg-bg); padding: 4px var(--kg-gap) var(--kg-gap); margin-bottom: 8px; }
+.terms h3 { margin-top: var(--kg-gap); }
+.terms p { margin: 8px 0 0; }
+.setup-end { margin: 0 0 var(--kg-gap-l); }
+.setup-end .btn { min-width: min(100%, 16rem); min-height: 52px; font-size: var(--kg-size-l); }
+.notes { margin: 0; padding-inline-start: 1.25rem; }
+.notes li { margin: 0 0 8px; }
+.notes li:last-child { margin-bottom: 0; }
+.after-setup { margin: 0 0 var(--kg-gap); }
 .honest { color: var(--kg-text-2); font-size: var(--kg-size-s); margin: var(--kg-gap-l) 0; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: opacity var(--kg-time) linear; } }

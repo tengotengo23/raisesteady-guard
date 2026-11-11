@@ -2,6 +2,7 @@
 # RaiseSteady Guard for Linux systems without a deb or rpm package manager
 # (Arch, Manjaro and others with systemd). Run from the unpacked folder:
 #   sudo ./install.sh
+# Updating: run the new version's install.sh the same way.
 set -eu
 [ "$(id -u)" = 0 ] || { echo "Please run this with sudo: sudo ./install.sh" >&2; exit 1; }
 command -v systemctl >/dev/null 2>&1 || { echo "RaiseSteady Guard needs systemd." >&2; exit 1; }
@@ -19,11 +20,10 @@ chmod 0644 /etc/systemd/system/raisesteady-guard.service
 install -d -m 0755 /usr/local/share/applications /usr/local/share/icons/hicolor/128x128/apps
 sed "s#/usr/lib/raisesteady-guard/open-parent-page#$D/open-parent-page#" "$HERE/raisesteady-guard.desktop" > /usr/local/share/applications/raisesteady-guard.desktop
 install -m 0644 "$HERE/raisesteady-guard.png" /usr/local/share/icons/hicolor/128x128/apps/raisesteady-guard.png
-systemctl daemon-reload
-if [ -f /var/lib/raisesteady-guard/config.json ]; then
-  systemctl try-restart raisesteady-guard.service || true
-  echo "RaiseSteady Guard updated."
-else
-  echo "RaiseSteady Guard is installed. To finish, run:"
-  echo "  sudo raisesteady-guard setup"
-fi
+install -d -m 0755 /etc/xdg/autostart
+sed "s#/usr/lib/raisesteady-guard/raisesteady-guard#$D/raisesteady-guard#g" "$HERE/raisesteady-guard-setup.desktop" > /etc/xdg/autostart/raisesteady-guard-setup.desktop
+chmod 0644 /etc/xdg/autostart/raisesteady-guard-setup.desktop
+# No questions: the program writes the safe browser settings, starts the
+# service and, on a new install, opens the parent page. The first-run setup
+# (terms, age, PIN) is on that page.
+"$D/raisesteady-guard" package-install

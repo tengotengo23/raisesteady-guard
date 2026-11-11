@@ -5,11 +5,13 @@ package main
 import (
 	"bufio"
 	"context"
+	"io"
 	"os"
 	"path/filepath"
 
 	"raisesteady-guard/agent/internal/agent"
 	"raisesteady-guard/agent/internal/api"
+	"raisesteady-guard/agent/internal/core"
 	"raisesteady-guard/agent/internal/winsys"
 )
 
@@ -17,7 +19,12 @@ type accountLine = api.LocalAccount
 
 func supported() bool { return true }
 
-func platform() (agent.System, agent.Services) { return &winsys.Sys{}, winsys.Services{} }
+func platform(*core.Data) (agent.System, agent.Services) { return &winsys.Sys{}, winsys.Services{} }
+
+// The Linux package's helpers; the Windows installer has its own pages.
+func openForDesktopUsers(agent.System, string) int { return 0 }
+
+func openPage(agent.System, bool, bool, io.Writer) int { return exitError }
 
 func isAdmin() bool { return winsys.IsAdmin() }
 

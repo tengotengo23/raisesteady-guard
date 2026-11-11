@@ -401,6 +401,8 @@ func ExpectFrom(written map[string]string) Expect {
 			id = "edge"
 		case strings.HasPrefix(p, "etc/brave/"):
 			id = "brave"
+		case strings.HasPrefix(p, "etc/opt/yandex/browser/"):
+			id = "yandex"
 		case strings.HasPrefix(p, "etc/firefox/"), strings.HasPrefix(p, "etc/firefox-esr/"):
 			id = "firefox"
 		default:
@@ -430,6 +432,7 @@ var supportedInstalls = []struct{ Path, Name, ID string }{
 	{"/opt/brave.com/brave/brave", "Brave", "brave"},
 	{"/opt/brave.com/brave-beta/brave", "Brave Beta", "brave"},
 	{"/opt/brave.com/brave-nightly/brave", "Brave Nightly", "brave"},
+	{"/opt/yandex/browser/yandex_browser", "Yandex Browser", "yandex"},
 	{"/usr/lib/firefox/firefox", "Firefox", "firefox"},
 	{"/usr/lib64/firefox/firefox", "Firefox", "firefox"},
 	{"/usr/lib/firefox-esr/firefox-esr", "Firefox ESR", "firefox"},

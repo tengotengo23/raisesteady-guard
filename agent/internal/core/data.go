@@ -134,7 +134,8 @@ type extIDsFile struct {
 		EdgeStoreID   *string `json:"edgeStoreId"`
 	} `json:"chromium"`
 	Firefox struct {
-		ID string `json:"id"`
+		ID      string `json:"id"`
+		AMOSlug string `json:"amoSlug"`
 	} `json:"firefox"`
 }
 
@@ -212,6 +213,9 @@ func loadData(fsys fs.FS) (*Data, error) {
 	if !ValidGeckoID(d.ExtIDs.FirefoxID) {
 		d.ExtIDs.FirefoxID = PlaceholderFirefoxID
 		d.ExtIDs.Placeholder = true
+	}
+	if ValidSlug(ids.Firefox.AMOSlug) {
+		d.ExtIDs.FirefoxSlug = ids.Firefox.AMOSlug
 	}
 	return d, nil
 }

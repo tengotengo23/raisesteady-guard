@@ -6,9 +6,11 @@ import (
 	"bufio"
 	"context"
 	"errors"
+	"io"
 
 	"raisesteady-guard/agent/internal/agent"
 	"raisesteady-guard/agent/internal/api"
+	"raisesteady-guard/agent/internal/core"
 )
 
 // The agent runs on Windows and Linux; on other systems the commands say so.
@@ -18,7 +20,11 @@ type accountLine = api.LocalAccount
 
 func supported() bool { return false }
 
-func platform() (agent.System, agent.Services) { return nil, nil }
+func platform(*core.Data) (agent.System, agent.Services) { return nil, nil }
+
+func openForDesktopUsers(agent.System, string) int { return 0 }
+
+func openPage(agent.System, bool, bool, io.Writer) int { return exitError }
 
 func isAdmin() bool { return false }
 

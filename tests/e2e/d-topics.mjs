@@ -52,7 +52,7 @@ if (!up) { console.error('the agent test server did not start'); agentProc.kill(
 // ---- local web server for every host ----
 const SHELL = readFileSync(join(FIX, 'yt-shell.html'), 'utf8');
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-const ytItem = (id, title) => `<ytd-video-renderer data-id="${id}"><a id="video-title" href="/watch?v=${id}" title="${esc(title)}">${esc(title)}</a><ytd-channel-name><a href="/@learning">Learning channel</a></ytd-channel-name></ytd-video-renderer>`;
+const ytItem = (id, title, desc = '') => `<ytd-video-renderer data-id="${id}"><a id="video-title" href="/watch?v=${id}" title="${esc(title)}">${esc(title)}</a><ytd-channel-name><a href="/@learning">Learning channel</a></ytd-channel-name>${desc ? `<yt-formatted-string class="metadata-snippet-text">${esc(desc)}</yt-formatted-string>` : ''}</ytd-video-renderer>`;
 const WATCH = { 'aaaaaaaaaa1': 'Pride Month special: coming out stories', 'bbbbbbbbbb1': 'Pride and Prejudice, chapter one, read aloud' };
 function ytPage(u) {
   const p = u.pathname;
@@ -61,7 +61,7 @@ function ytPage(u) {
   else if (p === '/feed/history') { margin = 0; page = '<ytd-browse page-subtype="history"><div class="feed-item">history</div></ytd-browse>'; } // overlap on purpose
   else if (p === '/results') {
     title = `${u.searchParams.get('search_query') || ''} - YouTube`;
-    page = `<ytd-search><ytd-section-list-renderer><div id="contents"><ytd-item-section-renderer><div id="contents">${ytItem('cccccccccc1', 'How volcanoes work')}${ytItem('cccccccccc2', 'Transgender kids explained')}${ytItem('cccccccccc3', 'Volcano experiment for kids')}</div></ytd-item-section-renderer></div></ytd-section-list-renderer></ytd-search>`;
+    page = `<ytd-search><ytd-section-list-renderer><div id="contents"><ytd-item-section-renderer><div id="contents">${ytItem('cccccccccc1', 'How volcanoes work')}${ytItem('cccccccccc2', 'Transgender kids explained')}${ytItem('cccccccccc3', 'Volcano experiment for kids')}${ytItem('cccccccccc4', 'Baby stretch time #babyyoga')}${ytItem('cccccccccc5', 'Gentle morning stretches for toddlers', 'A calm kids yoga session with Rumi')}${ytItem('cccccccccc6', 'Morning songs for toddlers', 'Sing along with us every morning')}<yt-lockup-view-model data-id="dddddddddd1"><a href="/watch?v=dddddddddd1"></a><h3 class="yt-lockup-metadata-view-model__title">Relaxing guitar for little ones</h3><yt-content-metadata-view-model><span>Relaxing Guitar Music, Meditation Music ☯ · 2.7K views</span></yt-content-metadata-view-model></yt-lockup-view-model><yt-lockup-view-model data-id="dddddddddd2"><a href="/watch?v=dddddddddd2"></a><h3 class="yt-lockup-metadata-view-model__title">Counting songs for little ones</h3><yt-content-metadata-view-model><span>Happy Kids Songs · 2.7K views</span></yt-content-metadata-view-model></yt-lockup-view-model></div></ytd-item-section-renderer></div></ytd-section-list-renderer></ytd-search>`;
   } else if (p === '/watch') {
     const v = u.searchParams.get('v');
     title = `${WATCH[v] || 'A video'} - YouTube`;
@@ -282,8 +282,8 @@ try {
   }
   {
     const p = await visit('https://www.youtube.com/results?search_query=volcano', 'yt results', 2500);
-    const r = await p.evaluate(() => [...document.querySelectorAll('ytd-video-renderer')].map((e) => `${e.dataset.id}:${getComputedStyle(e).display !== 'none'}`));
-    check('T1: in YouTube results, a title on the topic is hidden, the others show', r.join(',') === 'cccccccccc1:true,cccccccccc2:false,cccccccccc3:true', r.join(','));
+    const r = await p.evaluate(() => [...document.querySelectorAll('ytd-video-renderer, yt-lockup-view-model')].map((e) => `${e.dataset.id}:${getComputedStyle(e).display !== 'none'}`));
+    check('T1: in YouTube results, a title on the topic is hidden, the others show; P2-201: a joined word (#babyyoga), a description line, and a new-style card\'s plain-text channel name hide it too', r.join(',') === 'cccccccccc1:true,cccccccccc2:false,cccccccccc3:true,cccccccccc4:false,cccccccccc5:false,cccccccccc6:true,dddddddddd1:false,dddddddddd2:true', r.join(','));
     await p.close();
   }
   for (const [url, label] of [['http://chem.kgtest.example/', "Gay-Lussac's law"], ['http://books.kgtest.example/', 'Pride and Prejudice'], ['https://www.youtube.com/watch?v=bbbbbbbbbb1', 'a watch page "Pride and Prejudice"'], ['https://www.google.com/search?q=transformers+toys', 'a search "transformers toys"']]) {
@@ -358,8 +358,9 @@ try {
   }
   {
     const p = await visit('https://www.youtube.com/results?search_query=volcano', 'off yt results', 2500);
-    const n = await p.evaluate(() => [...document.querySelectorAll('ytd-video-renderer')].filter((e) => getComputedStyle(e).display !== 'none').length);
-    check('switch off: every YouTube result shows', n === 3, String(n));
+    const [n, all] = await p.evaluate(() => { const els = [...document.querySelectorAll('ytd-video-renderer')];
+      return [els.filter((e) => getComputedStyle(e).display !== 'none').length, els.length]; });
+    check('switch off: every YouTube result shows', n === 6 && all === 6, `${n} of ${all}`);
     await p.close();
   }
 

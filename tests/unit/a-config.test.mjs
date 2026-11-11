@@ -191,3 +191,21 @@ test('learning list: broad hosts out, learning paths in, bookmarks still learnin
   assert.equal(reasonFor('bbc.co.uk', { timeOver: true, learning: L.hosts, learningPaths: L.paths }, 'https://www.bbc.co.uk/iplayer'), 'time');
   assert.equal(buildRules({ bedtime: true, learning: L.hosts, learningPaths: L.paths }).some((x) => x.action.type === 'allow'), false, 'bedtime has no learning exception');
 });
+
+// P2-194: between the package install and the parent's first-run setup the agent answers with a
+// whole day of minutes, no bedtime (JSON null) and "setup": true. Nothing may warn or count down.
+test('while the first-run setup waits: no bedtime, no break reminder, a whole day of minutes', () => {
+  const pending = { ...managed, ageBand: '16-17' };
+  const agent = { band: '16-17', limits: { browseMin: 1440, videoMin: 1440 }, bedtime: null, bedtimeActive: false, setup: true };
+  const c = resolveConfig({ bands, managed: pending, agent });
+  assert.equal(c.bedtime, null, 'null from the agent is no bedtime, not the age group\'s 23:00');
+  assert.equal(c.band.bedtime, null);
+  assert.equal(c.band.breakEveryMin, 0, 'no break reminder before the setup');
+  assert.deepEqual(c.limits, { browseMin: 1440, videoMin: 1440 });
+  // What an agent before this fix sent: two equal times read as a missing value (the bug the review found).
+  assert.deepEqual(resolveConfig({ bands, managed: pending, agent: { ...agent, bedtime: { start: '00:00', end: '00:00' } } }).bedtime, { start: '23:00', end: '06:30' });
+  // After the setup the mark is gone and the age group's reminder is back.
+  const done = resolveConfig({ bands, managed: { ...managed, ageBand: '9-12' }, agent: { band: '9-12', limits: { browseMin: 120, videoMin: 60 }, bedtime: { start: '21:00', end: '07:00' } } });
+  assert.equal(done.band.breakEveryMin, bandById(bands, '9-12').breakEveryMin);
+  assert.deepEqual(done.bedtime, { start: '21:00', end: '07:00' });
+});

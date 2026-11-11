@@ -73,3 +73,31 @@ func TestRunWithoutWindows(t *testing.T) {
 		t.Fatal("non-Windows status must fail")
 	}
 }
+
+// The package's own commands (P2-194): they are in the help, package-install
+// asks nothing and needs root, like install does.
+func TestPackageCommands(t *testing.T) {
+	var out, errb bytes.Buffer
+	if run([]string{"help"}, &out, &errb) != exitOK {
+		t.Fatal("help")
+	}
+	for _, want := range []string{"package-install", "open-page [--wait] [--login]", "package-remove", "--firefox-xpi"} {
+		if !strings.Contains(out.String(), want) {
+			t.Errorf("the help lacks %q", want)
+		}
+	}
+	out.Reset()
+	switch {
+	case !supported():
+		if run([]string{"package-install"}, &out, &errb) != exitError {
+			t.Error("package-install on a system that is not supported must fail")
+		}
+	case !isAdmin():
+		if run([]string{"package-install"}, &out, &errb) != exitNotAdmin || out.Len() != 0 {
+			t.Errorf("package-install without root: output %q", out.String())
+		}
+	}
+	if run([]string{"open-page", "--no-such-flag"}, &out, &errb) != exitUsage {
+		t.Error("an unknown flag must be a usage error")
+	}
+}

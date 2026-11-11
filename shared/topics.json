@@ -77,7 +77,12 @@
 
     ["v-yoga", "yoga{L}|namaste|kundalini|chakras?|surya namaskar|sun salutations?|asanas|pranayama", 2],
     ["v-yogi", "yogis?|yogic", 2, "yogi bear|yogi berra|adityanath"],
-    ["v-meditation", "meditat{L}", 2, "christian{L}|orthodox{L}|prayer{L}|pray{L}|psalm{L}|scripture{L}|bible|gospel|saints?|church{L}|marcus aurelius|meditations of|descartes|lectio divina|hesychas{L}"],
+    ["v-joined", "[\\p{Ll}\\p{Lu}\\p{Lo}\\p{Lm}]+(?:yoga|namaste|kundalini|pranayama|reiki|mindfulness|halloween|witchcraft|wicca|horoscope|tarot|chakra|йога){L}|йога{L}|(?:namaste|kundalini|pranayama|mindfulness|witchcraft)[\\p{Ll}\\p{Lu}\\p{Lo}\\p{Lm}]+", 2, "{L}karyogam{L}|{L}chakrab[ao]rt{L}|{L}chakravart{L}|{L}mutarot{L}|{L}unmindful{L}|{L}phoroscop{L}|{L}hyoga{L}"],
+    ["v-zodiac-joined", "[\\p{Ll}\\p{Lu}\\p{Lo}\\p{Lm}]+zodiac{L}|zodiac[\\p{Ll}\\p{Lu}\\p{Lo}\\p{Lm}]+", 2, "chinese{L}|lunar new year{L}|great race{L}|zodiac animals?{L}|{L}zodiacal{L}"],
+    ["v-ru-joined", "[\\p{Ll}\\p{Lu}\\p{Lo}\\p{Lm}]+(?:медитаци|майндфулнес|чакр|гороскоп|кундалини|намасте){L}", 2, "{L}православн{L}|{L}молитв{L}|{L}христиан{L}|{L}исихаз{L}"],
+    ["v-ka-joined", "(?:ბავშვთა|ბავშვის|ბავშვებისთვის|საბავშვო)(?:იოგ|მედიტაცი|ჩაკრ){L}", 2],
+    ["v-meditation-joined", "[\\p{Ll}\\p{Lu}\\p{Lo}\\p{Lm}]+meditation{L}", 2, "{L}premeditat{L}|christian{L}|orthodox{L}|prayer{L}|pray{L}|psalm{L}|scripture{L}|bible{L}|gospel{L}|saints?|church{L}|marcus aurelius{L}|meditations of{L}|descartes|lectio divina|hesychas{L}"],
+    ["v-meditation", "meditat{L}", 2, "christian{L}|orthodox{L}|prayer{L}|pray{L}|psalm{L}|scripture{L}|bible{L}|gospel{L}|saints?|church{L}|marcus aurelius{L}|meditations of{L}|descartes|lectio divina|hesychas{L}"],
     ["v-mindfulness", "mindfulness|mindful (?:breathing|moments?|minutes?|kids|children|meditation|yoga|colou?ring|movement|body|listening|eating)|zen den|vipassana|body scan|guided imagery|breathwork", 2],
     ["v-mantra", "om chanting|chanting om|om mani padme hum|hare krishna|mantra (?:chanting|meditation|for kids|music)|(?:healing|sanskrit|buddhist|hindu) mantras?", 2],
     ["v-mantra-word", "mantras?", 1],

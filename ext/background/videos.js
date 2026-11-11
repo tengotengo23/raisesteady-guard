@@ -75,9 +75,27 @@ export function parseFeed(xml) {
       channelId: textOf(e, 'yt:channelId') || out.channelId,
       published: Number.isFinite(ts) ? ts : 0,
       short: shortFromLink(href),
+      desc: feedDesc(textOf(e, 'media:description')),
     });
   }
   return out;
+}
+
+/**
+ * What the filter reads of a video's description (P2-201): its start and its hashtags, which YouTube
+ * often puts at the end. The block page reads the description too, so a video we show must pass it.
+ */
+export function feedDesc(text) {
+  const t = String(text || '');
+  if (!t) return '';
+  const tags = (t.match(/#[\p{L}\p{N}_]+/gu) || []).join(' ').slice(0, 300);
+  return `${t.slice(0, 300)} ${tags}`.trim();
+}
+
+/** A video we never recommend: its title, channel or description has a word on the topic list (P2-201). */
+export function unwanted(topics, v) {
+  if (!topics || !v) return false;
+  return topics.matchTitle(`${v.title || ''} ${v.channel || ''}`).hit || (!!v.desc && topics.matchTitle(String(v.desc)).hit);
 }
 
 /** true = Short, false = normal video, null = cannot tell from the feed link. */
@@ -145,7 +163,7 @@ export function valuesPicks(pool, { band, lang = 'en', day = '', n = 8, exclude 
   if (!Array.isArray(pool) || n <= 0) return [];
   const ex = new Set(exclude);
   const ok = (v) => v && ID_RE.test(v.id) && typeof v.title === 'string' && Array.isArray(v.bands) && v.bands.includes(band) && !ex.has(v.id)
-    && !(topics && topics.matchTitle(`${v.title} ${v.channel || ''}`).hit);
+    && !unwanted(topics, v);
   const shuffle = (list, seed) => {
     const a = [...list].sort((x, y) => (x.id < y.id ? -1 : 1)), rnd = seeded(seed);
     for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
@@ -200,11 +218,12 @@ export function builtinVideo(v, channelId) {
 
 /**
  * One list per channel: the feed's videos (fresh or cached) and the built-in ones, without doubles
- * (the feed's copy wins). Each video carries src 'feed' or 'saved'. Titles the topic filter finds are dropped.
+ * (the feed's copy wins). Each video carries src 'feed' or 'saved'. Videos the topic filter finds in the title,
+ * channel or description are dropped.
  * channels: [{ id, lang }]; feeds: { id: { videos } }; builtin: { id: [video] }; topics: matcher or null.
  */
 export function mergeLists(channels, feeds, builtin, topics = null) {
-  const ok = (v) => !topics || !topics.matchTitle(`${v.title} ${v.channel || ''}`).hit;
+  const ok = (v) => !unwanted(topics, v);
   return (channels || []).map((c) => {
     const seen = new Set(), videos = [];
     for (const v of ((feeds || {})[c.id] && feeds[c.id].videos) || []) {
@@ -318,7 +337,8 @@ export function initVideos(ctx) {
     try { return await p; } finally { inflight.delete(id); }
   };
 
-  const fresh = (f, now) => f && f.at && now - f.at < FEED_TTL_MS;
+  // A feed cached before descriptions were kept (P2-201) is read again at once.
+  const fresh = (f, now) => f && f.at && now - f.at < FEED_TTL_MS && (f.videos || []).every((v) => 'desc' in v);
   const retryable = (f, now) => !f || !f.failAt || now - f.failAt > RETRY_MS;
 
   async function videosFor({ ageBand, lang = 'en', limit = 12 } = {}) {
@@ -340,7 +360,7 @@ export function initVideos(ctx) {
     const anyFresh = list.some((c) => fresh(feeds[c.id], Date.now()));
     const chPart = mixed.filter((v) => v.src !== 'values');
     const saved = chPart.length > 0 && chPart.every((v) => v.src === 'saved');
-    const videos = mixed.map(({ src, ...v }) => v);
+    const videos = mixed.map(({ src, desc, ...v }) => v);
     const online = globalThis.navigator ? navigator.onLine !== false : true;
     return { videos, offline: !videos.length && !online, stale: !anyFresh, saved };
   }

@@ -2,9 +2,11 @@ package api
 
 import (
 	"embed"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"html/template"
+	"io"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -32,7 +34,9 @@ var appCSS = func() []byte {
 const (
 	sessionCookie = "kg_parent"
 	// sessionTTL is absolute: the parent signs in again after 10 minutes.
-	sessionTTL  = 10 * time.Minute
+	sessionTTL = 10 * time.Minute
+	// setupTTL: a first-run form stays valid while the parent reads the terms.
+	setupTTL    = 2 * time.Hour
 	maxSessions = 16
 	maxForm     = 64 << 10
 )
@@ -40,6 +44,9 @@ const (
 type session struct {
 	csrf string
 	exp  time.Time
+	// setup marks the session of the first-run form (P2-194). It carries the
+	// form's CSRF token and nothing else: it never counts as signed in.
+	setup bool
 }
 
 func (s *Server) parentRoutes(mux *http.ServeMux) {
@@ -49,6 +56,8 @@ func (s *Server) parentRoutes(mux *http.ServeMux) {
 		w.Header().Set("Cache-Control", "no-cache")
 		_, _ = w.Write(appCSS)
 	})
+	mux.HandleFunc("/parent/state", s.handleSetupState)
+	mux.HandleFunc("/parent/setup", s.post(false, s.handleSetup))
 	mux.HandleFunc("/parent/login", s.post(false, s.handleLogin))
 	mux.HandleFunc("/parent/logout", s.post(true, s.handleLogout))
 	mux.HandleFunc("/parent/save", s.post(true, s.handleSave))
@@ -84,8 +93,24 @@ func (s *Server) selfOrigin(o string) bool {
 	return o == "http://127.0.0.1:"+p || o == "http://localhost:"+p
 }
 
-// session returns the parent's session, sliding its expiry.
+// session returns the signed-in parent's session. A first-run form's
+// session is never one.
 func (s *Server) session(r *http.Request) (string, *session) {
+	if tok, ss := s.anySession(r); ss != nil && !ss.setup {
+		return tok, ss
+	}
+	return "", nil
+}
+
+// setupSession returns the session of the first-run form.
+func (s *Server) setupSession(r *http.Request) (string, *session) {
+	if tok, ss := s.anySession(r); ss != nil && ss.setup {
+		return tok, ss
+	}
+	return "", nil
+}
+
+func (s *Server) anySession(r *http.Request) (string, *session) {
 	c, err := r.Cookie(sessionCookie)
 	if err != nil || !core.ValidToken(c.Value) {
 		return "", nil
@@ -106,7 +131,9 @@ func (s *Server) session(r *http.Request) (string, *session) {
 	return "", nil
 }
 
-func (s *Server) newSession() (string, *session) {
+func (s *Server) newSession() (string, *session) { return s.addSession(false) }
+
+func (s *Server) addSession(setup bool) (string, *session) {
 	s.sessMu.Lock()
 	defer s.sessMu.Unlock()
 	if s.sessions == nil {
@@ -122,9 +149,197 @@ func (s *Server) newSession() (string, *session) {
 		delete(s.sessions, oldest)
 	}
 	tok := core.NewToken()
-	ss := &session{csrf: core.NewToken(), exp: s.now().Add(sessionTTL)}
+	ss := &session{csrf: core.NewToken(), exp: s.now().Add(sessionTTL), setup: setup}
+	if setup {
+		ss.exp = s.now().Add(setupTTL)
+	}
 	s.sessions[tok] = ss
 	return tok, ss
+}
+
+// First-run setup on the parent page (P2-194) --------------------------------
+//
+// A package install starts the protection at once and leaves the config
+// "pending": no PIN, no age. Until the parent finishes the form, /parent
+// shows only that form. Anyone at this computer can open it (there is no PIN
+// yet); a web page cannot post it (same-origin checks and the form's token).
+
+var errSetupDone = errors.New("the setup is already finished")
+
+// handleSetupState answers the launcher: is this RaiseSteady Guard, and does
+// the first-run setup still wait? It says nothing else.
+func (s *Server) handleSetupState(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	w.Header().Set("Cache-Control", "no-store")
+	writeJSON(w, http.StatusOK, map[string]any{"app": core.AppName, "setup": s.Config().SetupPending})
+}
+
+// AskSetupState asks the service on this computer whether the first-run
+// setup still waits. An error means the service does not answer.
+func AskSetupState(port int) (bool, error) {
+	c := &http.Client{Timeout: 2 * time.Second, CheckRedirect: func(*http.Request, []*http.Request) error { return http.ErrUseLastResponse }}
+	resp, err := c.Get("http://127.0.0.1:" + strconv.Itoa(port) + "/parent/state")
+	if err != nil {
+		return false, err
+	}
+	defer resp.Body.Close()
+	var out struct {
+		App   string `json:"app"`
+		Setup bool   `json:"setup"`
+	}
+	if resp.StatusCode != http.StatusOK || json.NewDecoder(io.LimitReader(resp.Body, 4<<10)).Decode(&out) != nil || out.App != core.AppName {
+		return false, errors.New("another program answers on the port")
+	}
+	return out.Setup, nil
+}
+
+// setupRedirect goes back to the form with a message (shown under the
+// button, so the address ends at the message) and keeps what was chosen.
+func (s *Server) setupRedirect(w http.ResponseWriter, r *http.Request, lang, msg string) {
+	q := url.Values{}
+	q.Set("lang", lang)
+	q.Set("err", msg)
+	f := r.PostForm
+	if b := f.Get("band"); b != "" {
+		q.Set("band", b)
+	}
+	if f.Get("agree") == "yes" {
+		q.Set("agree", "1")
+	}
+	if f.Get("dns") != "on" {
+		q.Set("dns", "off")
+	}
+	http.Redirect(w, r, "/parent?"+q.Encode()+"#msg", http.StatusSeeOther)
+}
+
+func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
+	if !s.Config().SetupPending {
+		s.redirect(w, r, lang, "", "")
+		return
+	}
+	f := r.PostForm
+	_, sess := s.setupSession(r)
+	if sess == nil || !core.ConstantTimeEqual(f.Get("csrf"), sess.csrf) {
+		s.setupRedirect(w, r, lang, "stale")
+		return
+	}
+	if f.Get("agree") != "yes" {
+		s.setupRedirect(w, r, lang, "setup_agree")
+		return
+	}
+	var band *core.Band
+	for i := range s.Bands.List {
+		if s.Bands.List[i].ID == f.Get("band") {
+			band = &s.Bands.List[i]
+		}
+	}
+	if band == nil {
+		s.setupRedirect(w, r, lang, "setup_age")
+		return
+	}
+	p1, p2 := f.Get("pinNew"), f.Get("pinAgain")
+	if p1 != p2 || !core.ValidPin(p1) {
+		s.setupRedirect(w, r, lang, "setup_pin")
+		return
+	}
+	h, err := core.HashPin(p1)
+	if err != nil {
+		s.setupRedirect(w, r, lang, "setup_pin")
+		return
+	}
+	st := core.SettingsForBand(*band)
+	st.FamilyDNSOff = f.Get("dns") != "on"
+	err = s.update(func(c *core.Config) error {
+		if !c.SetupPending {
+			return errSetupDone
+		}
+		c.Pin, c.SetupPending = h, false
+		for i := range c.Accounts {
+			c.Accounts[i].Settings = st
+		}
+		return nil
+	})
+	if errors.Is(err, errSetupDone) {
+		s.redirect(w, r, lang, "", "")
+		return
+	}
+	if err != nil {
+		s.setupRedirect(w, r, lang, "bad_input")
+		return
+	}
+	// The form's sessions end here; the parent who finished is signed in.
+	s.sessMu.Lock()
+	for k, v := range s.sessions {
+		if v.setup {
+			delete(s.sessions, k)
+		}
+	}
+	s.sessMu.Unlock()
+	tok, _ := s.newSession()
+	setCookie(w, sessionCookie, tok, 0)
+	s.redirect(w, r, lang, "ok", "setup_done", "sec", "setup")
+}
+
+type termBlock struct {
+	Head bool
+	Text string
+}
+
+// termBlocks turns the terms text (lines; "# " starts a heading) into blocks.
+func termBlocks(text string) []termBlock {
+	var out []termBlock
+	for _, l := range strings.Split(text, "\n") {
+		l = strings.TrimSpace(l)
+		switch {
+		case l == "":
+		case strings.HasPrefix(l, "# "):
+			out = append(out, termBlock{Head: true, Text: strings.TrimPrefix(l, "# ")})
+		default:
+			out = append(out, termBlock{Text: l})
+		}
+	}
+	return out
+}
+
+// setupPage shows the first-run form and nothing else.
+func (s *Server) setupPage(w http.ResponseWriter, r *http.Request, d pageData, lang string) {
+	q := r.URL.Query()
+	d.Setup, d.Title = true, T(lang, "setup_title")
+	d.MsgKind, d.Msg = "", ""
+	switch k := q.Get("err"); k {
+	case "stale", "bad_input", "setup_age", "setup_pin":
+		d.MsgKind, d.Msg = "err", T(lang, k)
+	case "setup_agree":
+		d.MsgKind, d.Msg = "err", T(lang, "setup_agree_err")
+	}
+	tok, sess := s.setupSession(r)
+	if sess == nil {
+		tok, sess = s.addSession(true)
+		setCookie(w, sessionCookie, tok, 0)
+	}
+	d.CSRF = sess.csrf
+	d.Terms = termBlocks(core.Terms(lang))
+	for _, b := range s.Bands.List {
+		d.Bands = append(d.Bands, bandOpt{ID: b.ID, Label: fmt.Sprintf(T(lang, "years"), strings.ReplaceAll(b.ID, "-", "–")), Selected: b.ID == q.Get("band")})
+	}
+	d.SetupAgree = q.Get("agree") == "1"
+	d.SetupDNS = q.Get("dns") != "off"
+	d.WholeComputer = s.WholeComputer
+	if s.LocalAccounts != nil {
+		var names []string
+		for _, la := range s.LocalAccounts() {
+			if la.Admin {
+				names = append(names, la.Name)
+			}
+		}
+		d.SetupAdmins = strings.Join(names, ", ")
+	}
+	s.htmlHeaders(w)
+	w.Header().Set("Cache-Control", "no-store")
+	_ = pageTmpl.Execute(w, d)
 }
 
 type postFunc func(w http.ResponseWriter, r *http.Request, lang string, sess *session, sessTok string)
@@ -189,6 +404,11 @@ func setCookie(w http.ResponseWriter, name, value string, maxAge int) {
 
 func (s *Server) handleLogin(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
 	cfg := s.Config()
+	if cfg.SetupPending {
+		// No PIN exists yet: the page shows the first-run form.
+		s.redirect(w, r, lang, "", "")
+		return
+	}
 	ok, left, retry, err := s.Lock.VerifyKey("parent", cfg.Pin, r.PostForm.Get("pin"))
 	switch {
 	case ok:
@@ -678,6 +898,12 @@ type pageData struct {
 	DayApps       []countView
 	SearchesDay   string
 	AppsClosedDay string
+	// The first-run form (P2-194)
+	Setup       bool
+	Terms       []termBlock
+	SetupAgree  bool
+	SetupDNS    bool
+	SetupAdmins string
 }
 
 func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
@@ -707,12 +933,16 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 		default:
 			d.MsgKind = ""
 		}
-	} else if k := q.Get("ok"); k == "saved" || k == "pin_changed" || k == "req_done" || k == "pause_saved" {
+	} else if k := q.Get("ok"); k == "saved" || k == "pin_changed" || k == "req_done" || k == "pause_saved" || k == "setup_done" {
 		d.MsgKind, d.Msg = "ok", T(lang, k)
 	}
 	switch sec := q.Get("sec"); sec {
-	case "limits", "accounts", "pin", "pause", "requests", "apps":
+	case "limits", "accounts", "pin", "pause", "requests", "apps", "setup":
 		d.MsgSec = sec
+	}
+	if cfg.SetupPending {
+		s.setupPage(w, r, d, lang)
+		return
 	}
 	_, sess := s.session(r)
 	s.htmlHeaders(w)

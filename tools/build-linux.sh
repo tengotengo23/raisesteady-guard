@@ -30,7 +30,7 @@ done
 for l in en ka ru; do cp "$ROOT/installer/terms-$l.txt" "$DATA/terms-$l.txt"; done
 cp "$ROOT/ext/ui/tokens.css" "$WEB/tokens.css"
 
-VERSION="${KG_VERSION:-0.4.1}"   # package version: digits and dots only
+VERSION="${KG_VERSION:-0.4.2}"   # package version: digits and dots only
 PV="$VERSION"                     # program version: with the commit
 if git -C "$ROOT" rev-parse --short HEAD >/dev/null 2>&1; then
   PV="$VERSION+$(git -C "$ROOT" rev-parse --short HEAD)"
@@ -57,8 +57,11 @@ command -v "$NFPM" >/dev/null || { echo "nFPM not found: set NFPM or install v2.
 
 XPI=""
 # The Firefox add-on signed by Mozilla (signed/README.md), unless the build already made one.
-[ ! -f "$ROOT/dist/raisesteady-guard.xpi" ] && [ -f "$ROOT/signed/raisesteady-guard-firefox.xpi" ] && \
+# The signed file is copied when dist/ has none or an older one (a new signature must reach the packages).
+if [ -f "$ROOT/signed/raisesteady-guard-firefox.xpi" ] && \
+   { [ ! -f "$ROOT/dist/raisesteady-guard.xpi" ] || [ "$ROOT/signed/raisesteady-guard-firefox.xpi" -nt "$ROOT/dist/raisesteady-guard.xpi" ]; }; then
   mkdir -p "$ROOT/dist" && cp "$ROOT/signed/raisesteady-guard-firefox.xpi" "$ROOT/dist/raisesteady-guard.xpi"
+fi
 [ -f "$ROOT/dist/raisesteady-guard.xpi" ] && XPI="$ROOT/dist/raisesteady-guard.xpi"
 echo "Firefox add-on in the packages: ${XPI:-none}"
 rm -f "$OUT"/*.deb "$OUT"/*.rpm "$OUT"/*.tar.gz
@@ -80,7 +83,9 @@ license: GPL-3.0-only
 description: |-
   Safe browser settings for children on Linux.
   Sets safe search, a family DNS filter and no private windows in Chrome,
-  Chromium, Edge, Brave and Firefox, and closes browsers it cannot protect.
+  Chromium, Edge, Brave, Yandex Browser and Firefox, installs its extension
+  in each, and closes browsers it cannot protect. No terminal needed: after
+  the install the parent page opens and the setup is finished there.
   Made with AI and provided without any guarantee; support is voluntary.
 overrides:
   deb:
@@ -102,6 +107,9 @@ contents:
     file_info: {mode: 0644}
   - src: $ROOT/linux/raisesteady-guard.desktop
     dst: /usr/share/applications/raisesteady-guard.desktop
+    file_info: {mode: 0644}
+  - src: $ROOT/linux/raisesteady-guard-setup.desktop
+    dst: /etc/xdg/autostart/raisesteady-guard-setup.desktop
     file_info: {mode: 0644}
   - src: $ROOT/ext/icons/icon-128.png
     dst: /usr/share/icons/hicolor/128x128/apps/raisesteady-guard.png
@@ -141,6 +149,7 @@ EOF
   cp "$OUT/raisesteady-guard-linux-$arch" "$st/raisesteady-guard"
   cp "$ROOT/linux/install.sh" "$ROOT/linux/uninstall.sh" "$ROOT/linux/open-parent-page" \
      "$ROOT/linux/raisesteady-guard.service" "$ROOT/linux/raisesteady-guard.desktop" \
+     "$ROOT/linux/raisesteady-guard-setup.desktop" \
      "$ROOT/README.md" "$ROOT/LICENSE" "$ROOT/THIRD-PARTY-NOTICES.txt" "$st/"
   cp "$ROOT/ext/icons/icon-128.png" "$st/raisesteady-guard.png"
   for l in en ka ru; do cp "$ROOT/installer/terms-$l.txt" "$st/"; done

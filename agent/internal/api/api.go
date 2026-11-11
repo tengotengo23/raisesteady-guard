@@ -258,21 +258,36 @@ func BedtimeActive(t time.Time, b core.Bedtime) bool {
 	}
 }
 
+// Night is a bedtime in an answer to the extension. A window that starts and
+// ends at the same minute is no bedtime at all (the state before the
+// first-run setup), and it is sent as JSON null: the extension reads null as
+// "no bedtime", while two equal times look like a missing value to it, and it
+// would then use the age group's own bedtime (P2-194 review).
+type Night core.Bedtime
+
+// MarshalJSON writes null for "no bedtime".
+func (n Night) MarshalJSON() ([]byte, error) {
+	if n.Start == n.End {
+		return []byte("null"), nil
+	}
+	return json.Marshal(core.Bedtime(n))
+}
+
 // State is the /v1/state answer.
 type State struct {
-	Day             string       `json:"day"`
-	Band            string       `json:"band"`
-	Limits          Limits       `json:"limits"`
-	Used            Used         `json:"used"`
-	ExtraMin        int          `json:"extraMin"`
-	Bedtime         core.Bedtime `json:"bedtime"`
-	BedtimeActive   bool         `json:"bedtimeActive"`
-	Allow           []string     `json:"allow"`
-	Block           []string     `json:"block"`
-	FocusMode       bool         `json:"focusMode"`
-	Adblock         bool         `json:"adblock"`
-	SettingsVersion int          `json:"settingsVersion"`
-	Now             string       `json:"now"`
+	Day             string   `json:"day"`
+	Band            string   `json:"band"`
+	Limits          Limits   `json:"limits"`
+	Used            Used     `json:"used"`
+	ExtraMin        int      `json:"extraMin"`
+	Bedtime         Night    `json:"bedtime"`
+	BedtimeActive   bool     `json:"bedtimeActive"`
+	Allow           []string `json:"allow"`
+	Block           []string `json:"block"`
+	FocusMode       bool     `json:"focusMode"`
+	Adblock         bool     `json:"adblock"`
+	SettingsVersion int      `json:"settingsVersion"`
+	Now             string   `json:"now"`
 	// 0.3.0 (P2-160). Limits and Bedtime above are today's (weekend aware);
 	// Bedtime is the night that matters now (last night's in its morning part).
 	Paused        bool   `json:"paused"`
@@ -284,6 +299,10 @@ type State struct {
 	// 0.3.1 (P2-161): the topic filter is on (the parent can switch it off).
 	Topics   bool     `json:"topics"`
 	Schedule Schedule `json:"schedule"`
+	// Setup is true until the parent finishes the first-run setup (P2-194):
+	// no limit runs yet. Extension 0.4.2 and later then sends no break
+	// reminder; older ones ignore the field.
+	Setup bool `json:"setup,omitempty"`
 }
 
 // Schedule lets the extension work out the day and bedtime itself when the
@@ -296,9 +315,9 @@ type Schedule struct {
 
 // DayLimits are one kind of day's minutes and bedtime.
 type DayLimits struct {
-	BrowseMin int          `json:"browseMin"`
-	VideoMin  int          `json:"videoMin"`
-	Bedtime   core.Bedtime `json:"bedtime"`
+	BrowseMin int   `json:"browseMin"`
+	VideoMin  int   `json:"videoMin"`
+	Bedtime   Night `json:"bedtime"`
 }
 
 // HomeWin is the homework window on school days.
@@ -336,7 +355,7 @@ func (s *Server) state(cfg core.Config, acct int) State {
 		Limits:        Limits{BrowseMin: browse, VideoMin: video},
 		Used:          Used{BrowseSec: d.BrowseSec, VideoSec: d.VideoSec, LearningSec: d.LearningSec},
 		ExtraMin:      d.ExtraMin,
-		Bedtime:       a.BedtimeNow(now),
+		Bedtime:       Night(a.BedtimeNow(now)),
 		BedtimeActive: a.BedtimeActiveAt(now),
 		Allow:         nz(a.Allow), Block: nz(a.Block),
 		FocusMode: a.FocusMode, Adblock: a.Adblock,
@@ -345,7 +364,8 @@ func (s *Server) state(cfg core.Config, acct int) State {
 		Homework:        a.HomeworkActive(now),
 		Searches:        !a.SearchesOff,
 		Topics:          !a.TopicsOff,
-		Schedule:        Schedule{School: DayLimits{BrowseMin: a.BrowseMin, VideoMin: a.VideoMin, Bedtime: a.Bedtime}},
+		Schedule:        Schedule{School: DayLimits{BrowseMin: a.BrowseMin, VideoMin: a.VideoMin, Bedtime: Night(a.Bedtime)}},
+		Setup:           cfg.SetupPending,
 	}
 	if p, until := a.PausedAt(now); p {
 		st.Paused, st.PausedUntil, st.PausedUntilHM = true, until.Format(time.RFC3339), until.Format("15:04")
@@ -354,7 +374,7 @@ func (s *Server) state(cfg core.Config, acct int) State {
 		st.HomeworkEnd = a.Homework.End
 	}
 	if a.Weekend.On {
-		st.Schedule.Weekend = &DayLimits{BrowseMin: a.Weekend.BrowseMin, VideoMin: a.Weekend.VideoMin, Bedtime: a.Weekend.Bedtime}
+		st.Schedule.Weekend = &DayLimits{BrowseMin: a.Weekend.BrowseMin, VideoMin: a.Weekend.VideoMin, Bedtime: Night(a.Weekend.Bedtime)}
 	}
 	if a.Homework.On {
 		st.Schedule.Homework = &HomeWin{Start: a.Homework.Start, End: a.Homework.End}
@@ -381,6 +401,11 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request, cfg core.Co
 		jsonErr(w, http.StatusBadRequest, "body")
 		return
 	}
+	// Yandex Browser's extension names itself "chrome" up to 0.4.1; the
+	// browser's own name is in its User-Agent (P2-194).
+	if in.Browser == "chrome" && strings.Contains(r.UserAgent(), "YaBrowser/") {
+		in.Browser = "yandex"
+	}
 	searches := in.Searches
 	if cfg.Accounts[acct].SearchesOff {
 		searches = nil // switched off: nothing is recorded
@@ -394,6 +419,11 @@ func (s *Server) handleUsage(w http.ResponseWriter, r *http.Request, cfg core.Co
 // checkPin runs a PIN check through the shared lockout and writes the error
 // answer itself when the PIN is wrong or locked.
 func (s *Server) checkPin(w http.ResponseWriter, cfg core.Config, acct int, pin string, wrongCode int) bool {
+	if cfg.SetupPending {
+		// No PIN exists until the first-run setup: nothing to try, nothing to lock.
+		writeJSON(w, wrongCode, map[string]any{"ok": false, "error": "pin", "triesLeft": core.MaxTries})
+		return false
+	}
 	ok, left, retry, err := s.Lock.VerifyKey("api:"+cfg.Accounts[acct].SID, cfg.Pin, pin)
 	if ok {
 		return true

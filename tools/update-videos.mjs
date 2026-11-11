@@ -68,6 +68,7 @@ export function pickVideos(data, name, per = PER) {
     if (/^\[(private|deleted) video\]$/i.test(e.title)) continue;
     const title = clean(e.title, 200);
     if (!title || topics.matchTitle(title).hit) continue;
+    if (typeof e.description === 'string' && topics.matchTitle(e.description.slice(0, 600)).hit) continue; // P2-201
     const ts = Number(e.timestamp || e.release_timestamp);
     out.push({ id: e.id, title, channel: name, published: Number.isFinite(ts) && ts > 0 ? new Date(ts * 1000).toISOString().slice(0, 10) : '' });
     if (out.length >= per) break;
