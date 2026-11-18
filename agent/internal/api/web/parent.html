@@ -54,6 +54,7 @@
       <h2 id="dns-h">{{t .Lang "setup_dns_h"}}</h2>
       <label class="check"><input type="checkbox" name="dns" value="on"{{if .SetupDNS}} checked{{end}}> <span>{{t .Lang "family_dns"}}</span></label>
       <p class="hint">{{t .Lang "family_dns_note"}}</p>
+      <label class="check"><input type="checkbox" name="news" value="on"{{if .SetupNews}} checked{{end}}> <span>{{t .Lang "news_setup"}}</span></label>
     </section>
     <div class="setup-end">
       <button type="submit" class="btn">{{t .Lang "setup_submit"}}</button>
@@ -108,6 +109,37 @@
     </li>{{end}}</ul>
     <p class="hint">{{t .Lang "req_hint"}}</p>{{else}}<p class="muted">{{t .Lang "no_data"}}</p>{{end}}
     {{if eq .MsgSec "requests"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
+  </section>
+  {{end}}
+
+  {{if .NewsBox}}
+  <section class="card" aria-labelledby="news-h">
+    <h2 id="news-h">{{t .Lang "news_title"}}</h2>
+    {{if .NewsAsk}}
+    <p>{{t .Lang "news_ask"}}</p>
+    <p class="hint">{{t .Lang "news_how"}}</p>
+    <form method="post" action="/parent/news" class="row">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}"><input type="hidden" name="a" value="{{.Account}}">
+      <button type="submit" class="btn" name="action" value="on">{{t .Lang "news_on"}}</button>
+    </form>
+    {{else}}
+    {{if .News}}<ul class="list news">{{range .News}}<li>
+      <div class="stack">
+        <strong>{{.Title}}</strong>
+        <span>{{range $j, $l := .Lines}}{{if $j}}<br>{{end}}{{$l}}{{end}}</span>
+        {{if .Link}}<a href="{{.Link}}" target="_blank" rel="noopener noreferrer">{{t $.Lang "news_more"}}</a>{{end}}
+      </div>
+      <form method="post" action="/parent/news" class="row">
+        <input type="hidden" name="csrf" value="{{$.CSRF}}"><input type="hidden" name="lang" value="{{$.Lang}}"><input type="hidden" name="a" value="{{$.Account}}"><input type="hidden" name="id" value="{{.ID}}">
+        <button type="submit" class="btn ghost" name="action" value="hide">{{t $.Lang "news_hide"}}</button>
+      </form>
+    </li>{{end}}</ul>{{end}}
+    <form method="post" action="/parent/news" class="row">
+      <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}"><input type="hidden" name="a" value="{{.Account}}">
+      <button type="submit" class="btn ghost" name="action" value="off">{{t .Lang "news_off"}}</button>
+    </form>
+    {{end}}
+    {{if eq .MsgSec "news"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
   </section>
   {{end}}
 

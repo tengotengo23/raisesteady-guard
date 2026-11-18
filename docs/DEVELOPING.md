@@ -82,7 +82,7 @@ NFPM="$(go env GOPATH)/bin/nfpm" tools/build-linux.sh       # vet, go test, prog
 tools/build-linux.sh --no-packages                          # programs only (no nFPM needed)
 ```
 
-`KG_VERSION=0.4.3` sets the version (default 0.4.3). The Mozilla-signed add-on in `signed/` (or `dist/raisesteady-guard.xpi`) ships in the packages as `/usr/lib/raisesteady-guard/raisesteady-guard.xpi`; it is used only where a parent asks for it (see Firefox below).
+`KG_VERSION=0.4.4` sets the version (default 0.4.4). The Mozilla-signed add-on in `signed/` (or `dist/raisesteady-guard.xpi`) ships in the packages as `/usr/lib/raisesteady-guard/raisesteady-guard.xpi`; it is used only where a parent asks for it (see Firefox below).
 
 ### Install with no terminal (0.4.2, P2-194)
 
@@ -116,7 +116,7 @@ tools/build-linux.sh --no-packages                          # programs only (no 
 The package installs whatever the stores serve, so the stores must have the package's extension version before a release:
 
 ```
-cd agent && KG_ONLINE=1 KG_EXPECT_EXT_VERSION=0.4.3 go test ./internal/core -run TestStoresPublishTheseIDs -v
+cd agent && KG_ONLINE=1 KG_EXPECT_EXT_VERSION=0.4.4 go test ./internal/core -run TestStoresPublishTheseIDs -v
 ```
 
 It asks the Chrome Web Store and addons.mozilla.org for the ids in `shared/ext-ids.json` and fails when an id is not public or a store serves an older version. addons.mozilla.org version numbers can be used once: a version signed as unlisted cannot be listed later, so a listed release takes a new number.
@@ -191,3 +191,4 @@ E2E_OUT=build/e2e bash tools/e2e.sh                                  # on a boot
 - Signed release APK (owner's Mac): the key is `~/Developer/keys/guard-android/guard-release.p12` (PKCS12, RSA 4096, 30 years), its passwords in `passwords.env` next to it (mode 600), never in the repository. `bash tools/sign-release.sh` builds `raisesteady-guard-android-<version>.apk`, checks it with `apksigner verify` and prints the certificate SHA-256. Keep this key: Android updates and a later Play listing ("use my own key") need the same one.
 - Releases: `.github/workflows/release.yml` (job `android`) signs the APK only when the repository secrets `ANDROID_KEYSTORE_B64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS` and `ANDROID_KEY_PASSWORD` exist; otherwise it builds the APK for the record and the release notes say the Android app is not in that release.
 - Emergency numbers (P2-251): no helpline on any child screen. `shared/emergency.json` (built by `tools/update-emergency.mjs`; `--from file.wiki` for an offline copy) feeds `ext/ui/emergency.js`, which fills `#sos` on the topic, bedtime and pause pages; the country list starts at the browser's region (`navigator.languages`) and the child's choice is kept in localStorage `kg-sos-country`. PIN boxes are `type="text"` with `.kg-pin` (`-webkit-text-security: disc`, Firefox 114+), so no browser offers to save the parent PIN; the agent also writes Firefox's `PasswordManagerExceptions` for its parent page. Known trade-off: a screen reader reads the digits of a `type="text"` box aloud, and the text can be copied; accepted, as the PIN is typed by the parent. A PIN a browser saved before 0.4.3 stays until the parent removes it (README). Tests: `tests/unit/k-emergency-pin.test.mjs`, `tests/e2e/d-topics.mjs`.
+- News from RaiseSteady (P2-252): one public file, `https://raisesteady.com/guard/news.json` (`{"v":1,"items":[...]}`; at most 5 items, id `[0-9a-z-]{1,40}`, YYYY-MM-DD dates, hidden on and after `until` by the local date, title 80 and body 600 characters of plain text, links only `https://raisesteady.com/...` or `https://github.com/tengotengo23/...` without dot segments). Read only when the unlocked parent page (agent: `internal/news`, cache file, 6 h, 3 s, no cookies, no redirects) or the standalone options page (`ext/ui/news.js`, `storage.local` `newsCache`, `newsChoice`, `newsHidden`) opens with news on; never on a child screen or a timer; managed mode shows nothing. The choice is asked at setup (checked by default); installs from before 0.4.4 stay unchosen until the parent turns it on. Text is shown as text only (Go templates; `textContent` in the extension); the parent page stays without JavaScript and its CSP is unchanged. The feed address is fixed; only Go tests change it. Tests: `agent/internal/news`, `agent/internal/api/news_test.go`, `tests/unit/l-news.test.mjs`.

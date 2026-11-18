@@ -139,5 +139,13 @@
   "endPause": "End the pause",
   "pauseEnded": "Done. The internet is back.",
   "honestSearches": "Your parent can see the searches you make.",
-  "reqFailed": "Could not send it. Please try again in a minute."
+  "reqFailed": "Could not send it. Please try again in a minute.",
+  "newsTitle": "News from RaiseSteady",
+  "newsAsk": "Show short news from the makers of RaiseSteady Guard on this page: new versions, fixes, tips.",
+  "newsHow": "When this page opens, it reads a small news file from raisesteady.com. Nothing about you or your child is sent. Your internet address reaches the website, as with any website; we keep no record of it.",
+  "newsOn": "Turn on",
+  "newsOff": "Turn off news",
+  "newsHide": "Hide",
+  "newsMore": "Read more",
+  "newsSetup": "News from RaiseSteady on the parent page (reads a small file from raisesteady.com when the page opens)"
 }

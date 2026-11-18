@@ -18,6 +18,7 @@ import (
 	"raisesteady-guard/agent/internal/core"
 	"raisesteady-guard/agent/internal/detect"
 	"raisesteady-guard/agent/internal/guard"
+	"raisesteady-guard/agent/internal/news"
 	"raisesteady-guard/agent/internal/policy"
 	"raisesteady-guard/agent/internal/store"
 )
@@ -83,6 +84,16 @@ type Agent struct {
 	last    policy.Result
 	foundMu sync.Mutex
 	found   []detect.Found
+
+	newsOnce sync.Once
+	newsR    *news.Reader
+}
+
+// news returns the one reader of the news file (P2-252), cached next to the
+// agent's other files. It reads nothing until the parent page asks for items.
+func (a *Agent) news() *news.Reader {
+	a.newsOnce.Do(func() { a.newsR = news.New(filepath.Join(a.Paths.Dir, "news.json"), time.Now) })
+	return a.newsR
 }
 
 func (a *Agent) now() time.Time {
@@ -481,6 +492,7 @@ func (a *Agent) Server() *api.Server {
 	return &api.Server{
 		Port: cfg.Port, Bands: &a.Data.Bands, Store: a.Store, Lock: a.Lock, Now: a.Local,
 		Config: a.Config, Save: a.SaveConfig, Browsers: a.BrowserStatus,
+		News:          a.news(),
 		Apps:          a.Data.Apps.Apps,
 		WholeComputer: wholeComputer(a.Sys),
 		LocalAccounts: func() []api.LocalAccount {

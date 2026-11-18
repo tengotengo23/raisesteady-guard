@@ -172,7 +172,23 @@ type Config struct {
 	// "now" follow it, never the Windows time zone, which a standard user may
 	// change. Summer time is not followed.
 	UTCOffsetMin int `json:"utcOffsetMin"`
+	// News is the parent's choice for news from RaiseSteady on the parent
+	// page (P2-252): NewsOn, NewsOff, or "" (not chosen yet: nothing is read).
+	News string `json:"news,omitempty"`
+	// NewsHidden are the ids of the notes the parent hid.
+	NewsHidden []string `json:"newsHidden,omitempty"`
 }
+
+// The news choices (Config.News).
+const (
+	NewsOn  = "on"
+	NewsOff = "off"
+	// MaxNewsHidden is the most hidden note ids kept.
+	MaxNewsHidden = 100
+)
+
+// ValidNewsID reports whether s is a news note id.
+func ValidNewsID(s string) bool { return newsIDRe.MatchString(s) }
 
 // ValidOffset reports whether m is a UTC offset in minutes (-12:00 to +14:00, 15-minute steps).
 func ValidOffset(m int) bool { return m >= -720 && m <= 840 && m%15 == 0 }
@@ -217,6 +233,7 @@ var (
 	domainRe = regexp.MustCompile(`^([a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63}$`)
 	chromeID = regexp.MustCompile(`^[a-p]{32}$`)
 	appIDRe  = regexp.MustCompile(`^[a-z0-9-]{1,40}$`)
+	newsIDRe = regexp.MustCompile(`^[0-9a-z-]{1,40}$`)
 	geckoID  = regexp.MustCompile(`^([A-Za-z0-9._+-]{1,80}@[A-Za-z0-9.-]{1,80}|\{[0-9a-fA-F-]{36}\})$`)
 )
 
@@ -305,6 +322,17 @@ func (c *Config) Validate(bands *Bands) error {
 	}
 	if !ValidOffset(c.UTCOffsetMin) {
 		return errors.New("bad UTC offset")
+	}
+	if c.News != "" && c.News != NewsOn && c.News != NewsOff {
+		return errors.New("bad news choice")
+	}
+	if len(c.NewsHidden) > MaxNewsHidden {
+		return errors.New("too many hidden news ids")
+	}
+	for _, id := range c.NewsHidden {
+		if !ValidNewsID(id) {
+			return errors.New("bad hidden news id")
+		}
 	}
 	if c.Mode == ModeAll && (len(c.Accounts) != 1 || c.Accounts[0].SID != AllSID) {
 		return errors.New("mode all needs exactly the account *")

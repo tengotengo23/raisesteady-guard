@@ -43,3 +43,7 @@
 .op-grid { display: grid; gap: var(--kg-gap); }
 .op-two { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 12rem), 1fr)); gap: 12px; }
 .op-actions { padding: 12px 0 16px; }
+/* News from RaiseSteady (P2-252) */
+.op-news { list-style: none; margin: 0 0 12px; padding: 0; display: grid; gap: 12px; }
+.op-news li { display: grid; gap: 6px; padding-bottom: 12px; border-bottom: 1px solid var(--kg-line); overflow-wrap: anywhere; }
+.op-news p { margin: 0; white-space: pre-line; }

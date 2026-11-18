@@ -147,6 +147,7 @@ func Install(sys System, svc Services, data *core.Data, p Paths, o InstallOption
 			cfg.FirefoxInstallURL, cfg.FirefoxFromFile = old.FirefoxInstallURL, old.FirefoxFromFile
 		}
 		cfg.SettingsVersion = old.SettingsVersion + 1
+		cfg.News, cfg.NewsHidden = old.News, old.NewsHidden
 		for _, a := range old.Accounts {
 			if core.ValidToken(a.Token) {
 				kept[strings.ToUpper(a.SID)] = a

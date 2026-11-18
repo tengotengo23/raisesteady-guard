@@ -34,6 +34,18 @@
     <p id="intro" class="kg-muted"></p>
     <p id="today" class="kg-note" hidden></p>
 
+    <!-- News from RaiseSteady (P2-252): shown after unlock only; read only when the parent turned it on -->
+    <section id="news" class="kg-card" aria-labelledby="newsH" hidden>
+      <h2 id="newsH" data-i18n="newsTitle"></h2>
+      <div id="newsAskBox" hidden>
+        <p data-i18n="newsAsk"></p>
+        <p class="kg-muted" data-i18n="newsHow"></p>
+        <div class="kg-row"><button type="button" id="newsOn" class="kg-btn" data-i18n="newsOn"></button></div>
+      </div>
+      <ul id="newsList" class="op-news" hidden></ul>
+      <div id="newsOffRow" class="kg-row" hidden><button type="button" id="newsOff" class="kg-btn kg-ghost" data-i18n="newsOff"></button></div>
+    </section>
+
     <fieldset class="kg-card" style="border:1px solid var(--kg-line)">
       <legend class="kg-label" data-i18n="ageTitle"></legend>
       <div id="ages" class="kg-choices" role="radiogroup"></div>
@@ -76,6 +88,7 @@
       <label class="kg-check"><input id="adblock" type="checkbox"><span data-i18n="adsLabel"></span></label>
       <label class="kg-check"><input id="topics" type="checkbox" aria-describedby="topicsHint"><span data-i18n="topicsLabel"></span></label>
       <p id="topicsHint" class="kg-muted" data-i18n="topicsHint"></p>
+      <label id="newsSetupRow" class="kg-check" hidden><input id="newsSetup" type="checkbox" checked><span data-i18n="newsSetup"></span></label>
     </section>
 
     <section class="kg-card op-grid">

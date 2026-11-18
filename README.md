@@ -4,7 +4,7 @@ Free, open-source child-safe browsing for Windows and Linux computers: one insta
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
-Status: early (version 0.4.3). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. On Linux every protected browser installs the extension by itself from its store. On Windows, Firefox installs it by itself; Chrome, Edge and Brave do not yet (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Status: early (version 0.4.4). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. On Linux every protected browser installs the extension by itself from its store. On Windows, Firefox installs it by itself; Chrome, Edge and Brave do not yet (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 
@@ -150,6 +150,7 @@ On Android, the same holds: the site filter runs on the device and looks only at
 This program does not send information to other networked systems unless the person installing or operating it chooses it. The two cases below are shown in the installer (Windows) or on the first-run page (Linux, where they start with the install), and both can be switched off on the parent page:
 - **Family DNS filter** (on unless the parent switches it off): the child's browsers look up site names through [AdGuard DNS](https://adguard-dns.io/en/privacy.html), a free public service. AdGuard sees the site names and your internet address, as any DNS service does. If AdGuard DNS cannot be reached (an outage, or a network that blocks it), sites do not open until it is back or a parent switches the filter off.
 - **Chosen YouTube videos** (with Focus mode on): the new tab page and the YouTube start page show videos from the chosen learning channels. To list them, the child's browser fetches each channel's public feed from youtube.com (kept for 6 hours) and the thumbnails from YouTube's image server. YouTube sees your internet address, as when the child opens youtube.com. No account or key is used.
+- **News from RaiseSteady** (asked at setup; off on installs from before 0.4.4 until the parent turns it on): when the parent page opens, it reads a small news file from raisesteady.com (at most every 6 hours; after a failed read, again 10 minutes later). Nothing about the family is sent. Our server keeps no record of these requests; your internet address reaches raisesteady.com and its network provider Cloudflare, as with any website.
 
 Everything else stays on the PC: minutes used per day, the names of sites visited (not full addresses), blocked pages, search words, game minutes and the apps that were closed, kept for 30 days, and the child's requests, kept for 7 days, all readable by administrators only. Search words are read from the address of a search result page only (never from the page), cut to 100 characters, at most 50 different ones a day; a parent can switch this off on the parent page, and then nothing is recorded. The child is told in the extension's window. The block lists are built into the extension, and pages are checked on the PC, never sent anywhere.
 

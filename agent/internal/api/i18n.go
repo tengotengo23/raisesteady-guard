@@ -158,6 +158,16 @@ var strs = map[string]map[string]string{
 	"game_extra_note":     {"en": "Extra minutes you give, with the PIN or as an answer to a request, count for games too.", "ka": "დამატებითი წუთები, რომლებსაც PIN-კოდით ან მოთხოვნაზე პასუხად აძლევთ, თამაშებზეც ვრცელდება.", "ru": "Дополнительные минуты, которые вы даёте PIN-кодом или в ответ на запрос, действуют и для игр."},
 	"all_accounts_apps":   {"en": "In this mode the PC apps, the pause and the searches apply to every account, yours too.", "ka": "ამ რეჟიმში კომპიუტერის პროგრამები, შეჩერება და ძიებები ყველა ანგარიშზე მოქმედებს, თქვენზეც.", "ru": "В этом режиме программы, пауза и поиски действуют для всех учётных записей, и для вашей тоже."},
 	"language":            {"en": "Language", "ka": "ენა", "ru": "Язык"},
+
+	// News from RaiseSteady (P2-252); the copy is fixed in the P2-252 brief.
+	"news_title": {"en": "News from RaiseSteady", "ka": "სიახლეები RaiseSteady-სგან", "ru": "Новости от RaiseSteady"},
+	"news_ask":   {"en": "Show short news from the makers of RaiseSteady Guard on this page: new versions, fixes, tips.", "ka": "ამ გვერდზე მოკლე სიახლეების ჩვენება RaiseSteady Guard-ის შემქმნელებისგან: ახალი ვერსიები, გასწორებები, რჩევები.", "ru": "Показывать на этой странице короткие новости от создателей RaiseSteady Guard: новые версии, исправления, советы."},
+	"news_how":   {"en": "When this page opens, it reads a small news file from raisesteady.com. Nothing about you or your child is sent. Your internet address reaches the website, as with any website; we keep no record of it.", "ka": "როცა ეს გვერდი იხსნება, ის raisesteady.com-დან კითხულობს პატარა ფაილს სიახლეებით. თქვენზე ან თქვენს შვილზე არაფერი იგზავნება. თქვენი ინტერნეტ-მისამართი საიტამდე აღწევს, როგორც ნებისმიერ საიტზე; ჩვენ მას არ ვინახავთ.", "ru": "Когда эта страница открывается, она читает небольшой файл с новостями с raisesteady.com. О вас и вашем ребёнке ничего не передаётся. Ваш интернет-адрес доходит до сайта, как с любым сайтом; мы его не сохраняем."},
+	"news_on":    {"en": "Turn on", "ka": "ჩართვა", "ru": "Включить"},
+	"news_off":   {"en": "Turn off news", "ka": "სიახლეების გამორთვა", "ru": "Выключить новости"},
+	"news_hide":  {"en": "Hide", "ka": "დამალვა", "ru": "Скрыть"},
+	"news_more":  {"en": "Read more", "ka": "მეტის წაკითხვა", "ru": "Подробнее"},
+	"news_setup": {"en": "News from RaiseSteady on the parent page (reads a small file from raisesteady.com when the page opens)", "ka": "სიახლეები RaiseSteady-სგან მშობლის გვერდზე (გვერდის გახსნისას raisesteady.com-დან პატარა ფაილს კითხულობს)", "ru": "Новости от RaiseSteady на странице родителя (при открытии страница читает небольшой файл с raisesteady.com)"},
 }
 
 // T returns the string for key in lang, falling back to English.

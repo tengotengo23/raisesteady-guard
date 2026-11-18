@@ -14,6 +14,7 @@ import (
 	"time"
 
 	"raisesteady-guard/agent/internal/core"
+	"raisesteady-guard/agent/internal/news"
 	"raisesteady-guard/agent/internal/store"
 )
 
@@ -65,6 +66,7 @@ func (s *Server) parentRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("/parent/accounts", s.post(true, s.handleAccounts))
 	mux.HandleFunc("/parent/pin", s.post(true, s.handleChangePin))
 	mux.HandleFunc("/parent/pause", s.post(true, s.handlePause))
+	mux.HandleFunc("/parent/news", s.post(true, s.handleNews))
 	mux.HandleFunc("/parent/request", s.post(true, s.handleRequestAnswer))
 	mux.HandleFunc("/parent/apps", s.post(true, s.handleApps))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
@@ -212,6 +214,9 @@ func (s *Server) setupRedirect(w http.ResponseWriter, r *http.Request, lang, msg
 	if f.Get("dns") != "on" {
 		q.Set("dns", "off")
 	}
+	if f.Get("news") != "on" {
+		q.Set("news", "off")
+	}
 	http.Redirect(w, r, "/parent?"+q.Encode()+"#msg", http.StatusSeeOther)
 }
 
@@ -252,11 +257,16 @@ func (s *Server) handleSetup(w http.ResponseWriter, r *http.Request, lang string
 	}
 	st := core.SettingsForBand(*band)
 	st.FamilyDNSOff = f.Get("dns") != "on"
+	newsChoice := core.NewsOff
+	if f.Get("news") == "on" {
+		newsChoice = core.NewsOn
+	}
 	err = s.update(func(c *core.Config) error {
 		if !c.SetupPending {
 			return errSetupDone
 		}
 		c.Pin, c.SetupPending = h, false
+		c.News = newsChoice
 		for i := range c.Accounts {
 			c.Accounts[i].Settings = st
 		}
@@ -327,6 +337,7 @@ func (s *Server) setupPage(w http.ResponseWriter, r *http.Request, d pageData, l
 	}
 	d.SetupAgree = q.Get("agree") == "1"
 	d.SetupDNS = q.Get("dns") != "off"
+	d.SetupNews = q.Get("news") != "off"
 	d.WholeComputer = s.WholeComputer
 	if s.LocalAccounts != nil {
 		var names []string
@@ -673,6 +684,67 @@ func (s *Server) handlePause(w http.ResponseWriter, r *http.Request, lang string
 	s.redirect(w, r, lang, "ok", "pause_saved", "a", a, "sec", "pause")
 }
 
+// handleNews turns news from RaiseSteady on or off, or hides one note
+// (P2-252). Turning on reads nothing here; the page reads on its next open.
+func (s *Server) handleNews(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
+	f := r.PostForm
+	cfg := s.Config()
+	a := "0"
+	if i := formAccount(r, cfg); i >= 0 {
+		a = strconv.Itoa(i)
+	}
+	act, id := f.Get("action"), f.Get("id")
+	if act != "on" && act != "off" && !(act == "hide" && core.ValidNewsID(id)) {
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "news")
+		return
+	}
+	err := s.update(func(c *core.Config) error {
+		switch act {
+		case "on":
+			c.News = core.NewsOn
+		case "off":
+			c.News = core.NewsOff
+		case "hide":
+			for _, h := range c.NewsHidden {
+				if h == id {
+					return nil
+				}
+			}
+			c.NewsHidden = append(c.NewsHidden, id)
+			if n := len(c.NewsHidden) - core.MaxNewsHidden; n > 0 {
+				c.NewsHidden = append([]string(nil), c.NewsHidden[n:]...)
+			}
+		}
+		return nil
+	})
+	if err != nil {
+		s.redirect(w, r, lang, "err", "bad_input", "a", a, "sec", "news")
+		return
+	}
+	s.redirect(w, r, lang, "ok", "saved", "a", a, "sec", "news")
+}
+
+// newsView is one note as the parent page shows it.
+type newsView struct {
+	ID, Title, Link string
+	Lines           []string
+}
+
+// fillNews fills the news box. Nothing is read unless the parent chose "on".
+func (s *Server) fillNews(d *pageData, cfg core.Config, lang string) {
+	if s.News == nil {
+		return
+	}
+	d.NewsBox = true
+	if cfg.News != core.NewsOn {
+		d.NewsAsk = true
+		return
+	}
+	for _, it := range news.Visible(s.News.Items(), s.now().Format("2006-01-02"), cfg.NewsHidden) {
+		d.News = append(d.News, newsView{ID: it.ID, Title: it.TitleIn(lang), Lines: it.BodyLines(lang), Link: it.Link})
+	}
+}
+
 // handleRequestAnswer answers one of the child's requests (P2-160, F6).
 func (s *Server) handleRequestAnswer(w http.ResponseWriter, r *http.Request, lang string, _ *session, _ string) {
 	f := r.PostForm
@@ -904,6 +976,11 @@ type pageData struct {
 	SetupAgree  bool
 	SetupDNS    bool
 	SetupAdmins string
+	SetupNews   bool
+	// News from RaiseSteady (P2-252)
+	NewsBox bool // the box is on the page
+	NewsAsk bool // not chosen yet or off: explanation and "Turn on"
+	News    []newsView
 }
 
 func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
@@ -937,7 +1014,7 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 		d.MsgKind, d.Msg = "ok", T(lang, k)
 	}
 	switch sec := q.Get("sec"); sec {
-	case "limits", "accounts", "pin", "pause", "requests", "apps", "setup":
+	case "limits", "accounts", "pin", "pause", "requests", "apps", "setup", "news":
 		d.MsgSec = sec
 	}
 	if cfg.SetupPending {
@@ -995,6 +1072,7 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	s.fillExtras(&d, cfg, i, lang)
+	s.fillNews(&d, cfg, lang)
 	for _, r := range Reasons {
 		if tot[r] > 0 {
 			d.ByReason = append(d.ByReason, reasonCount{Key: "reason_" + r, Count: tot[r]})

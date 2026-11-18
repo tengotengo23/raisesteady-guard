@@ -16,6 +16,7 @@ import (
 	"time"
 
 	"raisesteady-guard/agent/internal/core"
+	"raisesteady-guard/agent/internal/news"
 	"raisesteady-guard/agent/internal/store"
 )
 
@@ -39,6 +40,9 @@ type LocalAccount struct {
 	Admin bool   `json:"admin"`
 }
 
+// NewsSource is the news reader (news.Reader).
+type NewsSource interface{ Items() []news.Item }
+
 // Server holds what the handlers need. The agent fills it in.
 type Server struct {
 	Port   int
@@ -56,6 +60,10 @@ type Server struct {
 	WholeComputer bool
 	// Apps are the PC games and chat apps the guard knows (P2-160).
 	Apps []core.PCApp
+	// News gives the cached news notes for the parent page (P2-252). It must
+	// never wait for the network. Asked only when a logged-in parent opens
+	// the page and has turned news on. Nil: no news box.
+	News NewsSource
 
 	mu       sync.Mutex // serializes configuration changes
 	sessMu   sync.Mutex
