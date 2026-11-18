@@ -255,9 +255,10 @@ try {
   // ---- T1 with the filter on ----
   const topicPage = async (p, label) => {
     const reason = await waitReason(p, 'topic');
-    await p.waitForSelector('#help:not([hidden])', { timeout: 4000 }).catch(() => {});
-    const t = await p.evaluate(() => ({ title: document.getElementById('title').textContent, body: document.getElementById('body').textContent, link: document.getElementById('helpLink')?.href, help: !document.getElementById('help').hidden }));
-    check(`T1: ${label} goes to the topic page with the helpline line`, reason === 'topic' && t.title === 'This topic is for adults.' && t.body === 'If you need help, you can always talk to someone:' && t.help && t.link === 'https://findahelpline.com/', JSON.stringify({ reason, ...t }));
+    await p.waitForSelector('#sos:not([hidden])', { timeout: 4000 }).catch(() => {});
+    const t = await p.evaluate(() => ({ title: document.getElementById('title').textContent, body: document.getElementById('body').textContent, sos: !document.getElementById('sos').hidden, line: document.getElementById('sosLine').textContent, helpline: /findahelpline|helpline/i.test(document.body.innerHTML) }));
+    // P2-251: no helpline link on any child screen; the emergency number instead.
+    check(`T1: ${label} goes to the topic page with the emergency line, no helpline`, reason === 'topic' && t.title === 'This topic is for adults.' && t.body === 'If you have questions, talk to a parent.' && t.sos && t.line.startsWith('In an emergency, call') && !t.helpline, JSON.stringify({ reason, ...t }));
     return t;
   };
   {
@@ -275,8 +276,8 @@ try {
     const p = await visit(url, 'values');
     const reason = await waitReason(p, 'topic');
     await sleep(400);
-    const t = await p.evaluate(() => ({ title: document.getElementById('title').textContent, body: document.getElementById('body').textContent, help: !document.getElementById('help').hidden, kind: new URLSearchParams(location.search).get('kind') }));
-    check(`P2-175: ${label} goes to the topic page with the values words, no helpline line`, reason === 'topic' && t.kind === 'values' && t.title === "This page isn't for your age." && t.body === 'If you think you need it, ask a parent.' && !t.help, JSON.stringify({ reason, ...t }));
+    const t = await p.evaluate(() => ({ title: document.getElementById('title').textContent, body: document.getElementById('body').textContent, help: !document.getElementById('sos').hidden, kind: new URLSearchParams(location.search).get('kind') }));
+    check(`P2-175: ${label} goes to the topic page with the values words, no emergency line`, reason === 'topic' && t.kind === 'values' && t.title === "This page isn't for your age." && t.body === 'If you think you need it, ask a parent.' && !t.help, JSON.stringify({ reason, ...t }));
     if (label.includes('yoga')) check('P2-175: values page text fits at font 20 and 110 % zoom', await fits(p));
     await p.close();
   }
@@ -318,11 +319,29 @@ try {
     check('S7: a YouTube hashtag page reached in-page (#gaypride) goes to the topic page', await waitReason(y, 'topic', 6000) === 'topic', y.url());
     await y.close();
   }
-  // N8: the helpline line also on the bedtime and paused pages.
+  // N8 -> P2-251: on the bedtime and paused pages, the emergency number for the browser's region (no helpline),
+  // under the words; the country list changes the number; the choice is kept.
   for (const r of ['bedtime', 'paused']) {
-    const p = await visit(`${ORIGIN}/pages/blocked.html?reason=${r}`, `help ${r}`, 1200);
-    const h = await p.evaluate(() => ({ shown: !document.getElementById('help').hidden, text: document.getElementById('help').textContent, below: document.getElementById('help').getBoundingClientRect().top >= document.getElementById('body').getBoundingClientRect().bottom }));
-    check(`N8: the ${r} page shows "If you need help..." with findahelpline.com, under the words`, h.shown && h.below && h.text.startsWith('If you need help, you can always talk to someone:') && h.text.includes('findahelpline.com'), JSON.stringify(h));
+    const p = await visit(`${ORIGIN}/pages/blocked.html?reason=${r}`, `sos ${r}`, 1200);
+    await p.waitForSelector('#sos:not([hidden])', { timeout: 4000 }).catch(() => {});
+    const h = await p.evaluate(() => ({ shown: !document.getElementById('sos').hidden, line: document.getElementById('sosLine').textContent, country: document.getElementById('sosCountry').value, options: document.getElementById('sosCountry').options.length, langs: navigator.languages.join(','), helpline: /findahelpline|helpline|talk to someone/i.test(document.body.innerHTML), below: document.getElementById('sos').getBoundingClientRect().top >= document.getElementById('body').getBoundingClientRect().bottom }));
+    const want = h.country === 'US' ? 'In an emergency, call 911 from a phone.' : h.country === 'GB' ? 'In an emergency, call 999 from a phone.' : null;
+    check(`P2-251: the ${r} page shows the emergency number for the browser's region (${h.langs}), under the words, no helpline`, h.shown && h.below && !h.helpline && h.options > 200 && (want ? h.line === want : h.line.startsWith('In an emergency, call')), JSON.stringify(h));
+    if (r === 'bedtime') {
+      await p.select('#sosCountry', 'JP');
+      const jp = await p.$eval('#sosLine', (e) => e.textContent);
+      check('P2-251: choosing Japan shows police 110, ambulance and fire 119', jp === 'In an emergency, call from a phone: police 110, ambulance and fire 119.', jp);
+      check('P2-251: bedtime page with the country list fits at font 20 and 110 % zoom', await fits(p));
+      await p.reload({ waitUntil: 'load' });
+      await p.waitForSelector('#sos:not([hidden])', { timeout: 4000 }).catch(() => {});
+      const kept = await p.$eval('#sosCountry', (e) => e.value);
+      check('P2-251: the chosen country is kept', kept === 'JP', kept);
+      await p.select('#sosCountry', 'GE');
+      check('P2-251: choosing Georgia shows 112', (await p.$eval('#sosLine', (e) => e.textContent)) === 'In an emergency, call 112 from a phone.');
+      await p.evaluate(() => localStorage.removeItem('kg-sos-country'));
+    }
+    const pin = await p.evaluate(() => { const i = document.getElementById('pin'); return i ? { type: i.type, mask: getComputedStyle(i).webkitTextSecurity || getComputedStyle(i).getPropertyValue('-webkit-text-security') } : null; });
+    check(`P2-251: the ${r} page's PIN box is not a password field and is drawn as dots`, pin && pin.type === 'text' && pin.mask === 'disc', JSON.stringify(pin));
     await p.close();
   }
 

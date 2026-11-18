@@ -2,6 +2,7 @@ package policy
 
 import (
 	"encoding/json"
+	"strconv"
 	"strings"
 
 	"raisesteady-guard/agent/internal/core"
@@ -293,6 +294,15 @@ func firefox(in Inputs, t Target, b Browser, band core.Band) []Entry {
 		s(k+`\PopupBlocking`, "Locked", DW(1)),
 		s(k+`\Permissions\Notifications`, "BlockNewRequests", DW(1)),
 		s(k+`\Permissions\Notifications`, "Locked", DW(1)),
+	}
+	// P2-251: Firefox never offers to save the parent PIN typed on the parent page. The PIN boxes are
+	// not password fields either; this is the second guard.
+	port := in.Cfg.Port
+	if port == 0 {
+		port = core.DefaultPort
+	}
+	for _, o := range []string{"http://127.0.0.1:", "http://localhost:"} {
+		e = append(e, Entry{Root: t.Root, Key: k + `\PasswordManagerExceptions`, Val: Str(o + strconv.Itoa(port)), List: true})
 	}
 	if !t.Account.FamilyDNSOff {
 		e = append(e,

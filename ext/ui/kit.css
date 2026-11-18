@@ -92,3 +92,6 @@ a { color: var(--kg-accent); }
   .kg-btn:hover, .kg-tile:hover { transform: none; opacity: 0.92; }
   .kg-meter > i { transition: opacity var(--kg-time) var(--kg-ease); }
 }
+
+/* P2-251: PIN boxes are text boxes drawn as dots, so no browser offers to save the PIN (Firefox 114+, Chrome). */
+.kg-pin { -webkit-text-security: disc; }

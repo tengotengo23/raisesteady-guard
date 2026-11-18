@@ -4,7 +4,7 @@ Free, open-source child-safe browsing for Windows and Linux computers: one insta
 
 Made with AI, provided without any guarantee, and supported on a voluntary basis: see [About this project](#about-this-project).
 
-Status: early (version 0.4.2 on Linux, 0.4.1 on Windows). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. On Linux every protected browser installs the extension by itself from its store. On Windows, Firefox installs it by itself; Chrome, Edge and Brave do not yet (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
+Status: early (version 0.4.3). Tested in automated runs on Windows, Ubuntu and Fedora; not yet tested by families on home computers. On Linux every protected browser installs the extension by itself from its store. On Windows, Firefox installs it by itself; Chrome, Edge and Brave do not yet (see [Before it fully works on a home PC](#before-it-fully-works-on-a-home-pc)).
 
 ## What it does
 
@@ -28,7 +28,7 @@ Status: early (version 0.4.2 on Linux, 0.4.1 on Windows). Tested in automated ru
 - YouTube with one search box (ours; YouTube's own search bar is hidden there and "/" goes to ours) and videos from chosen learning channels instead of the feed, and no Shorts; for ages 3 to 5, search also shows only the chosen channels. When YouTube's channel feeds do not answer, a list of recent videos built into the extension is shown instead, with the line "Showing saved videos"
 - a topic filter, "Sensitive topics", on for every age (3 to 17); the parent can switch it off. It blocks searches, pages and YouTube videos about sexual orientation, gender identity and transition, yoga and meditation practices, horoscopes, tarot and witchcraft, Halloween and horror, in English, Georgian and Russian (the newer words also in Spanish, Chinese, Greek and Serbian)
 - the topic filter reads the search words, the page title and description, the main headings, the web address and YouTube titles. It uses fixed word and site lists on the PC: no AI, nothing is sent anywhere. It also sees through common spelling tricks (gaps, dots or emoji between letters, digits for letters, look-alike letters, repeated letters, hidden characters, hashtags)
-- helplines (findahelpline.com, child helplines on 116 111, Samaritans and others) are never blocked by the extension, at bedtime and in a pause too. The topic page links to findahelpline.com. A parent can allow a site with the PIN
+- helplines (findahelpline.com, child helplines on 116 111, Samaritans and others) are never blocked by the extension, at bedtime and in a pause too. No child screen sends children to a helpline: the topic, bedtime and pause pages say "In an emergency, call 112 from a phone" (the number for the country; the list starts at the browser's region, and the child can pick another country). A parent can allow a site with the PIN
 - social networks (TikTok, Instagram, Facebook, X, Snapchat, Reddit, Discord and others) are blocked under 13, the minimum age in their own terms; from 13 they open without the feed
 - an ad blocker
 - learning sites do not count towards the daily time
@@ -83,7 +83,7 @@ On a home PC, Chrome, Edge and Brave install a required extension only from thei
 
 The parent page is in the Start menu as "Parent settings". Languages: English, Georgian, Russian.
 
-Keep the PIN safe: changing the settings, updating and removing all need it, and there is no way to reset it yet. Five wrong PINs lock it for 15 minutes.
+Keep the PIN safe: changing the settings, updating and removing all need it, and there is no way to reset it yet. Five wrong PINs lock it for 15 minutes. Browsers do not offer to save the PIN (from 0.4.3). If Firefox saved it before, remove it: Firefox menu, Passwords, search for 127.0.0.1, and remove the entry. In Chrome or Edge: Settings, Passwords (Password Manager), the same search.
 
 ## Install on Linux
 

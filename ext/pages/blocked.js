@@ -2,6 +2,7 @@
 import { APP_NAME } from '../ui/brand.js';
 import { loadI18n, applyI18n } from '../ui/i18n.js';
 import { ask, getStatus, bandBookmarks, bookmarkTiles, el } from '../ui/page.js';
+import { setupEmergency } from '../ui/emergency.js';
 
 const REASONS = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent', 'time', 'video', 'bedtime', 'shorts', 'curated', 'paused', 'homework', 'topic'];
 const ALLOWABLE = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent', 'homework', 'topic'];
@@ -36,10 +37,11 @@ async function main() {
   $('title').textContent = t(`r_${words}_t`, { end, until });
   document.title = `${$('title').textContent} · ${APP_NAME}`;
   $('body').textContent = t(`r_${words}_b`, { end, until });
-  // Topic page (P2-161): under the words, a way to talk to someone. Helplines are never blocked.
-  if (words === 'topic') $('help').hidden = false;
-  // At night and in a pause, the same way to talk to someone, under the words.
-  if (reason === 'bedtime' || reason === 'paused') { $('help').prepend(`${t('r_topic_b')} `); $('help').hidden = false; }
+  // P2-251 (the owner, 18 Nov): no helpline or crisis line on any child screen. At night, in a pause and on
+  // the topic page: the emergency number for the country, under the words. Helpline sites stay unblocked.
+  if (words === 'topic' || reason === 'bedtime' || reason === 'paused') {
+    try { await setupEmergency($('sos'), t); } catch { /* the rest of the page still runs */ }
+  }
   if (site) { $('site').hidden = false; $('site').replaceChildren(el('span', { class: 'bp-site', text: t('triedSite', { site }) })); }
 
   if (reason === 'bedtime') {

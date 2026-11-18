@@ -20,7 +20,7 @@
   <h1 class="kg-enter">{{.Title}}</h1>
 {{if .Setup}}
   <p class="lead setup-lead kg-enter">{{t .Lang "setup_lead"}}</p>
-  <form method="post" action="/parent/setup" class="kg-enter">
+  <form method="post" action="/parent/setup" autocomplete="off" class="kg-enter">
     <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}">
     <section class="card" aria-labelledby="terms-h">
       <h2 id="terms-h">{{t .Lang "setup_terms_h"}}</h2>
@@ -44,9 +44,9 @@
       <h2 id="newpin-h">{{t .Lang "setup_pin_h"}}</h2>
       <div class="stack">
         <label for="pinNew">{{t .Lang "setup_pin1"}}</label>
-        <input id="pinNew" name="pinNew" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required>
+        <input id="pinNew" name="pinNew" type="text" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required class="kg-pin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other">
         <label for="pinAgain">{{t .Lang "setup_pin2"}}</label>
-        <input id="pinAgain" name="pinAgain" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required>
+        <input id="pinAgain" name="pinAgain" type="text" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required class="kg-pin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other">
         <p class="hint">{{t .Lang "setup_pin_hint"}}</p>
       </div>
     </section>
@@ -72,10 +72,10 @@
 {{else if not .LoggedIn}}
   <section class="card kg-enter" aria-labelledby="login-h">
     <h2 id="login-h">{{t .Lang "login_lead"}}</h2>
-    <form method="post" action="/parent/login" class="stack">
+    <form method="post" action="/parent/login" autocomplete="off" class="stack">
       <input type="hidden" name="lang" value="{{.Lang}}">
       <label for="pin">{{t .Lang "pin"}}</label>
-      <input id="pin" name="pin" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autofocus>
+      <input id="pin" name="pin" type="text" inputmode="numeric" pattern="[0-9]{4,8}" minlength="4" maxlength="8" required autofocus class="kg-pin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other">
       <button type="submit" class="btn">{{t .Lang "login"}}</button>
       {{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}
     </form>
@@ -265,14 +265,14 @@
 
   <section class="card" aria-labelledby="pin-h">
     <h2 id="pin-h">{{t .Lang "sec_pin"}}</h2>
-    <form method="post" action="/parent/pin" class="stack">
+    <form method="post" action="/parent/pin" autocomplete="off" class="stack">
       <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}">
       <label for="pinNow">{{t .Lang "pin_now"}}</label>
-      <input id="pinNow" name="pinNow" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" maxlength="8" required>
+      <input id="pinNow" name="pinNow" type="text" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required class="kg-pin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other">
       <label for="pinNew">{{t .Lang "pin_new"}}</label>
-      <input id="pinNew" name="pinNew" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" maxlength="8" required>
+      <input id="pinNew" name="pinNew" type="text" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required class="kg-pin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other">
       <label for="pinAgain">{{t .Lang "pin_again"}}</label>
-      <input id="pinAgain" name="pinAgain" type="password" inputmode="numeric" autocomplete="off" pattern="[0-9]{4,8}" maxlength="8" required>
+      <input id="pinAgain" name="pinAgain" type="text" inputmode="numeric" pattern="[0-9]{4,8}" maxlength="8" required class="kg-pin" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" data-1p-ignore data-lpignore="true" data-form-type="other">
       <button type="submit" class="btn">{{t .Lang "save"}}</button>
       {{if eq .MsgSec "pin"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
     </form>

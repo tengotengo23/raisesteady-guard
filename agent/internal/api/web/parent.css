@@ -19,7 +19,7 @@ h3 { font-size: var(--kg-size); margin: var(--kg-gap-l) 0 8px; }
 label { font-weight: 600; }
 fieldset { border: 1px solid var(--kg-line); border-radius: var(--kg-radius-s); padding: 8px var(--kg-gap) var(--kg-gap); margin: 8px 0; min-width: 0; }
 legend { font-weight: 700; padding: 0 6px; }
-input[type="password"], input[type="number"], input[type="time"], select, textarea {
+input.kg-pin, input[type="password"], input[type="number"], input[type="time"], select, textarea {
   font: inherit; color: var(--kg-text); background: var(--kg-bg); border: 2px solid var(--kg-line); border-radius: var(--kg-radius-s);
   min-height: var(--kg-tap); padding: 8px 12px; width: 100%; max-width: 100%;
 }
@@ -69,3 +69,6 @@ th a[aria-current="date"] { font-weight: 700; text-decoration-thickness: 3px; }
 .after-setup { margin: 0 0 var(--kg-gap); }
 .honest { color: var(--kg-text-2); font-size: var(--kg-size-s); margin: var(--kg-gap-l) 0; }
 @media (prefers-reduced-motion: reduce) { .btn { transition: opacity var(--kg-time) linear; } }
+
+/* P2-251: PIN boxes are text boxes drawn as dots, so no browser offers to save the PIN. */
+input.kg-pin { -webkit-text-security: disc; letter-spacing: 0.15em; }

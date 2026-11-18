@@ -130,6 +130,10 @@ func TestLinuxFilesAndTypes(t *testing.T) {
 	if doh := ff["DNSOverHTTPS"].(map[string]any); doh["Locked"] != true || doh["Enabled"] != true || doh["Fallback"] != false {
 		t.Errorf("firefox DNSOverHTTPS = %v", doh)
 	}
+	// P2-251: Firefox never offers to save the parent PIN on the parent page.
+	if pm, _ := ff["PasswordManagerExceptions"].([]any); len(pm) != 2 || pm[0] != "http://127.0.0.1:47615" || pm[1] != "http://localhost:47615" {
+		t.Errorf("firefox PasswordManagerExceptions = %v", ff["PasswordManagerExceptions"])
+	}
 	es := ff["ExtensionSettings"].(map[string]any)
 	if es["guard@raisesteady.com"].(map[string]any)["installation_mode"] != "force_installed" {
 		t.Errorf("firefox ExtensionSettings = %v", es)

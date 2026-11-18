@@ -217,6 +217,17 @@ func TestBuildFirefox(t *testing.T) {
 	if e, _ := find(es, k+`\DNSOverHTTPS`, "ProviderURL"); e.Val.S != core.DoHTemplate {
 		t.Errorf("DoH provider = %q", e.Val.S)
 	}
+	// P2-251: the parent page's two origins are on Firefox's never-save list, on the configured port.
+	cfg.Port = 50123
+	var pm []string
+	for _, e := range Build(Inputs{Cfg: cfg, Data: d}, targetsFor(cfg)) {
+		if e.Key == k+`\PasswordManagerExceptions` && e.List {
+			pm = append(pm, e.Val.S)
+		}
+	}
+	if strings.Join(pm, " ") != "http://127.0.0.1:50123 http://localhost:50123" {
+		t.Errorf("Firefox PasswordManagerExceptions = %v", pm)
+	}
 }
 
 // The family DNS switch: off removes every DoH entry from Chromium and Firefox,
