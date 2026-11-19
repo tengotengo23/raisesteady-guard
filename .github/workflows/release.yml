@@ -65,7 +65,7 @@ jobs:
 
       - name: Install NSIS
         shell: pwsh
-        run: choco install nsis -y --no-progress
+        run: choco install nsis --version=3.11 -y --no-progress
 
       - name: Build and test the agent, with the Windows file details
         run: KG_WINRES=1 bash tools/build-agent.sh
