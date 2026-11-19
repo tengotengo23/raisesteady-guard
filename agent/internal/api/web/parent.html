@@ -309,6 +309,7 @@
       {{if eq .MsgSec "pin"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
     </form>
   </section>
+  {{if .UpdateLine}}<p class="hint" id="update-line">{{.UpdateLine}}{{if .UpdateFailing}} {{t .Lang "upd_failing"}}{{end}}</p>{{end}}
 {{end}}
   <p class="honest">{{if .WholeComputer}}{{t .Lang "browsers_only_linux"}} {{t .Lang "honest_linux"}}{{else}}{{t .Lang "browsers_only"}} {{t .Lang "honest"}}{{end}}</p>
 </main>

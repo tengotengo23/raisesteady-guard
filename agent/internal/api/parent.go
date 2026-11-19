@@ -730,6 +730,22 @@ type newsView struct {
 	Lines           []string
 }
 
+// fillUpdate writes the version line: version, last check, last update.
+func (s *Server) fillUpdate(d *pageData, lang string) {
+	if s.Update == nil {
+		return
+	}
+	st := s.Update()
+	when := func(t time.Time) string {
+		if t.IsZero() {
+			return T(lang, "upd_never")
+		}
+		return t.In(s.now().Location()).Format("2006-01-02 15:04")
+	}
+	d.UpdateLine = fmt.Sprintf(T(lang, "upd_line"), st.Version, when(st.LastCheck), when(st.LastUpdate))
+	d.UpdateFailing = st.Failing
+}
+
 // fillNews fills the news box. Nothing is read unless the parent chose "on".
 func (s *Server) fillNews(d *pageData, cfg core.Config, lang string) {
 	if s.News == nil {
@@ -981,6 +997,9 @@ type pageData struct {
 	NewsBox bool // the box is on the page
 	NewsAsk bool // not chosen yet or off: explanation and "Turn on"
 	News    []newsView
+	// The self-updater (P2-260)
+	UpdateLine    string
+	UpdateFailing bool
 }
 
 func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
@@ -1073,6 +1092,7 @@ func (s *Server) handleParent(w http.ResponseWriter, r *http.Request) {
 	}
 	s.fillExtras(&d, cfg, i, lang)
 	s.fillNews(&d, cfg, lang)
+	s.fillUpdate(&d, lang)
 	for _, r := range Reasons {
 		if tot[r] > 0 {
 			d.ByReason = append(d.ByReason, reasonCount{Key: "reason_" + r, Count: tot[r]})

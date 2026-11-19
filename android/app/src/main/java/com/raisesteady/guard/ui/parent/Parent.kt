@@ -1,6 +1,7 @@
 package com.raisesteady.guard.ui.parent
 
 import android.app.Activity
+import android.content.Intent
 import android.net.VpnService
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -30,6 +31,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.raisesteady.guard.BuildConfig
 import com.raisesteady.guard.R
 import com.raisesteady.guard.data.Settings
 import com.raisesteady.guard.guard.ParentPin
@@ -40,6 +42,7 @@ import com.raisesteady.guard.rules.Schedule
 import com.raisesteady.guard.ui.Fmt
 import com.raisesteady.guard.ui.appLabel
 import com.raisesteady.guard.ui.components.Body
+import com.raisesteady.guard.update.Updater
 import com.raisesteady.guard.ui.components.Foot
 import com.raisesteady.guard.ui.components.GuardCard
 import com.raisesteady.guard.ui.components.GuardField
@@ -184,6 +187,24 @@ fun ParentScreen(onApps: () -> Unit, onClose: () -> Unit, onOff: () -> Unit) {
 
         TurnOffSection(onOff = { scope.launch { turnProtectionOff(ctx); onOff() } })
 
+        // Self-updater (P2-260): when Android wants a tap, the install is offered only here, behind the PIN (M3).
+        val pendingInstall by Updater.pendingInstall.collectAsStateWithLifecycle()
+        pendingInstall?.let { confirm ->
+            Body(stringResource(R.string.update_ready))
+            MainButton(stringResource(R.string.update_install), {
+                runCatching { ctx.startActivity(Intent(confirm).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)) }
+            }, Modifier.testTag("update-install"))
+        }
+        // The version and the last successful check, one quiet line; a failed check says so (S6).
+        val updates by app.updates.status.collectAsStateWithLifecycle()
+        val lastCheck = if (updates.lastCheck <= 0) {
+            stringResource(R.string.update_never)
+        } else {
+            val t = Instant.ofEpochMilli(updates.lastCheck)
+            Fmt.day(ctx, t.atZone(app.clock.zone()).toLocalDate(), app.clock.zone()) + " " + Fmt.time(ctx, t)
+        }
+        Foot(stringResource(R.string.update_line, BuildConfig.VERSION_NAME, lastCheck), Modifier.testTag("update-line"))
+        if (updates.failures > 0) Foot(stringResource(R.string.update_failing), Modifier.testTag("update-failing"))
         Foot(stringResource(R.string.about))
     }
 }

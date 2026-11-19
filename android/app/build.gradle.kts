@@ -126,6 +126,9 @@ dependencies {
     implementation(libs.slf4j.nop)
     implementation(libs.dnsjava)
     implementation(libs.okhttp)
+    // Self-updater (P2-260): checks on a schedule (WorkManager); Ed25519 check of update.json (Bouncy Castle).
+    implementation(libs.androidx.work.runtime)
+    implementation(libs.bouncycastle.prov)
 
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

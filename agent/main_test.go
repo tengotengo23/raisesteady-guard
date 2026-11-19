@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 	"unicode/utf16"
 
 	"raisesteady-guard/agent/internal/core"
@@ -99,5 +100,34 @@ func TestPackageCommands(t *testing.T) {
 	}
 	if run([]string{"open-page", "--no-such-flag"}, &out, &errb) != exitUsage {
 		t.Error("an unknown flag must be a usage error")
+	}
+}
+
+type seqSvc struct{ seq []bool }
+
+func (s *seqSvc) Running() bool {
+	v := s.seq[0]
+	if len(s.seq) > 1 {
+		s.seq = s.seq[1:]
+	}
+	return v
+}
+
+// Review S1: update-install reports failure unless the new service runs and
+// stays running, so the setup restores the old program.
+func TestConfirmRunning(t *testing.T) {
+	nop := func(time.Duration) {}
+	for name, c := range map[string]struct {
+		seq  []bool
+		want bool
+	}{
+		"up at once":    {[]bool{true, true}, true},
+		"up later":      {[]bool{false, false, true, true}, true},
+		"never up":      {[]bool{false}, false},
+		"up then stops": {[]bool{true, false}, false},
+	} {
+		if got := confirmRunning(&seqSvc{c.seq}, 2*time.Second, time.Second, nop); got != c.want {
+			t.Errorf("%s: got %v", name, got)
+		}
 	}
 }

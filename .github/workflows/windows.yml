@@ -30,7 +30,7 @@ jobs:
           cache-dependency-path: agent/go.sum
 
       - name: Install NSIS
-        run: choco install nsis -y --no-progress
+        run: choco install nsis --version=3.11 -y --no-progress
 
       - name: Build and test the agent (vet, tests, both architectures)
         shell: bash

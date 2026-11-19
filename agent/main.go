@@ -23,6 +23,7 @@ import (
 
 	"raisesteady-guard/agent/internal/agent"
 	"raisesteady-guard/agent/internal/core"
+	"raisesteady-guard/agent/internal/update"
 )
 
 var version = "dev"
@@ -51,6 +52,8 @@ const usage = `raisesteady-guard: the Windows and Linux service of ` + core.AppN
                                   the parent page asks the same after a package install
   package-install                 Linux: what the package runs after install or update (root, asks
                                   nothing): protects the browsers, starts the service, opens the parent page
+  update-install                  Windows: what the setup runs on a silent self-update (administrators):
+                                  keeps the configuration, moves the service to this program
   package-remove                  Linux: what the package manager runs on removal (root, no PIN)
   open-page [--wait] [--login]    Linux: open the parent page in your browser (the app menu does this)
   guard-list                      what the browser guard sees now and what it would close (administrators)
@@ -277,6 +280,38 @@ func run(args []string, stdout, stderr io.Writer) int {
 			fmt.Fprintln(stdout, l)
 		}
 		return exitOK
+	case "update-install":
+		// The Windows setup runs this on a silent self-update (P2-260): the
+		// account, age, PIN and settings stay exactly as they are; only the
+		// service moves to the new program. Without a configuration there is
+		// nothing to update and it refuses.
+		if !needAdmin() {
+			return exitNotAdmin
+		}
+		if _, err := os.Stat(paths.Config); err != nil {
+			fmt.Fprintln(stderr, "update-install: no installed configuration; run install instead")
+			return exitUsage
+		}
+		exe, err := os.Executable()
+		if err != nil {
+			return codeFor(err, stderr)
+		}
+		res, _, err := agent.PackageInstall(sys, svcs, data, paths, exe, nil)
+		lg := &logger{path: paths.Log}
+		if err != nil {
+			lg.logf("update install %s: %v", version, err)
+			return codeFor(err, stderr)
+		}
+		lg.logf("update install %s: %d policy values written, %d errors", version, res.Written, len(res.Errors))
+		// The setup deletes the old program only after this returns 0, so
+		// the new service must be up and still up a few seconds later;
+		// otherwise the setup puts the old program back and starts it.
+		if !confirmRunning(svcs, 20*time.Second, 5*time.Second, time.Sleep) {
+			lg.logf("update install %s: the service is not running; the setup restores the old version", version)
+			fmt.Fprintln(stderr, "update-install: the service did not stay running")
+			return exitError
+		}
+		return exitOK
 	case "package-install":
 		if !needAdmin() {
 			return exitNotAdmin
@@ -461,8 +496,14 @@ func serve(ctx context.Context, logon <-chan string, sys agent.System, data *cor
 		lg.logf("cannot listen on 127.0.0.1:%d: %v", cfg.Port, err)
 		return err
 	}
+	// The self-updater (P2-260): checks the signed manifest on GitHub
+	// every six hours; a "dev" build never updates.
+	upd := update.New(paths.Dir, version, lg.logf)
+	go upd.Run(ctx)
+	hs := a.Server()
+	hs.Update = upd.Status
 	srv := &http.Server{
-		Handler:           a.Server().Handler(),
+		Handler:           hs.Handler(),
 		ReadHeaderTimeout: 5 * time.Second,
 		ReadTimeout:       10 * time.Second,
 		WriteTimeout:      15 * time.Second,
@@ -481,4 +522,18 @@ func serve(ctx context.Context, logon <-chan string, sys agent.System, data *cor
 	_ = srv.Shutdown(sctx)
 	lg.logf("stopped")
 	return nil
+}
+
+// confirmRunning waits up to wait for the service to run, then checks that it
+// is still running after hold.
+func confirmRunning(svcs interface{ Running() bool }, wait, hold time.Duration, sleep func(time.Duration)) bool {
+	const step = 500 * time.Millisecond
+	for waited := time.Duration(0); !svcs.Running(); waited += step {
+		if waited >= wait {
+			return false
+		}
+		sleep(step)
+	}
+	sleep(hold)
+	return svcs.Running()
 }

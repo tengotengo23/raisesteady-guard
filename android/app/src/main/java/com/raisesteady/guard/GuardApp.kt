@@ -9,6 +9,9 @@ import com.raisesteady.guard.dns.FilterSettings
 import com.raisesteady.guard.lists.GuardData
 import com.raisesteady.guard.pin.Clock
 import com.raisesteady.guard.pin.DeviceClock
+import com.raisesteady.guard.update.UpdateConfig
+import com.raisesteady.guard.update.UpdateStore
+import com.raisesteady.guard.update.Updater
 import com.raisesteady.guard.vpn.Notices
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -16,6 +19,7 @@ import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
+import java.io.File
 import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicLong
 
@@ -64,7 +68,15 @@ class GuardApp : Application() {
         Notices.createChannels(this)
         repo = Repo(this, scope)
         scope.launch { repo.settings.collect { filterSettings.value = FilterSettings.from(it, bands) } }
+        // Self-updater (P2-260): a check now if one is due, else keep the one already planned.
+        scope.launch { Updater.atStart(this@GuardApp, updates.read(), System.currentTimeMillis()) }
     }
+
+    /** The self-updater's times and failure count (updater.json beside Guard's other files). */
+    val updates: UpdateStore by lazy { UpdateStore(File(filesDir, "datastore"), scope) }
+
+    /** Debug builds only: a test update source (debug/DebugUpdateReceiver); never read in release builds. */
+    @Volatile var debugUpdateConfig: UpdateConfig? = null
 
     @Suppress("UNUSED_PARAMETER")
     fun onBlocked(decision: Decision.Block, name: String) {

@@ -8,6 +8,8 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SYSTEM_EXEMPTED" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Self-updater (P2-260): installs newer signed Guard releases from GitHub. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <!-- Usage access: the parent switches it on in Settings (special app access). -->
     <uses-permission
         android:name="android.permission.PACKAGE_USAGE_STATS"
@@ -103,6 +105,11 @@
 
         <receiver
             android:name=".guard.LockNowReceiver"
+            android:exported="false" />
+
+        <!-- PackageInstaller's answer to the self-updater (explicit PendingIntent only). -->
+        <receiver
+            android:name=".update.InstallResultReceiver"
             android:exported="false" />
 
         <activity

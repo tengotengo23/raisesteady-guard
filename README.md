@@ -65,7 +65,7 @@ Video time is part of browsing time, not added to it. The defaults are based on 
 
 - **Made with AI.** The code was written by an AI assistant and checked with automated tests and reviews. No independent expert has audited it.
 - **No guarantees.** It is provided "as is", without any guarantee or warranty of any kind, to the extent permitted by law. It may miss unsuitable sites, a child may find a way round it, and it may not work on every PC. Nexodyne Limited and the contributors take no responsibility for any loss or damage from installing or using it, to the extent permitted by law (see also sections 15 and 16 of the [GPL-3.0](LICENSE)).
-- **Support is voluntary.** Questions and bug reports are welcome in [Issues](../../issues), but there is no promise of an answer, a fix or future updates.
+- **Support is voluntary.** Questions and bug reports are welcome in [Issues](../../issues), but there is no promise of an answer or a fix. Installed copies update themselves when a new release is published, as long as we publish one (see Privacy).
 
 ## Before it fully works on a home PC
 
@@ -83,7 +83,7 @@ On a home PC, Chrome, Edge and Brave install a required extension only from thei
 
 The parent page is in the Start menu as "Parent settings". Languages: English, Georgian, Russian.
 
-Keep the PIN safe: changing the settings, updating and removing all need it, and there is no way to reset it yet. Five wrong PINs lock it for 15 minutes. Browsers do not offer to save the PIN (from 0.4.3). If Firefox saved it before, remove it: Firefox menu, Passwords, search for 127.0.0.1, and remove the entry. In Chrome or Edge: Settings, Passwords (Password Manager), the same search.
+Keep the PIN safe: changing the settings and removing it need it (updates arrive by themselves and do not ask for it), and there is no way to reset it yet. Five wrong PINs lock it for 15 minutes. Browsers do not offer to save the PIN (from 0.4.3). If Firefox saved it before, remove it: Firefox menu, Passwords, search for 127.0.0.1, and remove the entry. In Chrome or Edge: Settings, Passwords (Password Manager), the same search.
 
 ## Install on Linux
 
@@ -147,9 +147,10 @@ Linux: for now this needs one line in a terminal: `sudo apt remove raisesteady-g
 
 On Android, the same holds: the site filter runs on the device and looks only at site names; with the family DNS filter on, the names go to AdGuard DNS over an encrypted connection; minutes per app are kept on the device for 30 days, without site names.
 
-This program does not send information to other networked systems unless the person installing or operating it chooses it. The two cases below are shown in the installer (Windows) or on the first-run page (Linux, where they start with the install), and both can be switched off on the parent page:
+This program does not send information to other networked systems unless the person installing or operating it chooses it, apart from the update check below, which is always on. The cases below are shown in the installer (Windows) or on the first-run page (Linux, where they start with the install), and both can be switched off on the parent page:
 - **Family DNS filter** (on unless the parent switches it off): the child's browsers look up site names through [AdGuard DNS](https://adguard-dns.io/en/privacy.html), a free public service. AdGuard sees the site names and your internet address, as any DNS service does. If AdGuard DNS cannot be reached (an outage, or a network that blocks it), sites do not open until it is back or a parent switches the filter off.
 - **Chosen YouTube videos** (with Focus mode on): the new tab page and the YouTube start page show videos from the chosen learning channels. To list them, the child's browser fetches each channel's public feed from youtube.com (kept for 6 hours) and the thumbnails from YouTube's image server. YouTube sees your internet address, as when the child opens youtube.com. No account or key is used.
+- **Updates** (always on, no switch; Windows, Linux and Android): about every 6 hours (and when it starts) the program reads one small file, `update.json`, and its signature from this project's GitHub releases. When a newer version is there, it downloads that release file from GitHub, checks the signature, the size and the checksum, and installs it without asking, so that fixes reach every installed copy. Nothing about the family or the device is sent. GitHub (Microsoft) sees your internet address and the file asked for, as with any download. A file whose signature does not match our update key is never installed. Copies installed before this feature (up to 0.4.4 on Windows and Linux, 1.0.0 on Android) need one manual update first. The browser extensions are updated by their own stores.
 - **News from RaiseSteady** (asked at setup; off on installs from before 0.4.4 until the parent turns it on): when the parent page opens, it reads a small news file from raisesteady.com (at most every 6 hours; after a failed read, again 10 minutes later). Nothing about the family is sent. Our server keeps no record of these requests; your internet address reaches raisesteady.com and its network provider Cloudflare, as with any website.
 
 Everything else stays on the PC: minutes used per day, the names of sites visited (not full addresses), blocked pages, search words, game minutes and the apps that were closed, kept for 30 days, and the child's requests, kept for 7 days, all readable by administrators only. Search words are read from the address of a search result page only (never from the page), cut to 100 characters, at most 50 different ones a day; a parent can switch this off on the parent page, and then nothing is recorded. The child is told in the extension's window. The block lists are built into the extension, and pages are checked on the PC, never sent anywhere.

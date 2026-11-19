@@ -197,4 +197,10 @@
     <string name="remove_confirm">This takes every limit off this device.</string>
     <string name="removed">Protection is off. To remove the app: Settings, Apps, RaiseSteady Guard, Uninstall. Also switch off Always-on VPN for it.</string>
     <string name="setup_again">Set up again</string>
+    <!-- Self-updater (P2-260): the parent page lines (no notice on the child's phone). -->
+    <string name="update_line">Version %1$s · last update check: %2$s</string>
+    <string name="update_never">not yet</string>
+    <string name="update_failing">The last update check did not succeed. Guard will try again.</string>
+    <string name="update_ready">A new version of Guard is ready to install.</string>
+    <string name="update_install">Install</string>
 </resources>

@@ -25,5 +25,9 @@
             android:name=".debug.DebugStatusReceiver"
             android:exported="true"
             tools:ignore="ExportedReceiver" />
+        <receiver
+            android:name=".debug.DebugUpdateReceiver"
+            android:exported="true"
+            tools:ignore="ExportedReceiver" />
     </application>
 </manifest>

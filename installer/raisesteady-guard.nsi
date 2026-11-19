@@ -4,7 +4,27 @@
 ;
 ; Silent:    RaiseSteadyGuardSetup.exe /S /ACCOUNTS=all /BAND=9-12 /PIN=1234 [/DNS=off]
 ;            (/ACCOUNTS=S-1-5-21-...,S-1-5-21-... for chosen accounts)
+; Update:    RaiseSteadyGuardSetup.exe /S /UPDATE (what the agent's self-updater runs,
+;            P2-260): only over an existing install; no PIN, account or age is
+;            asked or changed, the service moves to the new program; on failure
+;            the old program is put back and started again.
 ; Uninstall: "C:\Program Files\RaiseSteadyGuard\uninstall.exe" /S /PIN=1234
+;
+; NSIS version: 3.10 or newer is required (P2-260 review S2). The self-updater
+; runs this setup as SYSTEM and points its TMP/TEMP at the admin-only
+; <data>\updates\tmp, so plug-in DLLs are not unpacked into C:\Windows\Temp.
+; Pin NSIS in CI (.github/workflows/release.yml), for example
+; `choco install nsis --version=3.11 -y`; the check below stops a build with
+; an older makensis.
+!searchparse /noerrors "${NSIS_VERSION}" "v" NSIS_MAJ "." NSIS_MIN
+!searchparse /noerrors "${NSIS_MIN}" "" NSIS_MIN "-"
+!if ${NSIS_MAJ} < 3
+  !error "NSIS 3.10 or newer is required (found ${NSIS_VERSION})"
+!else if ${NSIS_MAJ} == 3
+  !if ${NSIS_MIN} < 10
+    !error "NSIS 3.10 or newer is required (found ${NSIS_VERSION})"
+  !endif
+!endif
 
 Unicode true
 ManifestDPIAware true
@@ -67,6 +87,7 @@ Var Pin2Box
 Var UnPin
 Var UnPinBox
 Var Upgrade
+Var UpdateMode  ; 1: silent self-update (/S /UPDATE), keeps everything
 Var DnsBox
 Var FamilyDns   ; "on" or "off": AdGuard DNS Family for new accounts
 
@@ -170,8 +191,21 @@ Function .onInit
   ${EndIf}
   StrCpy $Band "9-12"
   StrCpy $FamilyDns "on"
+  StrCpy $UpdateMode 0
   ${GetParameters} $R9
   ${If} ${Silent}
+    ClearErrors
+    ${GetOptions} $R9 "/UPDATE" $0
+    ${IfNot} ${Errors}
+      ; A self-update needs an installed Guard; it never installs a new one.
+      ${If} $Upgrade != 1
+      ${OrIfNot} ${FileExists} "$INSTDIR\raisesteady-guard-agent.exe"
+        SetErrorLevel 2
+        Abort
+      ${EndIf}
+      StrCpy $UpdateMode 1
+      Return
+    ${EndIf}
     ClearErrors
     ${GetOptions} $R9 "/DNS=" $0
     ${If} $0 == "off"
@@ -394,6 +428,23 @@ Section "Install"
     File "/oname=NOTICE-go.txt" "${GO_NOTICE}"
   !endif
   WriteUninstaller "$INSTDIR\uninstall.exe"
+  ${If} $UpdateMode == 1
+    ; Self-update: the configuration (accounts, age, PIN, settings) stays as
+    ; it is; the agent moves the service to the new program and starts it.
+    DetailPrint "$(Applying)"
+    nsExec::ExecToLog '"$INSTDIR\raisesteady-guard-agent.exe" update-install'
+    Pop $0
+    ${If} $0 != 0
+      ; Put the old program back and start it: the PC stays protected.
+      Delete "$INSTDIR\raisesteady-guard-agent.exe"
+      Rename "$INSTDIR\raisesteady-guard-agent.old.exe" "$INSTDIR\raisesteady-guard-agent.exe"
+      nsExec::Exec '"$SYSDIR\sc.exe" start RaiseSteadyGuard'
+      Pop $1
+      SetErrorLevel 1
+      Abort
+    ${EndIf}
+    Goto registry
+  ${EndIf}
   ; The PIN goes to the agent in an environment variable, never on its command line.
   System::Call 'Kernel32::SetEnvironmentVariable(t "KG_PIN", t "$Pin")'
   DetailPrint "$(Applying)"
@@ -414,6 +465,7 @@ Section "Install"
     SetErrorLevel 1
     Abort
   ${EndIf}
+  registry:
   WriteRegStr HKLM "${UNINST_KEY}" "DisplayName" "${APP_NAME}"
   WriteRegStr HKLM "${UNINST_KEY}" "DisplayVersion" "${VERSION}"
   WriteRegStr HKLM "${UNINST_KEY}" "Publisher" "Nexodyne"

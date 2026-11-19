@@ -167,7 +167,11 @@ var strs = map[string]map[string]string{
 	"news_off":   {"en": "Turn off news", "ka": "სიახლეების გამორთვა", "ru": "Выключить новости"},
 	"news_hide":  {"en": "Hide", "ka": "დამალვა", "ru": "Скрыть"},
 	"news_more":  {"en": "Read more", "ka": "მეტის წაკითხვა", "ru": "Подробнее"},
-	"news_setup": {"en": "News from RaiseSteady on the parent page (reads a small file from raisesteady.com when the page opens)", "ka": "სიახლეები RaiseSteady-სგან მშობლის გვერდზე (გვერდის გახსნისას raisesteady.com-დან პატარა ფაილს კითხულობს)", "ru": "Новости от RaiseSteady на странице родителя (при открытии страница читает небольшой файл с raisesteady.com)"},
+	// The self-updater (P2-260): one calm line, no switch.
+	"upd_line":    {"en": "Version %s. Last check for updates: %s. Last update: %s.", "ka": "ვერსია %s. განახლებების ბოლო შემოწმება: %s. ბოლო განახლება: %s.", "ru": "Версия %s. Последняя проверка обновлений: %s. Последнее обновление: %s."},
+	"upd_never":   {"en": "not yet", "ka": "ჯერ არა", "ru": "ещё не было"},
+	"upd_failing": {"en": "The last checks for updates did not succeed. Guard keeps working as it is and tries again later.", "ka": "განახლებების ბოლო შემოწმებები ვერ შესრულდა. Guard ჩვეულებრივ აგრძელებს მუშაობას და მოგვიანებით ისევ სცდის.", "ru": "Последние проверки обновлений не удались. Guard продолжает работать как прежде и попробует снова позже."},
+	"news_setup":  {"en": "News from RaiseSteady on the parent page (reads a small file from raisesteady.com when the page opens)", "ka": "სიახლეები RaiseSteady-სგან მშობლის გვერდზე (გვერდის გახსნისას raisesteady.com-დან პატარა ფაილს კითხულობს)", "ru": "Новости от RaiseSteady на странице родителя (при открытии страница читает небольшой файл с raisesteady.com)"},
 }
 
 // T returns the string for key in lang, falling back to English.

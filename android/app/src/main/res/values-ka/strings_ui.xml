@@ -180,4 +180,10 @@
     <string name="remove_confirm">ეს ამ მოწყობილობიდან ყველა შეზღუდვას მოხსნის.</string>
     <string name="removed">დაცვა გამორთულია. აპის წასაშლელად: პარამეტრები, აპები, RaiseSteady Guard, წაშლა. ასევე გამორთეთ მისთვის მუდმივად ჩართული VPN.</string>
     <string name="setup_again">ხელახლა დაყენება</string>
+    <!-- Self-updater (P2-260): the parent page lines (no notice on the child's phone). -->
+    <string name="update_line">ვერსია %1$s · განახლების ბოლო შემოწმება: %2$s</string>
+    <string name="update_never">ჯერ არა</string>
+    <string name="update_failing">განახლების ბოლო შემოწმება ვერ მოხერხდა. Guard ისევ სცდის.</string>
+    <string name="update_ready">Guard-ის ახალი ვერსია მზადაა დასაყენებლად.</string>
+    <string name="update_install">დაყენება</string>
 </resources>

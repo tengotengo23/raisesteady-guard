@@ -182,4 +182,10 @@
     <string name="remove_confirm">Это снимет все ограничения на этом устройстве.</string>
     <string name="removed">Защита отключена. Чтобы удалить приложение: Настройки, Приложения, RaiseSteady Guard, Удалить. Также отключите для него постоянную VPN.</string>
     <string name="setup_again">Настроить заново</string>
+    <!-- Self-updater (P2-260): the parent page lines (no notice on the child's phone). -->
+    <string name="update_line">Версия %1$s · последняя проверка обновлений: %2$s</string>
+    <string name="update_never">ещё не было</string>
+    <string name="update_failing">Последняя проверка обновлений не удалась. Guard попробует снова.</string>
+    <string name="update_ready">Новая версия Guard готова к установке.</string>
+    <string name="update_install">Установить</string>
 </resources>

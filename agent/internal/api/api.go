@@ -18,6 +18,7 @@ import (
 	"raisesteady-guard/agent/internal/core"
 	"raisesteady-guard/agent/internal/news"
 	"raisesteady-guard/agent/internal/store"
+	"raisesteady-guard/agent/internal/update"
 )
 
 // BrowserStatus is one line of the parent page's browser list.
@@ -64,6 +65,9 @@ type Server struct {
 	// never wait for the network. Asked only when a logged-in parent opens
 	// the page and has turned news on. Nil: no news box.
 	News NewsSource
+	// Update gives the self-updater's status for one calm line on the
+	// parent page (P2-260). Nil: no line.
+	Update func() update.Status
 
 	mu       sync.Mutex // serializes configuration changes
 	sessMu   sync.Mutex
