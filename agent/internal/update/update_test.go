@@ -173,10 +173,7 @@ func TestGoodUpdate(t *testing.T) {
 	if st.Pending != "0.4.5" || st.Failures != 0 {
 		t.Fatalf("state = %+v", st)
 	}
-	fi, err := os.Stat(r.u.updatesDir())
-	if err != nil || fi.Mode().Perm() != 0o700 {
-		t.Fatalf("updates folder: %v %v", fi, err)
-	}
+	checkAdminOnly(t, r.u.updatesDir())
 	// The installer restarted the service as 0.4.5: the new run settles it.
 	r.clock = r.clock.Add(3 * time.Minute)
 	u2 := r.updater(r.u.dir, "0.4.5")

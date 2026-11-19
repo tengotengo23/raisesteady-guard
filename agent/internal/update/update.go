@@ -491,6 +491,9 @@ func (u *Updater) download(ctx context.Context, f File, kind string) (string, er
 	if err := os.MkdirAll(dir, 0o700); err != nil {
 		return "", err
 	}
+	if err := secureDir(dir); err != nil {
+		return "", fmt.Errorf("protect the updates folder: %w", err)
+	}
 	resp, cancel, err := u.open(ctx, f.URL, u.dlLimit)
 	if err != nil {
 		return "", fmt.Errorf("download: %w", err)
