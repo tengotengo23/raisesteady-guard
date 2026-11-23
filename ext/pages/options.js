@@ -73,6 +73,7 @@ function showForm(s) {
     showNews(true);
   }
   $('newsSetupRow').hidden = hasPin;
+  $('applyRow').hidden = !hasPin; // first setup: the PIN comes first, so only the Save at the end
   const current = settings.ageBand || status.config.ageBand;
   $('ages').replaceChildren(...status.bands.map((b) => el('label', { class: 'kg-choice' },
     el('input', { type: 'radio', name: 'age', value: b.id, checked: b.id === current }),
@@ -92,7 +93,10 @@ function showForm(s) {
 
 async function save(e) {
   e.preventDefault();
-  $('pinMsg').hidden = true; $('saveMsg').hidden = true;
+  $('pinMsg').hidden = true; $('saveMsg').hidden = true; $('applyMsg').hidden = true;
+  // The answer shows under the button the parent pressed (P2-271). Enter in a field presses the first
+  // submit button, Apply now, even while its row is hidden (first setup): then the answer goes under Save.
+  const m = e.submitter && e.submitter.closest('#applyRow') && !$('applyRow').hidden ? $('applyMsg') : $('saveMsg');
   const p1 = $('pin1').value.trim(), p2 = $('pin2').value.trim();
   if (p1 || p2 || !hasPin) {
     if (!/^\d{4,8}$/.test(p1)) return fieldMsg('pinMsg', t('pinFormat'), 'pin1');
@@ -111,8 +115,8 @@ async function save(e) {
     block: $('block').value.split(/\s+/).filter(Boolean),
   };
   const r = await ask('settings-save', { pin, newPin: p1 || undefined, settings: next });
-  const m = $('saveMsg');
-  if (!r || !r.ok) { m.textContent = t(r && r.locked ? 'pinLocked' : 'saveError'); m.className = 'kg-note kg-bad'; m.hidden = false; return; }
+  if (!r || !r.ok) { m.textContent = t(r && r.locked ? 'pinLocked' : 'saveError'); m.className = 'kg-note kg-bad'; m.hidden = false; m.scrollIntoView({ block: 'nearest' }); return; }
+  $('applyRow').hidden = false;
   if (p1 && !hasPin) {
     // First setup: keep the news choice from the ticked checkbox, then show the box.
     await newsSet({ newsChoice: $('newsSetup').checked ? 'on' : 'off' });

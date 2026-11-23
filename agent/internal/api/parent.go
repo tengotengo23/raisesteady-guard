@@ -406,8 +406,17 @@ func (s *Server) redirect(w http.ResponseWriter, r *http.Request, lang, kind, ms
 	for i := 0; i+1 < len(extra); i += 2 {
 		q.Set(extra[i], extra[i+1])
 	}
-	http.Redirect(w, r, "/parent?"+q.Encode(), http.StatusSeeOther)
+	// Land on the section that was saved, where its answer shows (P2-271); the page has no scripts.
+	frag := ""
+	if id := secAnchor[q.Get("sec")]; id != "" {
+		frag = "#" + id
+	}
+	http.Redirect(w, r, "/parent?"+q.Encode()+frag, http.StatusSeeOther)
 }
+
+// Where each saved section lands in web/parent.html: its heading ("<sec>-h"), except the limits,
+// which land on their Apply now button, so its answer right below is in view (P2-271).
+var secAnchor = map[string]string{"accounts": "accounts-h", "apps": "apps-h", "limits": "limits-apply", "news": "news-h", "pause": "pause-h", "pin": "pin-h", "requests": "requests-h"}
 
 func setCookie(w http.ResponseWriter, name, value string, maxAge int) {
 	http.SetCookie(w, &http.Cookie{Name: name, Value: value, Path: "/parent", MaxAge: maxAge, HttpOnly: true, SameSite: http.SameSiteStrictMode})

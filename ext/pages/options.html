@@ -82,6 +82,12 @@
       <label class="kg-check"><input id="bedNone" type="checkbox"><span data-i18n="bedOff"></span></label>
     </section>
 
+    <!-- Apply now (P2-271): right under the times, so a parent need not scroll to the end; saves the whole form -->
+    <div id="applyRow" class="op-actions" hidden>
+      <button class="kg-btn" type="submit" data-i18n="applyNow"></button>
+      <p id="applyMsg" class="kg-note" role="status" hidden></p>
+    </div>
+
     <section class="kg-card op-grid">
       <h2 data-i18n="switchesTitle"></h2>
       <label class="kg-check"><input id="focusMode" type="checkbox"><span data-i18n="focusLabel"></span></label>

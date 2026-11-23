@@ -72,3 +72,5 @@ th a[aria-current="date"] { font-weight: 700; text-decoration-thickness: 3px; }
 
 /* P2-251: PIN boxes are text boxes drawn as dots, so no browser offers to save the PIN. */
 input.kg-pin { -webkit-text-security: disc; letter-spacing: 0.15em; }
+/* P2-271: a save of the limits lands on Apply now; keep the times above it in view too. */
+#limits-apply { scroll-margin-top: 6rem; }

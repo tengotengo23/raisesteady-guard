@@ -142,6 +142,14 @@ export async function applyRules(api, s) {
 }
 
 /** Send open tabs that are now blocked to the block page. */
+// Block reasons that end by themselves when the parent changes a setting or the time comes (P2-271).
+export const LIFTING = ['time', 'video', 'bedtime', 'paused', 'homework'];
+const HOLDS = { time: 'timeOver', video: 'videoOver', bedtime: 'bedtime', paused: 'paused', homework: 'homework' };
+/** True when a block page shown for `reason` may let the child go on: that reason no longer holds. */
+export function lifted(reason, s) {
+  return LIFTING.includes(reason) && !!s && !s[HOLDS[reason]];
+}
+
 export async function sweepTabs(api, s, hostOf, onRedirect) {
   let tabs = [];
   try { tabs = await api.tabs.query({}); } catch { return; }

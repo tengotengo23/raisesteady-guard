@@ -179,6 +179,10 @@
           <div class="stack"><label for="bedEnd">{{t .Lang "ends"}}</label><input id="bedEnd" name="bedEnd" type="time" value="{{.Settings.Bedtime.End}}" required></div>
         </div>
       </fieldset>
+      <!-- Apply now (P2-271): right under the times; it saves the whole form, like Save at the end.
+           The answer shows here, where the page lands after saving (#limits-apply). -->
+      <button type="submit" class="btn" id="limits-apply">{{t .Lang "apply_now"}}</button>
+      {{if eq .MsgSec "limits"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
       <fieldset>
         <legend>{{t .Lang "weekend"}}</legend>
         <label class="check"><input type="checkbox" name="weekendOn" aria-describedby="weekend-hint"{{if .Weekend.On}} checked{{end}}> <span>{{t .Lang "weekend_on"}}</span></label>
@@ -220,7 +224,6 @@
       <label for="block">{{t .Lang "block"}}</label>
       <textarea id="block" name="block" rows="4" spellcheck="false" autocapitalize="off">{{.BlockText}}</textarea>
       <button type="submit" class="btn">{{t .Lang "save"}}</button>
-      {{if eq .MsgSec "limits"}}{{if .Msg}}<p class="msg {{.MsgKind}}" role="status">{{.Msg}}</p>{{end}}{{end}}
     </form>
     <form method="post" action="/parent/defaults" class="after">
       <input type="hidden" name="csrf" value="{{.CSRF}}"><input type="hidden" name="lang" value="{{.Lang}}"><input type="hidden" name="a" value="{{.Account}}">

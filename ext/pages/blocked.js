@@ -1,12 +1,16 @@
 // Block page: calm words for each reason, what to do next, and "Ask a parent" (PIN, then allow or add time).
 import { APP_NAME } from '../ui/brand.js';
 import { loadI18n, applyI18n } from '../ui/i18n.js';
-import { ask, getStatus, bandBookmarks, bookmarkTiles, el } from '../ui/page.js';
+import { ask, getStatus, bandBookmarks, bookmarkTiles, el, api } from '../ui/page.js';
 import { setupEmergency } from '../ui/emergency.js';
 
 const REASONS = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent', 'time', 'video', 'bedtime', 'shorts', 'curated', 'paused', 'homework', 'topic'];
 const ALLOWABLE = ['adult', 'gambling', 'bypass', 'social', 'content', 'parent', 'homework', 'topic'];
 const TIMED = ['time', 'video'];
+// Reasons that end by themselves (guard.js LIFTING, P2-271): the page then opens what the child wanted.
+const LIFTING = ['time', 'video', 'bedtime', 'paused', 'homework'];
+// While a parent's PIN grant runs, and briefly after it, the page waits: the child first reads the answer.
+let liftHoldUntil = 0;
 
 const ART = {
   leaf: '<svg viewBox="0 0 96 96"><circle cx="48" cy="48" r="46" fill="var(--kg-mint-light)"/><path d="M30 64c0-20 14-34 36-36-1 22-15 36-34 36z" fill="var(--kg-mint)"/><path d="M30 66c8-10 16-18 28-26" stroke="var(--kg-navy)" stroke-width="3" stroke-linecap="round" fill="none"/></svg>',
@@ -101,7 +105,9 @@ function setupAsk(t, status, site, targetUrl) {
 
   async function doGrant(g) {
     for (const b of $('grants').querySelectorAll('button')) b.disabled = true;
+    liftHoldUntil = Infinity;
     const r = await ask('grant', { pin, ...g });
+    liftHoldUntil = r && r.ok ? Date.now() + 1500 : 0;
     if (!r || !r.ok) {
       for (const b of $('grants').querySelectorAll('button')) b.disabled = false;
       return showMsg('grantMsg', t(r && r.offline ? 'pinOffline' : r && r.locked ? 'pinLocked' : 'pinWrong'), true);
@@ -137,4 +143,33 @@ function showMsg(id, text, bad) {
 }
 function hide(id) { $(id).hidden = true; }
 
+// The block lifts by itself (P2-271): when the parent changes a setting (here or in the agent's panel)
+// or the time comes, the page the child wanted opens. We ask when the rules change and, while the page is
+// in view, every 5 seconds for 2 minutes, then every 30 seconds (a bedtime page may stay open all night).
+function watchLift() {
+  if (!LIFTING.includes(reason)) return;
+  let busy = false, gone = false;
+  const check = async () => {
+    if (busy || gone || Date.now() < liftHoldUntil) return;
+    busy = true;
+    try {
+      const r = await ask('release', { reason });
+      if (r && typeof r.url === 'string' && r.url) { gone = true; location.replace(r.url); }
+    } catch { /* try again on the next round */ } finally { busy = false; }
+  };
+  let since = Date.now(), timer = 0;
+  const next = () => {
+    clearTimeout(timer);
+    if (gone || document.visibilityState !== 'visible') return;
+    timer = setTimeout(async () => { await check(); next(); }, Date.now() - since < 120000 ? 5000 : 30000);
+  };
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') { since = Date.now(); check(); }
+    next();
+  });
+  next();
+  try { api.runtime.onMessage.addListener((m) => { if (m && m.type === 'kg:page:rules') check(); }); } catch { /* the timer still runs */ }
+}
+
 main();
+watchLift();

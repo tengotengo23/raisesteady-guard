@@ -219,6 +219,71 @@ try {
     await hook({ type: 'kg:core:test', op: 'set-usage', browseSec: 0 });
   }
 
+  // 7b. P2-271: the block lifts by itself. The child waits on the time page; the parent lifts the limit
+  //     ("Apply now" under the times, after unlocking); within seconds the page the child wanted opens.
+  {
+    await hook({ type: 'kg:core:test', op: 'set-usage', browseSec: 600 * 60 }); // past the limit and the 15 minutes added above
+    const { p: kid, final } = await visit('http://news.kgtest.example/lift', 600);
+    check('lift: the child waits on the time block page', reasonOf(final) === 'time', final);
+    const opt = await browser.newPage();
+    await opt.setViewport({ width: 1280, height: 900 });
+    await opt.goto(`${ORIGIN}/pages/options.html`, { waitUntil: 'networkidle0' });
+    await opt.waitForSelector('#lockPin', { visible: true, timeout: 5000 });
+    await opt.type('#lockPin', '2468');
+    await opt.click('#lockForm button[type=submit]');
+    await opt.waitForSelector('#applyRow:not([hidden]) button', { visible: true, timeout: 5000 });
+    const order = await opt.evaluate(() => {
+      const y = (sel) => document.querySelector(sel).getBoundingClientRect().top;
+      return { bed: y('#bedEnd'), apply: y('#applyRow button'), focus: y('#focusMode'), save: y('#form > .op-actions:not(#applyRow) button') };
+    });
+    check('"Apply now" sits under the times, above the switches and the Save at the end', order.bed < order.apply && order.apply < order.focus && order.focus < order.save, JSON.stringify(order));
+    await opt.$eval('#browseNone', (e) => { if (!e.checked) e.click(); });
+    const t0 = Date.now();
+    await opt.click('#applyRow button');
+    await opt.waitForSelector('#applyMsg:not([hidden])', { timeout: 5000 });
+    const msg = await opt.$eval('#applyMsg', (e) => e.textContent);
+    check('"Apply now" answers right under the button', /Saved\. It applies now\./.test(msg), msg);
+    let back = false;
+    for (let i = 0; i < 40 && !back; i++) { await sleep(250); back = kid.url().startsWith('http://news.kgtest.example/lift'); }
+    check('the time page lifts by itself after the parent removes the limit', back, `${kid.url()} after ${Date.now() - t0} ms`);
+    await kid.close();
+    // The limit back on, as the other checks expect (band default), the same way: Apply now.
+    await opt.$eval('#browseNone', (e) => { if (e.checked) e.click(); });
+    await opt.$eval('#browseMin', (e) => { e.value = '120'; });
+    await opt.click('#applyRow button');
+    await sleep(600);
+    await opt.close();
+    await hook({ type: 'kg:core:test', op: 'set-usage', browseSec: 0 });
+    // Firefox sizes the popup from a tiny first viewport: the popup must keep its own width there, and once
+    // the popup is its own width (22rem: 352 px at font 16, 440 px at this profile's font 20), the narrow-screen
+    // rule must not match (review: it did at exactly 22rem).
+    const pop = await browser.newPage();
+    await pop.goto(`${ORIGIN}/pages/popup.html`, { waitUntil: 'networkidle0' });
+    const own = await pop.evaluate(() => Math.round(22 * parseFloat(getComputedStyle(document.documentElement).fontSize)));
+    const zoom = await pop.evaluate(() => devicePixelRatio); // this profile zooms pages to 110 %
+    const widths = {};
+    for (const css of [40, own - 1, own, own + 1]) { // window widths in CSS pixels, as the page sees them
+      await pop.setViewport({ width: Math.round(css * zoom), height: 600 });
+      await pop.goto(`${ORIGIN}/pages/popup.html`, { waitUntil: 'networkidle0' });
+      const r = await pop.evaluate(() => [innerWidth, Math.round(document.documentElement.getBoundingClientRect().width)]);
+      widths[r[0]] = r[1];
+    }
+    check(`popup keeps its own 22rem (${own} px) in a 40 px first viewport and at 22rem - 1, 22rem, 22rem + 1`, Object.values(widths).every((x) => x === own), JSON.stringify(widths));
+    await pop.close();
+    // The real toolbar popup (chrome.action.openPopup), measured twice: it opens at its own width and stays there.
+    const known = new Set(browser.targets());
+    await (await swTarget.worker()).evaluate(() => chrome.action.openPopup());
+    const popT = await browser.waitForTarget((t) => !known.has(t) && t.url().endsWith('/pages/popup.html'), { timeout: 8000 });
+    const real = await popT.asPage();
+    const measure = () => real.evaluate(() => ({ view: innerWidth, html: Math.round(document.documentElement.getBoundingClientRect().width), side: document.documentElement.scrollWidth > innerWidth + 1 }));
+    await sleep(600);
+    const m1 = await measure();
+    await sleep(900);
+    const m2 = await measure();
+    check('real toolbar popup opens at its own width and stays (no thin column, no flip)', [m1, m2].every((m) => m.html === own && m.view >= own - 12 && !m.side), JSON.stringify([m1, m2]));
+    await real.close();
+  }
+
   // 8. Layout: new tab and block pages at 360 and 1280 px, font 20 / fixed 17, 110 % zoom, both motion modes
   const pages = [['new tab', `${ORIGIN}/pages/newtab.html`], ['block page (adult)', `${ORIGIN}/pages/blocked.html?reason=adult&site=example.com`], ['block page (time)', `${ORIGIN}/pages/blocked.html?reason=time`], ['block page (bedtime)', `${ORIGIN}/pages/blocked.html?reason=bedtime`], ['block page (curated)', `${ORIGIN}/pages/blocked.html?reason=curated`], ['popup', `${ORIGIN}/pages/popup.html`], ['options', `${ORIGIN}/pages/options.html`]];
   for (const [label, url] of pages) {

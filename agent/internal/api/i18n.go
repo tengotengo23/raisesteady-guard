@@ -58,6 +58,7 @@ var strs = map[string]map[string]string{
 	"allow":               {"en": "Always allowed sites, one per line", "ka": "ყოველთვის დაშვებული საიტები, თითო ხაზზე ერთი", "ru": "Всегда разрешённые сайты, по одному в строке"},
 	"block":               {"en": "Blocked sites, one per line", "ka": "დაბლოკილი საიტები, თითო ხაზზე ერთი", "ru": "Заблокированные сайты, по одному в строке"},
 	"save":                {"en": "Save", "ka": "შენახვა", "ru": "Сохранить"},
+	"apply_now":           {"en": "Apply now", "ka": "ახლავე ამოქმედება", "ru": "Применить сейчас"},
 	"defaults":            {"en": "Use the recommended times for this age", "ka": "ამ ასაკისთვის რეკომენდებული დროის დაყენება", "ru": "Поставить рекомендуемое время для этого возраста"},
 	"saved":               {"en": "Saved. It applies now.", "ka": "შენახულია და უკვე მოქმედებს.", "ru": "Сохранено и уже действует."},
 	"bad_input":           {"en": "Please check the values: nothing was saved.", "ka": "გთხოვთ, შეამოწმოთ მნიშვნელობები: არაფერი შენახულა.", "ru": "Проверьте значения: ничего не сохранено."},

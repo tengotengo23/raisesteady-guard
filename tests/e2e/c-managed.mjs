@@ -190,6 +190,56 @@ try {
     await hook({ type: 'kg:core:test', op: 'set-usage', browseSec: 0, videoSec: 0 });
   }
 
+  // 4b. P2-271 (seen on Fedora): the child waits on the time page; the parent raises the limit in the
+  //     agent's panel with "Apply now" (under the times); the time page lifts by itself within seconds.
+  {
+    await parentPage();
+    const before = await parent.$eval('#browseMin', (e) => e.value);
+    const setBrowse = async (v) => {
+      await parent.bringToFront(); // the parent's own tab, in front of the child's
+      await parent.$eval('#browseMin', (e, x) => { e.value = x; }, String(v));
+      await submit('form[action="/parent/save"] button[type=submit]'); // the first one: Apply now
+    };
+    await setBrowse(30);
+    await sync();
+    await hook({ type: 'kg:core:test', op: 'set-usage', browseSec: 60 * 60 }); // past 30 min and the 15 added above
+    const kid = await visit('http://plain.kgtest.example/lift', 'time page (lift)');
+    check('lift: the child waits on the time page', reasonOf(kid.url()) === 'time', kid.url());
+    const firstBtn = await parent.$eval('form[action="/parent/save"] button[type=submit]', (e) => e.textContent.trim());
+    check('panel: the first button under the times is "Apply now"', firstBtn === 'Apply now', firstBtn);
+    const t0 = Date.now();
+    await setBrowse(120);
+    const landed = parent.url();
+    const msg = await parent.evaluate(() => {
+      const b = document.querySelector('form[action="/parent/save"] button[type=submit]');
+      const m = b && b.nextElementSibling;
+      return m && m.matches('p.msg') ? m.textContent.trim() : '';
+    });
+    check('panel: after Apply now the page lands on Apply now, the answer under it', landed.endsWith('#limits-apply') && msg === 'Saved. It applies now.', `${landed} | ${msg}`);
+    let back = false;
+    for (let i = 0; i < 60 && !back; i++) { await sleep(250); back = kid.url().startsWith('http://plain.kgtest.example/lift'); }
+    check('the time page lifts by itself after the parent raises the limit in the panel', back, `${kid.url()} after ${Date.now() - t0} ms`);
+    await kid.close();
+    // 4c. (P2-271 review) A save with the same values in the address lands on the same address: no url
+    //     change, only "complete". With no block page open to ask, the extension must still read the agent
+    //     at once, not at its next 55-second read.
+    await setBrowse(30);
+    await sync();
+    await hook({ type: 'kg:core:test', op: 'set-usage', browseSec: 60 * 60 });
+    const kid2 = await visit('http://plain.kgtest.example/same', 'time page (same address)');
+    check('same address: the child is on the time page again', reasonOf(kid2.url()) === 'time', kid2.url());
+    await kid2.close();
+    const addr = parent.url();
+    await setBrowse(120);
+    check('same address: the save lands on the same address as the one before', parent.url() === addr, `${addr} | ${parent.url()}`);
+    await sleep(2500);
+    const kid3 = await visit('http://plain.kgtest.example/same', 'open after a same-address save');
+    check('a save on the same address applies at once (no block page open)', kid3.url().startsWith('http://plain.kgtest.example/same'), kid3.url());
+    await kid3.close();
+    await setBrowse(before);
+    await hook({ type: 'kg:core:test', op: 'set-usage', browseSec: 0, videoSec: 0 });
+  }
+
   // 5. Pause: the parent pauses for 30 min; every site shows the paused page; the PIN there ends it.
   {
     await parentPage();

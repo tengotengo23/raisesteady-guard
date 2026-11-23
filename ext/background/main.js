@@ -12,7 +12,7 @@ import { resolveConfig, publicConfig, readManaged, readLocalSettings, loadJSON, 
 import { emptyUsage, observe, effectiveUsed, limitStatus, dueNotices, takeReport, settleReport, reconcileDay, addSearch } from './usage.js';
 import { LOCAL_CLOCK, fixedClock, parseOffsetMin, isBedtimeAt, minutesUntilBedtimeAt, normBedtime, limitsOn, isBedtimeSched, isHomeworkAt, isPausedAt, bedtimeNow } from './schedule.js';
 import { searchQuery } from './searches.js';
-import { applyRules, sweepTabs, blockedUrl, contentScope } from './guard.js';
+import { applyRules, sweepTabs, blockedUrl, contentScope, LIFTING, lifted } from './guard.js';
 import { topicSearch, topicsStore, helplineHost } from './topics.js';
 import { applyRulesets } from './safesearch.js';
 import { createAgent } from './agent.js';
@@ -148,8 +148,38 @@ function guardState(nowMs = Date.now()) {
 async function applyGuard(s = guardState()) {
   let changed = false;
   try { changed = await applyRules(api, s); } catch (e) { console.warn('[kg] rules', e); }
-  if (changed) await sweepTabs(api, s, hostOf, (tabId, url) => rememberAttempt(tabId, url));
+  if (changed) {
+    await sweepTabs(api, s, hostOf, (tabId, url) => rememberAttempt(tabId, url));
+    // Open block pages look again at once (P2-271): a limit the parent lifted lets the child go on.
+    try { api.runtime.sendMessage({ type: 'kg:page:rules' }).catch(() => {}); } catch { /* no page open */ }
+  }
   return s;
+}
+
+// A block page asks every few seconds and when the rules change (P2-271). We read the agent again
+// (at most every 4 s, so the parent's change in the agent's panel applies at once), then say where
+// the child may go now: the page they wanted, or the new tab page when we do not know it.
+let lastRelease = 0;
+async function releaseFor(msg, sender) {
+  const reason = String(msg.reason || '');
+  if (!LIFTING.includes(reason)) return { url: null };
+  if (Date.now() - lastRelease >= 4000) {
+    lastRelease = Date.now();
+    if (!cfg.standalone) lastSync = 0;
+    await serial(tick);
+  } else {
+    await serial(() => {}); // a sync another block page started: read the state after it, not before
+  }
+  if (!lifted(reason, guardState())) return { url: null };
+  const want = sender.tab ? attempted.get(sender.tab.id) : null;
+  return { url: want && /^https?:/.test(want) ? want : api.runtime.getURL('pages/newtab.html') };
+}
+
+// The agent's parent panel in this browser after a successful save ("?ok=..."): read the agent at once.
+function panelSaved(url) {
+  if (!cfg || cfg.standalone || !cfg.agentPort) return false;
+  const m = /^http:\/\/(?:127\.0\.0\.1|localhost):(\d+)\/parent\?(?:[^#]*&)?ok=/.exec(String(url || ''));
+  return !!m && Number(m[1]) === cfg.agentPort;
 }
 
 async function newDay() {
@@ -451,6 +481,7 @@ async function handle(msg, sender) {
       return { url, host: url ? hostOf(url) : null };
     }
     case 'blocked-shown': return blockedShown(msg, sender);
+    case 'release': return releaseFor(msg, sender);
     case 'pin': return verifyPin(msg.pin);
     case 'grant': return grant(msg);
     case 'request': return childRequest(msg);
@@ -499,12 +530,15 @@ api.alarms.onAlarm.addListener((a) => { if (a.name === TICK) kick(); });
 api.windows.onFocusChanged.addListener((id) => { focused = id !== api.windows.WINDOW_ID_NONE; kick(); });
 api.idle.onStateChanged.addListener((st) => { idleState = st; kick(); });
 api.tabs.onActivated.addListener(kick);
-api.tabs.onUpdated.addListener((id, info) => {
+api.tabs.onUpdated.addListener((id, info, tab) => {
   if (info.url) {
     ready.then(() => { checkTopicSearch(id, info.url); noteSearch(id, info.url); }).catch(() => {});
     // Pages that change their address without a reload (single-page sites): the page check looks again.
     if (/^https?:/.test(info.url)) api.tabs.sendMessage(id, { type: 'kg:core:recheck' }, { frameId: 0 }).catch(() => {});
   }
+  // The agent's panel after a save: read the agent now (P2-271). Every load ends with "complete", also a
+  // second save with the same values, which lands on the same address and so brings no url change.
+  if (info.status === 'complete' && tab && panelSaved(tab.url)) lastSync = 0; // the tick below reads the agent
   if (info.url || info.status === 'complete') kick();
 });
 api.tabs.onRemoved.addListener((id) => { dropTabVideos(id); attempted.delete(id); lastSearch.delete(id); kick(); });

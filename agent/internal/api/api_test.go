@@ -359,6 +359,10 @@ func (b *browser) send(method, path string, form url.Values, origin string) *htt
 	if form != nil {
 		body = strings.NewReader(form.Encode())
 	}
+	// A browser never sends the #fragment of a redirect target (P2-271 lands on "#limits-apply").
+	if i := strings.IndexByte(path, '#'); i >= 0 {
+		path = path[:i]
+	}
 	hr := httptest.NewRequest(method, base+path, body)
 	if form != nil {
 		hr.Header.Set("Content-Type", "application/x-www-form-urlencoded")
@@ -488,6 +492,16 @@ func TestParentCSRFAndOrigin(t *testing.T) {
 	}
 	if !strings.Contains(b.send("GET", w.Header().Get("Location"), nil, "").Body.String(), "Saved. It applies now.") {
 		t.Fatal("saved message not shown")
+	}
+	// P2-271: the page lands on "Apply now" (id limits-apply), and the answer shows right under it;
+	// the button sits under the times (before the weekend fields and the Save at the end).
+	if !strings.HasSuffix(w.Header().Get("Location"), "#limits-apply") {
+		t.Fatalf("save does not land on the section: %s", w.Header().Get("Location"))
+	}
+	page := b.send("GET", w.Header().Get("Location"), nil, "").Body.String()
+	iBed, iApply, iMsg, iWeekend := strings.Index(page, `id="bedEnd"`), strings.Index(page, `id="limits-apply">Apply now<`), strings.Index(page, "Saved. It applies now."), strings.Index(page, `name="weekendOn"`)
+	if iBed < 0 || iApply < iBed || iMsg < iApply || iWeekend < iMsg {
+		t.Fatalf("apply now / message order: bed %d apply %d msg %d weekend %d", iBed, iApply, iMsg, iWeekend)
 	}
 	// Bad values: nothing saved.
 	form.Set("browseMin", "-5")

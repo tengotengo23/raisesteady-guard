@@ -30,8 +30,14 @@
 .nt-section { margin-top: var(--kg-gap-l); }
 .nt-videos:empty { display: none; }
 
-/* Popup */
-.pp { width: 22rem; max-width: 100vw; padding: 16px; }
+/* Popup (P2-271): its own width, never a share of a tiny viewport. Firefox measures the popup while its
+   viewport is still tiny (under 12rem); 100vw or min-height: 100vh then gave a thin column of text.
+   A narrow screen or window (12rem to 22rem: a phone, Firefox for Android shows the popup as a page) fits it. */
+html.pp-root, html.pp-root body { width: 22rem; min-height: 0; }
+/* The range ends a whole rem below the popup's own 22rem: a popup sized to 22rem (351.8px at 110% zoom) must not
+   match it and turn content-sized again (P2-271 review). Do not set a font-size on html: both rems must agree. */
+@media (min-width: 12rem) and (max-width: 21rem) { html.pp-root, html.pp-root body { width: auto; } }
+.pp { width: 100%; padding: 16px; }
 .pp h1 { font-size: var(--kg-size-l); }
 .pp-list { list-style: none; margin: 0; padding: 0; }
 .pp-list li { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--kg-line); }
